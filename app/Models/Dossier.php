@@ -58,7 +58,8 @@ final class Dossier
     {
         return Database::all(
             'SELECT a.id, a.slug, a.title, a.summary, a.editorial_type, a.status, a.published_at,
-                    c.name AS category_name, m.storage_path AS hero_path, m.alt_text AS hero_media_alt
+                    c.name AS category_name, c.slug AS category_slug,
+                    m.storage_path AS hero_path, m.alt_text AS hero_media_alt
                FROM articles a
                LEFT JOIN categories c ON c.id = a.category_id
                LEFT JOIN media_assets m ON m.id = a.hero_media_id

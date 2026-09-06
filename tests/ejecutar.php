@@ -710,6 +710,45 @@ foreach (['app', 'config', 'public', 'scripts', 'database'] as $carpeta) {
 }
 Pruebas::afirmar($fugas === [], 'Ninguna contraseña embebida en el código', implode(' | ', $fugas));
 
+
+// =====================================================================
+Pruebas::grupo('18 · Las tarjetas nunca quedan sin enlace de sección');
+// =====================================================================
+
+// Una tarjeta muestra el nombre de la sección y lo enlaza. Si una consulta
+// trae el nombre pero olvida la dirección, la plantilla intentaba construir
+// un enlace vacío. Cualquier consulta que pida uno debe pedir el otro.
+$fuentes = [];
+foreach (['app/Models', 'app/Services'] as $carpeta) {
+    foreach (glob(dirname(__DIR__) . '/' . $carpeta . '/*.php') as $archivo) {
+        $fuentes[$archivo] = (string) file_get_contents($archivo);
+    }
+}
+
+$incompletas = [];
+foreach ($fuentes as $archivo => $codigo) {
+    // Cada consulta se mira entera, desde SELECT hasta el cierre de la cadena.
+    if (preg_match_all("/'SELECT.*?'/s", $codigo, $coincidencias) === false) {
+        continue;
+    }
+    foreach ($coincidencias[0] as $consulta) {
+        $tieneNombre = str_contains($consulta, 'AS category_name');
+        $tieneRuta   = str_contains($consulta, 'AS category_slug');
+        if ($tieneNombre && !$tieneRuta) {
+            $incompletas[] = basename($archivo);
+        }
+    }
+}
+
+Pruebas::afirmar($incompletas === [],
+    'Toda consulta que pide el nombre de la sección pide también su dirección'
+    . ($incompletas === [] ? '' : ' (falta en: ' . implode(', ', array_unique($incompletas)) . ')'));
+
+// Y aunque faltara, la plantilla no debe romperse: sin dirección, texto plano.
+$plantilla = (string) file_get_contents(dirname(__DIR__) . '/app/Views/partials/tarjeta.php');
+Pruebas::afirmar(str_contains($plantilla, 'empty($pieza[\'category_slug\'])'),
+    'La tarjeta comprueba la dirección antes de construir el enlace');
+
 // =====================================================================
 // LIMPIEZA
 // =====================================================================

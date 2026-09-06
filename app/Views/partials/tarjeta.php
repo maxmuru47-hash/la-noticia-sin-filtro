@@ -38,7 +38,11 @@ $ruta      = '/noticia/' . $pieza['slug'];
 
     <div class="tarjeta__pie">
       <?php if (!empty($pieza['category_name'])): ?>
-        <a href="/categoria/<?= atributo($pieza['category_slug']) ?>"><?= e($pieza['category_name']) ?></a>
+        <?php if (!empty($pieza['category_slug'])): ?>
+          <a href="/categoria/<?= atributo($pieza['category_slug']) ?>"><?= e($pieza['category_name']) ?></a>
+        <?php else: ?>
+          <span><?= e($pieza['category_name']) ?></span>
+        <?php endif; ?>
         <span aria-hidden="true">·</span>
       <?php endif; ?>
       <time datetime="<?= atributo(fechaIso($pieza['published_at'])) ?>"><?= e(fechaLarga($pieza['published_at'])) ?></time>

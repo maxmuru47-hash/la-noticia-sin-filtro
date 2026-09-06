@@ -82,7 +82,7 @@ final class Live
         }
         return Database::all(
             'SELECT a.id, a.slug, a.title, a.summary, a.editorial_type, a.published_at, a.status,
-                    la.moment, c.name AS category_name
+                    la.moment, c.name AS category_name, c.slug AS category_slug
                FROM articles a
                JOIN live_articles la ON la.article_id = a.id
                LEFT JOIN categories c ON c.id = a.category_id

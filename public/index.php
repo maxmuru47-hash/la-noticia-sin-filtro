@@ -8,7 +8,11 @@ declare(strict_types=1);
  * portada, la noticia, el archivo y el buscador siguen funcionando.
  */
 
-$config = require __DIR__ . '/../app/bootstrap.php';
+// rutas.php dice dónde está el resto del código. Es el único archivo que
+// hay que tocar si el proyecto vive fuera de la carpeta pública.
+require __DIR__ . '/rutas.php';
+
+$config = require $rutaBootstrap;
 
 use App\Controllers\ApiController;
 use App\Controllers\ArchiveController;

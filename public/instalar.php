@@ -17,7 +17,8 @@ declare(strict_types=1);
  * Aun así: BÓRRALO cuando acabes. Es el último paso de la guía.
  */
 
-require __DIR__ . '/../app/bootstrap.php';
+require __DIR__ . '/rutas.php';
+require $rutaBootstrap;
 
 use App\Support\Database;
 use App\Support\Str;
@@ -42,7 +43,7 @@ foreach ([
     'storage/logs'      => LNSF_ROOT . '/storage/logs',
     'storage/backups'   => LNSF_ROOT . '/storage/backups',
     'storage/originals' => LNSF_ROOT . '/storage/originals',
-    'public/uploads'    => LNSF_ROOT . '/public/uploads',
+    'public/uploads'    => LNSF_PUBLIC . '/uploads',
 ] as $nombre => $ruta) {
     $requisitos['Carpeta ' . $nombre] = [
         'ok'    => is_dir($ruta) && is_writable($ruta),

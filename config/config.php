@@ -8,6 +8,12 @@ Env::load($root . '/.env');
 
 $appUrl = rtrim((string) Env::get('APP_URL', 'http://localhost:8000'), '/');
 
+/*
+ * Carpeta pública real. La define public/index.php, que siempre vive dentro
+ * de ella. Si por lo que sea no llegara, se usa la de dentro del proyecto.
+ */
+$publico = defined('LNSF_PUBLIC') ? LNSF_PUBLIC : $root . '/public';
+
 return [
     'app' => [
         'name'      => (string) Env::get('APP_NAME', 'La Noticia SIN FILTRO'),
@@ -39,7 +45,7 @@ return [
     ],
 
     'uploads' => [
-        'public_path'   => $root . '/public/uploads',
+        'public_path'   => $publico . '/uploads',
         'originals_path' => $root . '/storage/originals',
         'max_image_bytes'    => Env::int('UPLOAD_MAX_IMAGE_MB', 8) * 1024 * 1024,
         'max_video_bytes'    => Env::int('UPLOAD_MAX_VIDEO_MB', 200) * 1024 * 1024,
