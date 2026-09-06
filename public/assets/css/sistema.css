@@ -16,7 +16,8 @@
   --carbon-suave: #2A2A2A;
   --blanco:       #FFFFFF;
   --rojo:         #C1121F;
-  --rojo-claro:   #E03B47;
+  --rojo-claro:   #E03B47;   /* solo decorativo: 4.3:1 sobre blanco, no apto para texto */
+  --rojo-sobre-oscuro: #FF7A83;  /* texto rojo sobre negro o carbon: 8.4:1 y 6.8:1 */
   --rojo-oscuro:  #8E0D17;
 
   /* Lectura larga: blanco calido, no blanco puro */
@@ -30,7 +31,7 @@
 
   /* Certeza editorial */
   --confirmado:   #1F6F43;
-  --probable:     #A66A00;
+  --probable:     #8A5800;   /* 6.0:1 sobre blanco. El #A66A00 anterior daba 4.48 */
   --disputado:    #8E0D17;
 
   /* Tipografia
@@ -189,8 +190,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: 2px;
   border: 1.5px solid currentColor;
   line-height: 1.2;
-  white-space: nowrap;
   text-decoration: none;
+  /* Las etiquetas cortas no se parten solas, pero una de expediente con
+     nombre largo debe poder hacerlo: en un telefono, un nowrap aqui
+     empujaba la pagina entera y creaba desplazamiento horizontal. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Area sensible de 44px sin engordar la pastilla. El pseudo-elemento se
+   extiende sobre los margenes que ya existen arriba y abajo, asi que no
+   se solapa con ningun otro control. */
+a.etiqueta-tipo {
+  position: relative;
+}
+a.etiqueta-tipo::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
 }
 
 .etiqueta-tipo--noticia      { color: var(--carbon); background: transparent; }
@@ -198,6 +219,22 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .etiqueta-tipo--opinion      { color: var(--rojo); background: rgba(193, 18, 31, 0.06); }
 .etiqueta-tipo--explicador   { color: var(--confirmado); }
 .etiqueta-tipo--verificacion { color: #6B3FA0; }
+
+/* Sobre una tarjeta oscura, estos mismos tonos caen por debajo de 3:1.
+   Cada variante clara esta medida sobre el carbon suave de la tarjeta:
+   blanco 14.4:1, azul 6.4:1, rojo 5.7:1, verde 8.1:1, morado 6.8:1. */
+.seccion--oscura .etiqueta-tipo--noticia,
+.seccion--carbon .etiqueta-tipo--noticia      { color: var(--blanco); }
+.seccion--oscura .etiqueta-tipo--analisis,
+.seccion--carbon .etiqueta-tipo--analisis     { color: #7FB2E5; }
+.seccion--oscura .etiqueta-tipo--opinion,
+.seccion--carbon .etiqueta-tipo--opinion      { color: var(--rojo-sobre-oscuro); background: rgba(255, 122, 131, 0.1); }
+.seccion--oscura .etiqueta-tipo--explicador,
+.seccion--carbon .etiqueta-tipo--explicador   { color: #6FD79B; }
+.seccion--oscura .etiqueta-tipo--verificacion,
+.seccion--carbon .etiqueta-tipo--verificacion { color: #C4A5F0; }
+.seccion--oscura .etiqueta-tipo,
+.seccion--carbon .etiqueta-tipo               { color: var(--blanco); }
 
 /* Aviso permanente sobre la opinion firmada. */
 .franja-opinion {
@@ -300,6 +337,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .marca {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
   text-decoration: none;
   line-height: 1;
   flex-shrink: 0;
@@ -364,6 +403,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--blanco);
   padding: 0.55rem var(--e2);
   min-width: 9rem;
+  min-height: 44px;
   font-size: var(--t-sm);
 }
 .buscar-mini input::placeholder { color: rgba(255, 255, 255, 0.45); }
@@ -373,6 +413,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   color: var(--blanco);
   padding: 0.55rem var(--e2);
   min-height: 44px;
+  min-width: 44px;
   cursor: pointer;
 }
 .buscar-mini button:hover { background: var(--rojo); }
@@ -464,6 +505,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .seccion--oscura .seccion__nota,
 .seccion--carbon .seccion__nota { color: rgba(255, 255, 255, 0.6); }
 .seccion__enlace {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--titulares);
   font-size: var(--t-sm);
   font-weight: 700;
@@ -479,6 +523,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
    --------------------------------------------------------------------- */
 
 .rejilla { display: grid; gap: var(--e4); }
+/* min-width:0 en los hijos: sin esto, un titulo largo o una tabla
+   ensanchan la columna y arrastran toda la pagina hacia los lados. */
+.rejilla > *, .buscador > *, .editor > *, .pie__rejilla > * { min-width: 0; }
 .rejilla--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
 .rejilla--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
 .rejilla--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
@@ -522,11 +569,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tarjeta__cuerpo { padding: var(--e3); display: flex; flex-direction: column; gap: var(--e2); flex: 1; }
 .tarjeta__meta { display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap; }
 .tarjeta__titulo { font-size: var(--t-lg); margin: 0; }
-.tarjeta__titulo a { text-decoration: none; }
+.tarjeta__titulo a { text-decoration: none; display: inline-block; padding-block: 0.7rem; }
 .tarjeta__titulo a:hover { text-decoration: underline; text-decoration-color: var(--rojo); }
 .tarjeta__resumen { font-size: var(--t-base); color: var(--tinta-suave); margin: 0; }
 .seccion--oscura .tarjeta__resumen,
 .seccion--carbon .tarjeta__resumen { color: rgba(255, 255, 255, 0.7); }
+.tarjeta__pie a,
+.pieza__meta-superior a:not(.etiqueta-tipo) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding-inline: 2px;
+}
+
 .tarjeta__pie {
   margin-top: auto;
   padding-top: var(--e2);
@@ -570,7 +625,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   margin-bottom: var(--e2);
 }
 .pie__lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--e1); }
-.pie__lista a { display: inline-flex; align-items: center; min-height: 32px; font-size: var(--t-base); }
+.pie__lista a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--t-base); }
 .pie__principio {
   font-family: var(--titulares);
   font-size: var(--t-lg);

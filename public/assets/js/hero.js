@@ -22,9 +22,31 @@
   var carga    = escenario.querySelector('[data-hero-carga]');
   var barra    = escenario.querySelector('[data-hero-barra]');
   var pista    = escenario.querySelector('[data-hero-pista]');
-  var fuente   = escenario.getAttribute('data-hero-fuente');
+  /* Se ofrecen dos fuentes y se elige la que el navegador declara poder
+     reproducir. El MP4 H.264 es el universal en navegadores reales; el
+     WebM VP9 cubre las compilaciones sin codecs propietarios, donde el
+     MP4 falla con DEMUXER_ERROR_NO_SUPPORTED_STREAMS. */
+  var fuente = elegirFuente(
+    escenario.getAttribute('data-hero-fuente'),
+    escenario.getAttribute('data-hero-fuente-webm')
+  );
 
   if (!video || !fuente) { return; }
+
+  function elegirFuente(mp4, webm) {
+    var prueba = document.createElement('video');
+
+    if (mp4 && prueba.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '') {
+      return { url: mp4, tipo: 'video/mp4' };
+    }
+    if (webm && prueba.canPlayType('video/webm; codecs="vp9"') !== '') {
+      return { url: webm, tipo: 'video/webm' };
+    }
+    if (mp4 && prueba.canPlayType('video/mp4') !== '') {
+      return { url: mp4, tipo: 'video/mp4' };
+    }
+    return null;
+  }
 
   /* LAS CINCO COMPUERTAS. Copia exacta de componentes.css. */
   var COMPUERTAS = [
@@ -43,6 +65,7 @@
   var pendiente   = null;
   var rafId       = null;
   var duracion    = 0;
+  var objeto      = null;
 
   /* -------------------------------------------------------------------
      Carga como Blob, con progreso real.
@@ -55,7 +78,7 @@
 
     if (carga) { carga.hidden = false; }
 
-    fetch(fuente, { credentials: 'same-origin' })
+    fetch(fuente.url, { credentials: 'same-origin' })
       .then(function (respuesta) {
         if (!respuesta.ok || !respuesta.body) { throw new Error('respuesta no valida'); }
 
@@ -66,7 +89,7 @@
 
         function leer() {
           return lector.read().then(function (resultado) {
-            if (resultado.done) { return new Blob(trozos, { type: 'video/mp4' }); }
+            if (resultado.done) { return new Blob(trozos, { type: fuente.tipo }); }
             trozos.push(resultado.value);
             recibido += resultado.value.length;
             if (total > 0 && barra) {
@@ -78,7 +101,8 @@
         return leer();
       })
       .then(function (blob) {
-        video.src = URL.createObjectURL(blob);
+        objeto = URL.createObjectURL(blob);
+        video.src = objeto;
         video.load();
       })
       .catch(fallo);
@@ -86,6 +110,7 @@
 
   /* Si el video no llega, se retira y queda la portada estatica. */
   function fallo() {
+    if (objeto) { URL.revokeObjectURL(objeto); objeto = null; }
     video.remove();
     if (carga) { carga.hidden = true; }
     if (pista) { pista.hidden = true; }

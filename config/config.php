@@ -62,7 +62,8 @@ return [
 
     'hero' => [
         'enabled'     => Env::bool('HERO_VIDEO_ENABLED', true),
-        'video_path'  => (string) Env::get('HERO_VIDEO_PATH', '/assets/video/hero-scrub.mp4'),
+        'video_path'      => (string) Env::get('HERO_VIDEO_PATH', '/assets/video/hero-scrub.mp4'),
+        'video_webm_path' => (string) Env::get('HERO_VIDEO_WEBM_PATH', '/assets/video/hero-scrub.webm'),
         'poster_path' => (string) Env::get('HERO_POSTER_PATH', '/assets/images/hero-poster.jpg'),
         'ending_path' => (string) Env::get('HERO_ENDING_PATH', '/assets/images/hero-final.jpg'),
     ],

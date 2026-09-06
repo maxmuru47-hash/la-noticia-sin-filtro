@@ -40,13 +40,26 @@ ya está tomada y el código la respeta.
 ./scripts/video/procesar-hero.sh storage/originals/hero/aprobado.mp4
 ```
 
-Genera tres cosas:
+Genera cuatro cosas:
 
 ```
-public/assets/video/hero-scrub.mp4      el video del barrido
+public/assets/video/hero-scrub.mp4      el video del barrido (H.264)
+public/assets/video/hero-scrub.webm     la segunda fuente (VP9)
 public/assets/images/hero-poster.jpg    el primer fotograma
 public/assets/images/hero-final.jpg     la llegada
 ```
+
+### Por qué dos fuentes
+
+El MP4 con H.264 es el formato universal en navegadores reales, y se
+decodifica por hardware. Pero algunas compilaciones de Chromium se
+distribuyen **sin códecs propietarios**: ahí el MP4 falla con
+`DEMUXER_ERROR_NO_SUPPORTED_STREAMS` y el hero caería a su versión
+estática sin necesidad.
+
+`hero.js` pregunta al navegador con `canPlayType()` cuál puede reproducir,
+y descarga solo esa. El WebM suele pesar bastante menos, así que la
+segunda fuente además abarata la carga donde se usa.
 
 ### Por qué el encode es así
 
@@ -103,10 +116,16 @@ La portada queda completa igual. El póster se queda de fondo, los textos se
 leen, los botones funcionan. Para comprobarlo, renombra el archivo:
 
 ```bash
-mv public/assets/video/hero-scrub.mp4 public/assets/video/hero-scrub.mp4.apagado
+mv public/assets/video/hero-scrub.mp4  public/assets/video/hero-scrub.mp4.apagado
+mv public/assets/video/hero-scrub.webm public/assets/video/hero-scrub.webm.apagado
 # abre la portada: debe verse entera y bien
-mv public/assets/video/hero-scrub.mp4.apagado public/assets/video/hero-scrub.mp4
+mv public/assets/video/hero-scrub.mp4.apagado  public/assets/video/hero-scrub.mp4
+mv public/assets/video/hero-scrub.webm.apagado public/assets/video/hero-scrub.webm
 ```
+
+Esta prueba ya se hizo, y el resultado fue el correcto: `hero.js` retira el
+elemento de video, marca el escenario como estático y la portada queda
+completa con el póster de fondo.
 
 ---
 

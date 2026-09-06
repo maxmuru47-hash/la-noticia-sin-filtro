@@ -24,6 +24,7 @@ set -euo pipefail
 
 ORIGEN="${1:-}"
 DESTINO="public/assets/video/hero-scrub.mp4"
+DESTINO_WEBM="public/assets/video/hero-scrub.webm"
 POSTER="public/assets/images/hero-poster.jpg"
 FINAL="public/assets/images/hero-final.jpg"
 CRF="${CRF:-20}"
@@ -47,6 +48,20 @@ ffmpeg -hide_banner -loglevel error -y -i "$ORIGEN" \
   -vf "scale='min(1600,iw)':-2" \
   "$DESTINO"
 
+# Segunda fuente en VP9. El MP4 H.264 es el universal en navegadores
+# reales; el WebM cubre las compilaciones sin codecs propietarios, donde
+# el MP4 falla con DEMUXER_ERROR_NO_SUPPORTED_STREAMS y el hero caeria
+# innecesariamente a su version estatica. hero.js elige la que el
+# navegador declare poder reproducir.
+echo "▸ Codificando la segunda fuente en WebM VP9..."
+ffmpeg -hide_banner -loglevel error -y -i "$ORIGEN" \
+  -c:v libvpx-vp9 -crf 34 -b:v 0 \
+  -g 8 -keyint_min 8 \
+  -deadline good -cpu-used 4 -row-mt 1 \
+  -pix_fmt yuv420p -an \
+  -vf "scale='min(1600,iw)':-2" \
+  "$DESTINO_WEBM"
+
 echo "▸ Extrayendo el póster (primer fotograma)..."
 ffmpeg -hide_banner -loglevel error -y -i "$DESTINO" -frames:v 1 -q:v 3 "$POSTER"
 
@@ -65,7 +80,10 @@ CUADROS=$(ffprobe -v error -select_streams v:0 -count_frames -show_entries strea
 
 echo
 echo "─────────────────────────────────────────────"
-echo " Archivo:            $DESTINO"
+WEBM_BYTES=$(stat -c%s "$DESTINO_WEBM" 2>/dev/null || stat -f%z "$DESTINO_WEBM")
+WEBM_MB=$(awk "BEGIN {printf \"%.2f\", $WEBM_BYTES / 1048576}")
+echo " Archivo MP4:        $DESTINO"
+echo " Archivo WebM:       $DESTINO_WEBM (${WEBM_MB} MB)"
 echo " Peso:               ${MB} MB"
 echo " Duración:           ${DURACION}s"
 echo " Cuadros:            ${CUADROS}"

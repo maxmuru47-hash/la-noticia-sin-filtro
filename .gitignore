@@ -14,7 +14,8 @@
 /storage/backups/*
 !/storage/backups/.gitkeep
 
-# El hero final se genera con ffmpeg desde el original aprobado.
+# El hero final se genera con ffmpeg desde el original aprobado
+# (scripts/video/procesar-hero.sh), asi que no viaja en el repositorio.
 /public/assets/video/*.mp4
 /public/assets/video/*.webm
 !/public/assets/video/.gitkeep

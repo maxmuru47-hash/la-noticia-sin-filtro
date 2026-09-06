@@ -78,7 +78,7 @@
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--rojo-claro);
+  color: var(--rojo-sobre-oscuro);
   margin-bottom: var(--e2);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
 }
@@ -167,8 +167,8 @@
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
   height: 3px;
-  width: 100%;
   background: transparent;
   z-index: 200;
   pointer-events: none;
@@ -246,7 +246,7 @@
   padding: var(--e4);
   margin-top: var(--e3);
 }
-.pulso__movimiento strong { color: var(--rojo-claro); font-size: var(--t-xl); font-family: var(--titulares); }
+.pulso__movimiento strong { color: var(--rojo-sobre-oscuro); font-size: var(--t-xl); font-family: var(--titulares); }
 
 /* ---------------------------------------------------------------------
    REPRODUCTOR
@@ -315,6 +315,19 @@
   margin-top: var(--e3);
   font-size: var(--t-base);
   color: var(--tinta-suave);
+}
+
+/* Sobre fondo negro, el gris de lectura larga baja a 2.3:1. */
+.seccion--oscura .reproductor__alternativa,
+.seccion--carbon .reproductor__alternativa {
+  color: rgba(255, 255, 255, 0.85);
+  border-left-color: rgba(255, 255, 255, 0.3);
+}
+.seccion--oscura .reproductor__pie,
+.seccion--carbon .reproductor__pie,
+.seccion--oscura .capitulos time,
+.seccion--carbon .capitulos time {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .capitulos { list-style: none; padding: 0; margin: var(--e3) 0 0; display: grid; gap: 2px; }
@@ -488,7 +501,7 @@
   padding: var(--e5);
   margin: var(--e6) 0;
 }
-.pregunta-viva__sello { font-size: var(--t-xs); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rojo-claro); }
+.pregunta-viva__sello { font-size: var(--t-xs); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rojo-sobre-oscuro); }
 .pregunta-viva__texto { font-family: var(--titulares); font-size: var(--t-xl); font-weight: 800; margin: var(--e2) 0 var(--e3); }
 
 .herencia {
@@ -535,10 +548,14 @@
   position: sticky;
   top: 5rem;
 }
-.filtros__grupo { display: grid; gap: var(--e1); }
+.filtros__grupo { display: grid; gap: var(--e1); min-width: 0; }
 .filtros__grupo label { font-size: var(--t-sm); font-weight: 700; }
+/* Un select toma por defecto el ancho de su opcion mas larga. Sin este
+   min-width, el titulo de un Live ensanchaba toda la columna de filtros. */
 .filtros select, .filtros input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   padding: 0.5rem var(--e2);
   border: 1px solid var(--borde-fuerte);
@@ -547,9 +564,10 @@
 }
 .filtros__par { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e1); }
 
-.buscador__campo { display: flex; gap: var(--e1); margin-bottom: var(--e4); }
+.buscador__campo { display: flex; flex-wrap: wrap; gap: var(--e1); margin-bottom: var(--e4); }
 .buscador__campo input {
-  flex: 1;
+  flex: 1 1 12rem;
+  min-width: 0;
   min-height: 52px;
   padding: 0 var(--e3);
   font-size: var(--t-lg);
@@ -561,12 +579,14 @@
 .resultado { display: grid; gap: var(--e2); padding: var(--e4) 0; border-bottom: 1px solid var(--borde); }
 .resultado:first-child { padding-top: 0; }
 .resultado__titulo { font-size: var(--t-lg); margin: 0; }
-.resultado__titulo a { text-decoration: none; }
+.resultado__titulo a { text-decoration: none; display: inline-block; padding-block: 0.7rem; }
 .resultado__titulo a:hover { text-decoration: underline; text-decoration-color: var(--rojo); }
 .resultado__fragmento { color: var(--tinta-suave); margin: 0; font-size: var(--t-base); }
 .resultado__fragmento mark { background: rgba(193, 18, 31, 0.16); color: inherit; padding: 0 0.15rem; border-radius: 2px; }
 .resultado__meta { display: flex; gap: var(--e2); flex-wrap: wrap; align-items: center; font-size: var(--t-sm); color: var(--tinta-tenue); }
-.resultado__cuerpo { display: grid; gap: var(--e2); }
+.resultado__cuerpo { display: grid; gap: var(--e2); min-width: 0; }
+.resultado > * { min-width: 0; }
+.resultado__titulo, .resultado__fragmento { overflow-wrap: anywhere; }
 @media (min-width: 40rem) {
   .resultado { grid-template-columns: 9rem 1fr; gap: var(--e3); align-items: start; }
   .resultado__miniatura { aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radio); background: var(--papel-hueco); }
@@ -591,7 +611,7 @@
 .archivo-nav a {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 var(--e2);
   border: 1px solid var(--borde-fuerte);
   border-radius: var(--radio);
@@ -603,6 +623,26 @@
 .archivo-nav a[aria-current="page"] { background: var(--negro); color: var(--blanco); border-color: var(--negro); }
 .archivo-nav a:hover { border-color: var(--tinta); }
 
+/* En una seccion oscura estos enlaces tenian fondo blanco heredando texto
+   blanco: quedaban literalmente invisibles. Aqui se invierten. */
+.seccion--oscura .archivo-nav a,
+.seccion--carbon .archivo-nav a {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--blanco);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.seccion--oscura .archivo-nav a:hover,
+.seccion--carbon .archivo-nav a:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--blanco);
+}
+.seccion--oscura .archivo-nav a[aria-current="page"],
+.seccion--carbon .archivo-nav a[aria-current="page"] {
+  background: var(--rojo);
+  border-color: var(--rojo);
+  color: var(--blanco);
+}
+
 .lista-piezas { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
 .lista-piezas > li { padding: var(--e3) 0; border-bottom: 1px solid var(--borde); display: grid; gap: var(--e1); }
 .lista-piezas > li:first-child { padding-top: 0; }
@@ -610,6 +650,13 @@
 /* ---------------------------------------------------------------------
    LIVES Y EXPEDIENTES
    --------------------------------------------------------------------- */
+
+.live-destacado h3 a,
+.live-destacado h2 a {
+  display: inline-block;
+  padding-block: 0.75rem;
+  text-decoration: none;
+}
 
 .live-destacado {
   display: grid;
@@ -632,7 +679,7 @@
   border-radius: 999px;
   border: 1.5px solid currentColor;
 }
-.live-estado--en_vivo { color: var(--rojo-claro); }
+.live-estado--en_vivo { color: var(--rojo); }
 .live-estado--en_vivo::before {
   content: "";
   width: 0.5rem;
@@ -642,10 +689,28 @@
   animation: latido 2s var(--curva-suave) -0.6s infinite;
 }
 @keyframes latido { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.82); } }
-.live-estado--programado { color: #7FB2E5; }
-.live-estado--anunciado  { color: rgba(255, 255, 255, 0.7); }
-.live-estado--finalizado { color: rgba(255, 255, 255, 0.55); }
-.live-estado--cancelado  { color: var(--borde-fuerte); text-decoration: line-through; }
+.live-estado--programado { color: #1B4D7A; }
+.live-estado--anunciado  { color: var(--tinta-suave); }
+.live-estado--finalizado { color: var(--tinta-tenue); }
+.live-estado--cancelado  { color: var(--tinta-tenue); text-decoration: line-through; }
+
+/* Dentro de la caja oscura del Live, los mismos estados se invierten.
+   Sobre fondo claro, los valores de arriba dan 5:1 o mas. */
+.live-destacado .live-estado--en_vivo,
+.seccion--oscura .live-estado--en_vivo,
+.seccion--carbon .live-estado--en_vivo    { color: var(--rojo-sobre-oscuro); }
+.live-destacado .live-estado--programado,
+.seccion--oscura .live-estado--programado,
+.seccion--carbon .live-estado--programado { color: #7FB2E5; }
+.live-destacado .live-estado--anunciado,
+.seccion--oscura .live-estado--anunciado,
+.seccion--carbon .live-estado--anunciado  { color: rgba(255, 255, 255, 0.86); }
+.live-destacado .live-estado--finalizado,
+.seccion--oscura .live-estado--finalizado,
+.seccion--carbon .live-estado--finalizado { color: rgba(255, 255, 255, 0.78); }
+.live-destacado .live-estado--cancelado,
+.seccion--oscura .live-estado--cancelado,
+.seccion--carbon .live-estado--cancelado  { color: rgba(255, 255, 255, 0.7); }
 
 .live-fecha { font-family: var(--titulares); font-size: var(--t-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
 
@@ -655,7 +720,10 @@
   padding-block: var(--e6);
   border-bottom: 4px solid var(--rojo);
 }
-.expediente__estado { font-size: var(--t-xs); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rojo-claro); }
+.expediente__estado { font-size: var(--t-xs); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rojo); }
+.expediente-cabeza .expediente__estado,
+.seccion--oscura .expediente__estado,
+.seccion--carbon .expediente__estado { color: var(--rojo-sobre-oscuro); }
 
 /* ---------------------------------------------------------------------
    FORMULARIOS PUBLICOS

@@ -5,8 +5,9 @@
  * La portada selecciona y ordena. No almacena noticias ni las elimina
  * cuando cambia la seleccion.
  */
-$heroFuente = $config['hero']['enabled'] ? $config['hero']['video_path'] : null;
-$heroPoster = $config['hero']['poster_path'];
+$heroFuente     = $config['hero']['enabled'] ? $config['hero']['video_path'] : null;
+$heroFuenteWebm = $config['hero']['enabled'] ? $config['hero']['video_webm_path'] : null;
+$heroPoster     = $config['hero']['poster_path'];
 ?>
 
 <!-- 1. HERO CINEMATOGRAFICO
@@ -16,6 +17,7 @@ $heroPoster = $config['hero']['poster_path'];
 <section class="hero<?= $heroFuente === null ? ' hero--estatico' : '' ?>"
          data-hero
          <?= $heroFuente !== null ? 'data-hero-fuente="' . atributo($heroFuente) . '"' : '' ?>
+         <?= $heroFuenteWebm ? 'data-hero-fuente-webm="' . atributo($heroFuenteWebm) . '"' : '' ?>
          aria-labelledby="hero-titulo">
   <div class="hero__escenario">
     <div class="hero__marco">

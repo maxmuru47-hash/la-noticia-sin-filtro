@@ -107,7 +107,11 @@ Guarda el ratón. En serio.
 [ ] Abrí el menú del teléfono con teclado
 [ ] Voté en el Pulso solo con teclado
 [ ] Envié una pregunta solo con teclado
-[ ] Ningún elemento interactivo mide menos de 44 px
+[ ] Ningún control autónomo mide menos de 44 px
+[ ] Los enlaces de metadatos en línea (categoría dentro de una fila de
+    datos) miden al menos 24 px, el mínimo AA de WCAG 2.2, con espacio
+    alrededor. Engordarlos a 44 px rompería la fila, y esa es la razón
+    por la que se dejan así: es una decisión, no un descuido
 [ ] Cada página tiene un solo h1
 [ ] Los encabezados no saltan niveles (no hay h2 seguido de h4)
 [ ] Toda imagen con contenido tiene texto alternativo
