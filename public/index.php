@@ -112,10 +112,13 @@ $adminRedirects = new Admin\RedirectController($config);
 $adminHomepage  = new Admin\HomepageController($config);
 $adminAudit     = new Admin\AuditController($config);
 $adminEditorial = new Admin\EditorialController($config);
+$adminPerfil    = new Admin\PerfilController($config);
 
 $router->get('/panel/entrar',  [$adminAuth, 'showLogin']);
 $router->post('/panel/entrar', [$adminAuth, 'login']);
 $router->post('/panel/salir',  [$adminAuth, 'logout']);
+$router->get('/panel/clave',   [$adminPerfil, 'mostrarClave']);
+$router->post('/panel/clave',  [$adminPerfil, 'cambiarClave']);
 
 $router->get('/panel', [$adminDashboard, 'index']);
 

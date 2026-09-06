@@ -65,6 +65,7 @@ $menu = [
       <strong><?= e($usuario['display_name'] ?? '') ?></strong>
       <span><?= e($usuario['role_name'] ?? '') ?></span>
       <p style="margin-top:var(--e2)">
+        <a href="/panel/clave">Cambiar mi contraseña</a><br>
         <a href="/" target="_blank" rel="noopener">Ver el sitio</a>
       </p>
       <form method="post" action="/panel/salir">

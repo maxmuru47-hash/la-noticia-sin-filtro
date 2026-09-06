@@ -57,8 +57,9 @@ final class Auth
     public static function login(array $user): void
     {
         session_regenerate_id(true);
-        $_SESSION['usuario_id']    = (int) $user['id'];
-        $_SESSION['autenticado_en'] = time();
+        $_SESSION['usuario_id']       = (int) $user['id'];
+        $_SESSION['autenticado_en']   = time();
+        $_SESSION['ultima_actividad'] = time();
         self::$user     = null;
         self::$resolved = false;
 
@@ -144,11 +145,58 @@ final class Auth
         return $own !== null && in_array($article['status'], ['borrador', 'revision'], true);
     }
 
+    /** Sesión inactiva más de este tiempo: se cierra sola. */
+    public const MINUTOS_INACTIVIDAD = 240;
+
     public static function requireLogin(): void
     {
         if (!self::check()) {
             Response::redirect('/panel/entrar?destino=' . rawurlencode($_SERVER['REQUEST_URI'] ?? '/panel'));
         }
+
+        self::cerrarSiEstaInactiva();
+        self::exigirCambioDeClave();
+    }
+
+    /**
+     * Una sesión olvidada en un ordenador prestado no dura para siempre.
+     * Se mide inactividad, no duración: trabajar no te echa fuera.
+     */
+    private static function cerrarSiEstaInactiva(): void
+    {
+        $ultima = $_SESSION['ultima_actividad'] ?? time();
+
+        if (time() - (int) $ultima > self::MINUTOS_INACTIVIDAD * 60) {
+            self::logout();
+            session_start();
+            $_SESSION['_flash_error'] = 'Cerramos tu sesión por inactividad. Vuelve a entrar.';
+            Response::redirect('/panel/entrar');
+        }
+
+        $_SESSION['ultima_actividad'] = time();
+    }
+
+    /**
+     * Con una contraseña provisional no se llega a ninguna otra pantalla.
+     * Antes la marca se guardaba y nadie la miraba, así que una clave
+     * provisional se quedaba puesta para siempre.
+     */
+    private static function exigirCambioDeClave(): void
+    {
+        $usuario = self::user();
+
+        if ($usuario === null || (int) ($usuario['must_change_password'] ?? 0) !== 1) {
+            return;
+        }
+
+        $ruta = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+        // Solo se permite la propia pantalla de cambio y salir.
+        if ($ruta === '/panel/clave' || $ruta === '/panel/salir') {
+            return;
+        }
+
+        Response::redirect('/panel/clave');
     }
 
     public static function require(string $capability): void

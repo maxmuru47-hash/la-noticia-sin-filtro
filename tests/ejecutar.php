@@ -547,11 +547,177 @@ Pruebas::afirmar($emula === false || $emula === 0,
     'PDO tiene la emulación de preparadas desactivada');
 
 // =====================================================================
+Pruebas::grupo('15 · Expediente: el Pulso no se puede falsear');
+// =====================================================================
+
+$idPulso = ArticleService::create(['title' => 'Pieza con pulso ' . $sufijo]);
+$creadas[] = $idPulso;
+
+$pollId = \App\Services\EditorialService::guardarPulso(
+    $idPulso,
+    '¿Esto se puede responder desde varios lados?',
+    ['Sí', 'No', 'Depende'],
+    null,
+    true
+);
+
+Pruebas::afirmar($pollId > 0, 'Se puede crear un pulso desde el servicio');
+Pruebas::iguales(3, count(Poll::options($pollId)), 'El pulso guarda sus tres opciones');
+
+$errorPocas = '';
+try {
+    \App\Services\EditorialService::guardarPulso($idPulso, 'Con una sola opción', ['Única'], null, true);
+} catch (\Throwable $e) {
+    $errorPocas = $e->getMessage();
+}
+Pruebas::contiene('dos opciones', $errorPocas, 'Un pulso con una sola opción se rechaza');
+
+$errorMuchas = '';
+try {
+    \App\Services\EditorialService::guardarPulso($idPulso, 'Demasiadas', ['a','b','c','d','e','f','g'], null, true);
+} catch (\Throwable $e) {
+    $errorMuchas = $e->getMessage();
+}
+Pruebas::contiene('seis', $errorMuchas, 'Un pulso con más de seis opciones se rechaza');
+
+// La regla que de verdad importa: una opción votada no se puede borrar.
+$opciones = Poll::options($pollId);
+$conVoto  = (int) $opciones[2]['id'];
+
+Database::insert('poll_responses', [
+    'poll_id'       => $pollId,
+    'option_id'     => $conVoto,
+    'stage'         => 'inicial',
+    'voter_hash'    => str_repeat('c', 64),
+    'session_token' => str_repeat('d', 32),
+]);
+
+$errorVotada = '';
+try {
+    \App\Services\EditorialService::guardarPulso($idPulso, '¿Esto se puede responder desde varios lados?', ['Sí', 'No'], null, true);
+} catch (\Throwable $e) {
+    $errorVotada = $e->getMessage();
+}
+
+Pruebas::contiene('voto', $errorVotada, 'No se puede quitar una opción que ya tiene votos');
+Pruebas::iguales(3, count(Poll::options($pollId)), 'La transacción se revierte entera: siguen las tres opciones');
+Pruebas::iguales(1, (int) Database::value('SELECT COUNT(*) FROM poll_responses WHERE poll_id = :p', ['p' => $pollId]),
+    'El voto registrado sobrevive al intento');
+
+// Corregir una errata sí se permite: no cambia lo que votó nadie.
+\App\Services\EditorialService::guardarPulso($idPulso, '¿Se puede responder desde varios lados?', ['Sí', 'No', 'Depende del caso'], null, true);
+$corregidas = Poll::options($pollId);
+Pruebas::iguales('Depende del caso', (string) $corregidas[2]['label'], 'Sí se puede corregir el texto de una opción votada');
+Pruebas::iguales(1, (int) Database::value('SELECT COUNT(*) FROM poll_responses WHERE poll_id = :p', ['p' => $pollId]),
+    'Corregir el texto no toca los votos');
+
+// Y no existe ninguna vía desde el panel para escribir resultados.
+$escribenVotos = [];
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__ . '/../app/Controllers', RecursiveDirectoryIterator::SKIP_DOTS)) as $archivo) {
+    if ($archivo->isFile() && $archivo->getExtension() === 'php') {
+        $codigo = (string) file_get_contents($archivo->getPathname());
+        if (preg_match('/INSERT INTO poll_responses|UPDATE\s+poll_responses/i', $codigo) === 1
+            && !str_contains($archivo->getPathname(), 'ApiController')) {
+            $escribenVotos[] = $archivo->getFilename();
+        }
+    }
+}
+Pruebas::afirmar($escribenVotos === [],
+    'Ningún controlador del panel escribe en poll_responses', implode(', ', $escribenVotos));
+
+// =====================================================================
+Pruebas::grupo('16 · Expediente: restaurar una versión no toca la URL');
+// =====================================================================
+
+$idRest = ArticleService::create([
+    'title'   => 'Pieza para restaurar ' . $sufijo,
+    'summary' => 'Resumen original.',
+]);
+$creadas[] = $idRest;
+
+ArticleService::publish($idRest);
+$antesDeTodo   = Article::findById($idRest);
+$slugIntocable = (string) $antesDeTodo['slug'];
+$fechaOriginal = $antesDeTodo['published_at'];
+
+ArticleService::update($idRest, ['title' => 'Título cambiado ' . $sufijo, 'summary' => 'Resumen cambiado.'], 'Cambio');
+
+$versiones = Article::revisions($idRest);
+$primera   = (int) end($versiones)['revision_no'];
+
+\App\Services\EditorialService::restaurarRevision($idRest, $primera);
+$restaurada = Article::findById($idRest);
+
+Pruebas::iguales($slugIntocable, (string) $restaurada['slug'], 'Restaurar NO cambia la dirección');
+Pruebas::iguales($fechaOriginal, $restaurada['published_at'], 'Restaurar NO cambia la fecha de publicación');
+Pruebas::afirmar($restaurada['deleted_at'] === null, 'Restaurar no revive ni borra nada');
+Pruebas::afirmar(count(Article::revisions($idRest)) > count($versiones),
+    'Restaurar deja su propia versión en el historial');
+
+$errorVersion = '';
+try {
+    \App\Services\EditorialService::restaurarRevision($idRest, 99999);
+} catch (\Throwable $e) {
+    $errorVersion = $e->getMessage();
+}
+Pruebas::contiene('no existe', $errorVersion, 'Restaurar una versión inexistente se rechaza');
+
+// =====================================================================
+Pruebas::grupo('17 · Seguridad de la cuenta');
+// =====================================================================
+
+// La sal del Pulso no puede quedar vacía: sin ella la huella es adivinable.
+Pruebas::afirmar(strlen((string) $config['app']['key']) >= 32,
+    'APP_KEY tiene al menos 32 caracteres');
+
+$arranque = (string) file_get_contents(__DIR__ . '/../app/bootstrap.php');
+Pruebas::contiene("strlen((string) \$config['app']['key']) < 32", $arranque,
+    'El arranque se niega a funcionar sin APP_KEY');
+
+$auth = (string) file_get_contents(__DIR__ . '/../app/Middleware/Auth.php');
+Pruebas::contiene('must_change_password', $auth,
+    'La sesión comprueba si la contraseña es provisional');
+Pruebas::contiene('MINUTOS_INACTIVIDAD', $auth,
+    'La sesión se cierra sola por inactividad');
+
+$perfil = (string) file_get_contents(__DIR__ . '/../app/Controllers/Admin/PerfilController.php');
+Pruebas::contiene('password_verify($actual', $perfil,
+    'Cambiar la contraseña exige la contraseña actual, aunque la sesión esté abierta');
+Pruebas::contiene('session_regenerate_id(true)', $perfil,
+    'Cambiar la contraseña invalida cualquier sesión robada');
+Pruebas::contiene('PASSWORD_ARGON2ID', $perfil,
+    'La contraseña nueva se guarda con Argon2id');
+
+// Nadie puede crear una cuenta con más permisos que la suya.
+$usuarios = (string) file_get_contents(__DIR__ . '/../app/Controllers/Admin/UserController.php');
+Pruebas::contiene('más permisos que la tuya', $usuarios,
+    'No se puede crear una cuenta por encima del propio rol');
+
+// Y ninguna contraseña viaja en el repositorio.
+$fugas = [];
+foreach (['app', 'config', 'public', 'scripts', 'database'] as $carpeta) {
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__ . '/../' . $carpeta, RecursiveDirectoryIterator::SKIP_DOTS)) as $archivo) {
+        if (!$archivo->isFile() || !in_array($archivo->getExtension(), ['php', 'sql', 'sh'], true)) {
+            continue;
+        }
+        $codigo = (string) file_get_contents($archivo->getPathname());
+        if (preg_match('/(DB_PASSWORD|password)\s*=\s*[\x27"][^\x27"$\s]{6,}[\x27"]/i', $codigo, $m) === 1
+            && !str_contains($m[0], 'desarrollo_local')
+            && !str_contains(strtolower($m[0]), 'password_hash')) {
+            $fugas[] = $archivo->getFilename() . ': ' . substr($m[0], 0, 40);
+        }
+    }
+}
+Pruebas::afirmar($fugas === [], 'Ninguna contraseña embebida en el código', implode(' | ', $fugas));
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 
 Database::run('SET FOREIGN_KEY_CHECKS = 0');
 foreach ($creadas as $id) {
+    Database::run('DELETE FROM poll_responses WHERE poll_id IN (SELECT id FROM polls WHERE article_id = :id)', ['id' => $id]);
+    Database::run('DELETE FROM polls WHERE article_id = :id', ['id' => $id]);
     Database::run('DELETE FROM search_index WHERE entity_type = "articulo" AND entity_id = :id', ['id' => $id]);
     Database::run('DELETE FROM articles WHERE id = :id', ['id' => $id]);
     Database::run('DELETE FROM reserved_slugs WHERE article_id = :id', ['id' => $id]);

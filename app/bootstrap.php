@@ -70,6 +70,25 @@ View::share('config', $config);
 View::share('appUrl', $config['app']['url']);
 View::share('brand', $config['brand']);
 
+/*
+ * APP_KEY es la sal de las huellas anónimas del Pulso y de las preguntas.
+ * Con una sal vacía, esa huella se vuelve adivinable: cualquiera podría
+ * calcular la de otra persona a partir de su IP y su navegador, y el voto
+ * anónimo dejaría de serlo. Arrancar en silencio sin ella sería peor que
+ * no arrancar.
+ */
+if (strlen((string) $config['app']['key']) < 32) {
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit(
+        "Falta APP_KEY en el archivo .env, o es demasiado corta.\n\n"
+        . "Genera una así:\n"
+        . "  php -r \"echo bin2hex(random_bytes(32));\"\n\n"
+        . "y pégala en .env como APP_KEY=...\n\n"
+        . "Sin ella, el voto anónimo del Pulso no sería realmente anónimo.\n"
+    );
+}
+
 Database::connect($config['database']);
 
 return $config;
