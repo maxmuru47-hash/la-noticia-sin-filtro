@@ -77,6 +77,49 @@ if ($tablas >= 40 && $roles === 0) {
     $errores[] = 'Faltan los roles. Importa database/seed.sql.';
 }
 
+// --- 2b. Montar la base con un botón, sin phpMyAdmin ------------------
+//
+// Los dos archivos .sql ya viajan con el proyecto, así que no tiene
+// sentido obligar a nadie a descargarlos y volverlos a subir por otra
+// herramienta. Esto solo actúa cuando la base está a medio hacer, y más
+// abajo el instalador entero se cierra en cuanto existe una cuenta.
+
+$montada = false;
+
+if (($_POST['accion'] ?? '') === 'montar_base' && $todoOk && !$baseOk) {
+    try {
+        $carpetaSql = dirname($rutaBootstrap, 2) . '/database';
+
+        foreach (['schema.sql', 'seed.sql'] as $archivo) {
+            $ruta = $carpetaSql . '/' . $archivo;
+            if (!is_file($ruta)) {
+                throw new RuntimeException(
+                    'No encuentro ' . $archivo . '. Debería estar en la carpeta privada, dentro de database.'
+                );
+            }
+            $sql = (string) file_get_contents($ruta);
+            if (trim($sql) === '') {
+                throw new RuntimeException('El archivo ' . $archivo . ' llegó vacío. Vuelve a subirlo.');
+            }
+            Database::pdo()->exec($sql);
+        }
+
+        // Se vuelve a contar: el resultado manda, no la ausencia de error.
+        $tablas  = (int) Database::value('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()');
+        $roles   = (int) Database::value('SELECT COUNT(*) FROM roles');
+        $baseOk  = $tablas >= 40 && $roles > 0;
+        $montada = $baseOk;
+
+        if (!$baseOk) {
+            $errores[] = 'La carga terminó pero la base quedó incompleta: ' . $tablas . ' tablas y ' . $roles . ' roles.';
+        } else {
+            $errores = [];
+        }
+    } catch (\Throwable $e) {
+        $errores[] = 'No se pudo montar la base: ' . $e->getMessage();
+    }
+}
+
 // --- 3. La primera cuenta. Solo si NO hay ninguna. --------------------
 
 $hayUsuarios = false;
@@ -235,10 +278,28 @@ $sePudoBorrar = $listo && !is_file(__FILE__);
       <?php if ($baseOk): ?>
         Conectada. <?= (int) $tablas ?> tablas y <?= (int) $roles ?> roles. Todo en su sitio.
       <?php else: ?>
-        Todavía no está lista. Importa <code>database/schema.sql</code> y luego
-        <code>database/seed.sql</code> desde phpMyAdmin.
+        Conectada, pero vacía: le faltan las tablas. Se montan con el botón de aquí abajo.
       <?php endif; ?>
     </p>
+
+    <?php if ($montada): ?>
+      <p class="aviso aviso--ok">
+        Base montada: <?= (int) $tablas ?> tablas y <?= (int) $roles ?> roles creados desde
+        los archivos que ya viajaban con el proyecto.
+      </p>
+    <?php endif; ?>
+
+    <?php if ($todoOk && !$baseOk): ?>
+      <form method="post" action="">
+        <input type="hidden" name="accion" value="montar_base">
+        <button class="boton boton--rojo" type="submit">Montar la base de datos</button>
+      </form>
+      <p class="nota">
+        Crea las 41 tablas y los roles. Tarda unos segundos. No hace falta phpMyAdmin:
+        los archivos <code>schema.sql</code> y <code>seed.sql</code> ya están en la carpeta
+        privada de tu servidor.
+      </p>
+    <?php endif; ?>
 
     <?php foreach ($errores as $mensaje): ?>
       <p class="aviso aviso--error"><?= htmlspecialchars($mensaje, ENT_QUOTES) ?></p>
