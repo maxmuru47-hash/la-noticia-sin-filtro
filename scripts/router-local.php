@@ -21,4 +21,13 @@ if ($ruta !== '/' && is_file($archivo) && !str_ends_with($archivo, '.php')) {
     return false; // El servidor integrado lo sirve tal cual.
 }
 
+// Un .php que existe de verdad dentro de public se ejecuta, igual que
+// haria Apache: su regla es "si el archivo existe, no reescribas".
+// Es el caso de instalar.php.
+if ($ruta !== '/' && is_file($archivo) && str_ends_with($archivo, '.php')
+    && !str_starts_with($ruta, '/uploads/')) {
+    require $archivo;
+    return true;
+}
+
 require __DIR__ . '/../public/index.php';
