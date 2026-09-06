@@ -1,0 +1,84 @@
+/* =====================================================================
+   PANEL ADMINISTRATIVO
+   Densidad alta, cero adorno. Aquí se trabaja, no se contempla.
+   ===================================================================== */
+
+.panel { display: grid; min-height: 100vh; grid-template-columns: 15rem 1fr; background: var(--papel-hueco); }
+@media (max-width: 60rem) { .panel { grid-template-columns: 1fr; } }
+
+.panel__lateral { background: var(--negro); color: rgba(255,255,255,0.75); padding: var(--e4) var(--e3); }
+.panel__marca { font-family: var(--titulares); font-weight: 800; color: var(--blanco); text-decoration: none; display: block; margin-bottom: var(--e4); line-height: 1.15; }
+.panel__marca small { display: block; font-size: var(--t-xs); font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-top: 0.2rem; }
+
+.panel__menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.panel__menu a {
+  display: flex; align-items: center; min-height: 40px; padding: 0 var(--e2);
+  color: rgba(255,255,255,0.78); text-decoration: none; border-radius: var(--radio);
+  font-size: var(--t-base); transition: background var(--tiempo) var(--curva), color var(--tiempo) var(--curva);
+}
+.panel__menu a:hover { background: rgba(255,255,255,0.08); color: var(--blanco); }
+.panel__menu a[aria-current="page"] { background: var(--rojo); color: var(--blanco); font-weight: 700; }
+.panel__menu-grupo { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.4); margin: var(--e3) 0 var(--e1); }
+
+.panel__usuario { margin-top: var(--e5); padding-top: var(--e3); border-top: 1px solid rgba(255,255,255,0.12); font-size: var(--t-sm); }
+.panel__usuario strong { display: block; color: var(--blanco); }
+
+.panel__principal { padding: var(--e4); min-width: 0; }
+.panel__cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; margin-bottom: var(--e4); }
+.panel__cabeza h1 { margin: 0; font-size: var(--t-xl); }
+
+.panel__caja { background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--radio); padding: var(--e4); margin-bottom: var(--e4); }
+.panel__caja > h2 { font-size: var(--t-lg); margin-top: 0; }
+.panel__caja--peligro { border-color: var(--rojo-oscuro); border-left-width: 4px; }
+
+.panel__metricas { display: grid; gap: var(--e2); grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); margin-bottom: var(--e4); }
+.metrica { background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--radio); padding: var(--e3); }
+.metrica__valor { font-family: var(--titulares); font-size: var(--t-2xl); font-weight: 800; line-height: 1; }
+.metrica__etiqueta { font-size: var(--t-sm); color: var(--tinta-tenue); margin-top: var(--e1); }
+.metrica--alerta .metrica__valor { color: var(--rojo); }
+
+.tabla-envoltura { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: var(--t-sm); background: var(--blanco); }
+.tabla th, .tabla td { text-align: left; padding: var(--e2); border-bottom: 1px solid var(--borde); vertical-align: top; }
+.tabla th { background: var(--papel-hueco); font-family: var(--titulares); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+.tabla tbody tr:hover { background: var(--papel); }
+.tabla td.numero { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.panel__filtros { display: flex; gap: var(--e2); flex-wrap: wrap; align-items: end; margin-bottom: var(--e3); }
+.panel__filtros .campo { min-width: 10rem; }
+
+.editor { display: grid; gap: var(--e4); }
+@media (min-width: 70rem) { .editor { grid-template-columns: 1fr 21rem; align-items: start; } }
+.editor__lateral { display: grid; gap: var(--e3); position: sticky; top: var(--e3); }
+
+.bloques { display: grid; gap: var(--e2); }
+.bloque { border: 1px solid var(--borde-fuerte); border-radius: var(--radio); background: var(--papel); }
+.bloque__cabeza { display: flex; align-items: center; gap: var(--e2); padding: var(--e2); background: var(--papel-hueco); border-bottom: 1px solid var(--borde); }
+.bloque__tipo { font-family: var(--titulares); font-size: var(--t-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.bloque__acciones { margin-left: auto; display: flex; gap: var(--e0); }
+.bloque__cuerpo { padding: var(--e2); display: grid; gap: var(--e1); }
+.bloque__cuerpo textarea { min-height: 6rem; }
+
+.mini-boton {
+  min-height: 32px; min-width: 32px; padding: 0 var(--e1);
+  border: 1px solid var(--borde-fuerte); background: var(--blanco);
+  border-radius: var(--radio); cursor: pointer; font-size: var(--t-sm);
+}
+.mini-boton:hover { background: var(--papel-hueco); border-color: var(--tinta); }
+.mini-boton--peligro { color: var(--rojo-oscuro); border-color: var(--rojo-oscuro); }
+
+.autoguardado { font-size: var(--t-sm); color: var(--tinta-tenue); }
+
+.entrar { min-height: 100vh; display: grid; place-items: center; background: var(--negro); padding: var(--e4); }
+.entrar__caja { width: 100%; max-width: 24rem; background: var(--blanco); border-radius: var(--radio-lg); padding: var(--e5); }
+.entrar__marca { font-family: var(--titulares); font-weight: 800; font-size: var(--t-xl); margin-bottom: var(--e1); }
+.entrar__marca::after { content: ""; display: block; width: 2.5rem; height: 3px; background: var(--rojo); margin-top: 0.4rem; }
+
+.galeria { display: grid; gap: var(--e2); grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
+.galeria figure { margin: 0; border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; background: var(--blanco); }
+.galeria img { aspect-ratio: 4/3; object-fit: cover; width: 100%; }
+.galeria figcaption { padding: var(--e1); font-size: var(--t-xs); color: var(--tinta-tenue); word-break: break-all; }
+
+.zona-portada { border: 1px solid var(--borde); border-radius: var(--radio); background: var(--blanco); margin-bottom: var(--e3); }
+.zona-portada__cabeza { padding: var(--e2) var(--e3); background: var(--papel-hueco); border-bottom: 1px solid var(--borde); font-family: var(--titulares); font-weight: 700; }
+.zona-portada__cuerpo { padding: var(--e3); display: grid; gap: var(--e2); }

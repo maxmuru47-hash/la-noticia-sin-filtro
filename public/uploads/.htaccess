@@ -1,0 +1,9 @@
+# Los archivos subidos NUNCA se ejecutan. Aquí solo se sirven estáticos.
+php_flag engine off
+Options -ExecCGI -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl .py
+AddType text/plain .php .phtml .phar .cgi .pl .py .sh
+
+<FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh|htaccess)$">
+  Require all denied
+</FilesMatch>

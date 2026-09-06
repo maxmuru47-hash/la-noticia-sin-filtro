@@ -1,0 +1,30 @@
+# Credenciales. NUNCA se suben.
+.env
+.env.*
+!.env.example
+
+# Contenido subido y datos de trabajo
+/public/uploads/*
+!/public/uploads/.htaccess
+!/public/uploads/.gitkeep
+/storage/originals/*
+!/storage/originals/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/backups/*
+!/storage/backups/.gitkeep
+
+# El hero final se genera con ffmpeg desde el original aprobado.
+/public/assets/video/*.mp4
+/public/assets/video/*.webm
+!/public/assets/video/.gitkeep
+
+# Dependencias opcionales
+/vendor/
+composer.lock
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.swp
+*~

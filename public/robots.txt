@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /panel
+Disallow: /api/
+
+Sitemap: https://lanoticia.sinfiltroconmax.com/sitemap.xml
+Sitemap: https://lanoticia.sinfiltroconmax.com/sitemap-noticias.xml
+Sitemap: https://lanoticia.sinfiltroconmax.com/sitemap-videos.xml
