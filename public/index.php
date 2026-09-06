@@ -111,6 +111,7 @@ $adminModeration = new Admin\ModerationController($config);
 $adminRedirects = new Admin\RedirectController($config);
 $adminHomepage  = new Admin\HomepageController($config);
 $adminAudit     = new Admin\AuditController($config);
+$adminEditorial = new Admin\EditorialController($config);
 
 $router->get('/panel/entrar',  [$adminAuth, 'showLogin']);
 $router->post('/panel/entrar', [$adminAuth, 'login']);
@@ -135,6 +136,21 @@ $router->post('/panel/noticias/{id:\d+}/video',    [$adminArticles, 'attachVideo
 $router->post('/panel/noticias/{id:\d+}/video/quitar', [$adminArticles, 'detachVideo']);
 $router->post('/panel/noticias/{id:\d+}/live',     [$adminArticles, 'attachLive']);
 $router->post('/panel/noticias/{id:\d+}/autoguardar', [$adminArticles, 'autosave']);
+
+// Expediente de la pieza: lo que la convierte en una Noticia Viva.
+$router->post('/panel/noticias/{id:\d+}/pulso',              [$adminEditorial, 'guardarPulso']);
+$router->post('/panel/noticias/{id:\d+}/fuente',             [$adminEditorial, 'adjuntarFuente']);
+$router->post('/panel/noticias/{id:\d+}/fuente/quitar',      [$adminEditorial, 'quitarFuente']);
+$router->post('/panel/noticias/{id:\d+}/cronologia',         [$adminEditorial, 'anadirEvento']);
+$router->post('/panel/noticias/{id:\d+}/cronologia/quitar',  [$adminEditorial, 'quitarEvento']);
+$router->post('/panel/noticias/{id:\d+}/actor',              [$adminEditorial, 'adjuntarActor']);
+$router->post('/panel/noticias/{id:\d+}/actor/quitar',       [$adminEditorial, 'quitarActor']);
+$router->post('/panel/noticias/{id:\d+}/impacto',            [$adminEditorial, 'anadirImpacto']);
+$router->post('/panel/noticias/{id:\d+}/impacto/quitar',     [$adminEditorial, 'quitarImpacto']);
+$router->post('/panel/noticias/{id:\d+}/herencia',           [$adminEditorial, 'fijarHerencia']);
+$router->post('/panel/noticias/{id:\d+}/relacionada',        [$adminEditorial, 'relacionar']);
+$router->post('/panel/noticias/{id:\d+}/relacionada/quitar', [$adminEditorial, 'desrelacionar']);
+$router->post('/panel/noticias/{id:\d+}/version/restaurar',  [$adminEditorial, 'restaurarVersion']);
 
 $router->get('/panel/medios',       [$adminMedia, 'index']);
 $router->post('/panel/medios',      [$adminMedia, 'store']);

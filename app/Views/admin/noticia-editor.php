@@ -298,6 +298,27 @@ $puedePublicar = Auth::can(Auth::CAP_ARTICLE_PUBLISH);
     </div>
   </div>
 
+  <?= \App\Support\View::partial('admin/partes/expediente', [
+      'articulo'         => $a,
+      'pulso'            => $pulso,
+      'pulsoOpciones'    => $pulsoOpciones,
+      'pulsoResultados'  => $pulsoResultados,
+      'fuentes'          => $fuentes,
+      'catalogoFuentes'  => $catalogoFuentes,
+      'cronologia'       => $cronologia,
+      'actores'          => $actores,
+      'catalogoActores'  => $catalogoActores,
+      'impactos'         => $impactos,
+      'herencia'         => $herencia,
+      'relacionadas'     => $relacionadas,
+      'piezasDisponibles' => $piezasDisponibles,
+      'preguntasDisponibles' => $preguntasDisponibles,
+      'expedientes'      => $expedientes,
+      'perfilesImpacto'  => $perfilesImpacto,
+      'certezas'         => $certezas,
+      'tiposRelacion'    => $tiposRelacion,
+  ]) ?>
+
   <?php if (Auth::can(Auth::CAP_ARTICLE_ARCHIVE)): ?>
   <div class="panel__caja">
     <h2>Archivo</h2>
@@ -441,9 +462,14 @@ $puedePublicar = Auth::can(Auth::CAP_ARTICLE_PUBLISH);
   <?php if ($revisiones !== []): ?>
   <div class="panel__caja">
     <h2>Historial de versiones</h2>
+    <p style="color:var(--tinta-tenue);font-size:var(--t-sm)">
+      Restaurar devuelve solo el <strong>texto</strong> de una versión anterior. No cambia el estado,
+      ni la fecha de publicación, ni la dirección. Y deja su propia versión en el historial,
+      así que tampoco se pierde lo que había antes de restaurar.
+    </p>
     <div class="tabla-envoltura">
       <table class="tabla">
-        <thead><tr><th>Versión</th><th>Cuándo</th><th>Quién</th><th>Estado</th><th>Nota</th></tr></thead>
+        <thead><tr><th>Versión</th><th>Cuándo</th><th>Quién</th><th>Estado</th><th>Nota</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($revisiones as $r): ?>
           <tr>
@@ -452,6 +478,15 @@ $puedePublicar = Auth::can(Auth::CAP_ARTICLE_PUBLISH);
             <td><?= e($r['user_name'] ?? 'sistema') ?></td>
             <td><?= e($r['status'] ?? '') ?></td>
             <td><?= e($r['change_note'] ?? '') ?></td>
+            <td>
+              <?php if (Auth::can(Auth::CAP_ARTICLE_EDIT_ANY)): ?>
+                <form method="post" action="/panel/noticias/<?= $id ?>/version/restaurar">
+                  <?= \App\Support\Csrf::field() ?>
+                  <input type="hidden" name="revision" value="<?= (int) $r['revision_no'] ?>">
+                  <button class="mini-boton" type="submit">Restaurar</button>
+                </form>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>

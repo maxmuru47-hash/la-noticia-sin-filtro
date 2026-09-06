@@ -11,6 +11,7 @@ use App\Models\Taxonomy;
 use App\Models\Video;
 use App\Services\ArticleService;
 use App\Services\BlockRenderer;
+use App\Services\EditorialService;
 use App\Support\Csrf;
 use App\Support\Database;
 use App\Support\Dates;
@@ -302,7 +303,8 @@ final class ArticleController
 
     private function renderForm(?array $article): void
     {
-        $id = $article === null ? 0 : (int) $article['id'];
+        $id    = $article === null ? 0 : (int) $article['id'];
+        $pulso = $id === 0 ? null : \App\Models\Poll::forArticle($id);
 
         Response::securityHeaders(false);
         Response::html(View::render('admin/noticia-editor', [
@@ -323,6 +325,36 @@ final class ArticleController
             'videosDisponibles' => Database::all('SELECT id, title, video_type, status FROM videos WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 100'),
             'livesDisponibles'  => Database::all('SELECT id, title, status, starts_at FROM lives ORDER BY starts_at DESC LIMIT 60'),
             'tiposBloque' => BlockRenderer::TYPES,
+
+            // Expediente de la pieza.
+            'pulso'           => $pulso,
+            'pulsoOpciones'   => $pulso === null ? [] : \App\Models\Poll::options((int) $pulso['id']),
+            'pulsoResultados' => $pulso === null ? null : \App\Models\Poll::results((int) $pulso['id']),
+            'fuentes'        => $id === 0 ? [] : Article::sources($id),
+            'catalogoFuentes' => Taxonomy::sources(),
+            'cronologia'     => $id === 0 ? [] : Article::timeline($id),
+            'actores'        => $id === 0 ? [] : Article::actors($id),
+            'catalogoActores' => Database::all('SELECT id, name, actor_type FROM actors ORDER BY name LIMIT 200'),
+            'impactos'       => $id === 0 ? [] : Article::impacts($id),
+            'herencia'       => $id === 0 ? null : Article::lineage($id),
+            'relacionadas'   => $id === 0 ? [] : EditorialService::relacionadasManuales($id),
+            // El id va como marcador, no concatenado: la regla del proyecto
+            // es que ninguna consulta interpole datos, aunque el valor ya
+            // venga casteado. Hay una prueba que lo verifica.
+            'piezasDisponibles' => Database::all(
+                'SELECT id, title, status FROM articles
+                  WHERE deleted_at IS NULL AND id <> :actual
+                  ORDER BY COALESCE(published_at, updated_at) DESC LIMIT 150',
+                ['actual' => $id]
+            ),
+            'preguntasDisponibles' => Database::all(
+                'SELECT id, body FROM community_questions
+                  WHERE status IN ("aprobada","seleccionada","respondida")
+                  ORDER BY created_at DESC LIMIT 100'
+            ),
+            'perfilesImpacto' => EditorialService::PERFILES,
+            'certezas'        => EditorialService::CERTEZAS,
+            'tiposRelacion'   => EditorialService::RELACIONES,
         ], 'layouts/admin'));
     }
 
