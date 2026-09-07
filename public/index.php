@@ -175,6 +175,8 @@ $router->get('/panel/videos/{id:\d+}',     [$adminVideos, 'edit']);
 $router->post('/panel/videos/{id:\d+}',    [$adminVideos, 'update']);
 
 $router->get('/panel/lives',           [$adminLives, 'index']);
+$router->get('/panel/lives/cargar',    [$adminLives, 'bulkForm']);
+$router->post('/panel/lives/cargar',   [$adminLives, 'bulkStore']);
 $router->get('/panel/lives/nuevo',     [$adminLives, 'create']);
 $router->post('/panel/lives/nuevo',    [$adminLives, 'store']);
 $router->get('/panel/lives/{id:\d+}',  [$adminLives, 'edit']);

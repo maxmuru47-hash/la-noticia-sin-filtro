@@ -1,6 +1,9 @@
 <div class="panel__cabeza">
   <h1>Lives</h1>
-  <a class="boton boton--rojo" href="/panel/lives/nuevo">Nuevo Live</a>
+  <div class="panel__acciones">
+    <a class="boton" href="/panel/lives/cargar">Cargar varios</a>
+    <a class="boton boton--rojo" href="/panel/lives/nuevo">Nuevo Live</a>
+  </div>
 </div>
 
 <p class="aviso">La fecha y el estado de cada Live tienen una <strong>sola fuente de verdad</strong>: esta ficha.

@@ -908,6 +908,72 @@ foreach (['g', 'm', 'p'] as $escala) {
 }
 
 // =====================================================================
+Pruebas::grupo('22 · La carga en lote de Lives entiende lo que se le pega');
+// =====================================================================
+
+use App\Controllers\Admin\LiveController;
+
+// Lo minimo: un titulo solo basta, y sin fecha no se inventa uuna.
+$filas = LiveController::interpretar('El dólar que nadie controla');
+Pruebas::iguales(1, count($filas), 'Una línea produce un Live');
+Pruebas::iguales('El dólar que nadie controla', $filas[0]['titulo'], 'El título se lee entero, con tildes');
+Pruebas::iguales(null, $filas[0]['empieza'], 'Sin fecha escrita no se inventa una fecha');
+Pruebas::iguales('anunciado', $filas[0]['estado'], 'Sin fecha el estado es «anunciado», no «finalizado»');
+Pruebas::iguales(null, $filas[0]['error'], 'Un título solo no es un error');
+
+// La fecha venezolana (dia/mes) y la ISO tienen que dar el mismo instante.
+$venezolana = LiveController::interpretar('Programa | 12/08/2026 20:30');
+$iso        = LiveController::interpretar('Programa | 2026-08-12 20:30');
+Pruebas::iguales($iso[0]['empieza'], $venezolana[0]['empieza'],
+    '12/08/2026 y 2026-08-12 son el mismo día (día/mes, no mes/día)');
+Pruebas::iguales('2026-08-13 00:30:00', $venezolana[0]['empieza'],
+    'La hora de Caracas se guarda convertida a UTC');
+
+// Sin hora se asume la noche, que es cuando el hace los programas.
+$sinHora = LiveController::interpretar('Programa | 12/08/2026');
+Pruebas::iguales('2026-08-13 00:00:00', $sinHora[0]['empieza'], 'Sin hora se asume las 8:00 p. m. de Venezuela');
+
+// El orden de fecha y enlace no puede importar.
+$a = LiveController::interpretar('Programa | 12/08/2026 | https://ejemplo.com/v');
+$b = LiveController::interpretar('Programa | https://ejemplo.com/v | 12/08/2026');
+Pruebas::iguales($a[0]['empieza'], $b[0]['empieza'], 'La fecha se reconoce vaya donde vaya');
+Pruebas::iguales($a[0]['enlace'], $b[0]['enlace'], 'El enlace se reconoce vaya donde vaya');
+Pruebas::iguales('https://ejemplo.com/v', $a[0]['enlace'], 'El enlace https se conserva');
+
+// Un enlace inseguro no se guarda en silencio: se avisa.
+$http = LiveController::interpretar('Programa | http://ejemplo.com/v');
+Pruebas::iguales(null, $http[0]['enlace'], 'Un enlace http no se guarda');
+Pruebas::afirmar($http[0]['error'] !== null, 'Y se dice por qué, en vez de perderlo callando');
+
+// Una fecha imposible no puede pasar por buena.
+foreach (['31/02/2026', '2026-13-01', '12/08/2026 25:00', 'el jueves pasado'] as $mala) {
+    $r = LiveController::interpretar('Programa | ' . $mala);
+    Pruebas::afirmar($r[0]['error'] !== null || $r[0]['empieza'] === null,
+        'No se acepta «' . $mala . '» como fecha');
+}
+
+// Una linea sin titulo es un error con nombre, no un Live vacio.
+$vacio = LiveController::interpretar(' | 12/08/2026');
+Pruebas::afirmar($vacio[0]['error'] !== null, 'Una línea sin título no crea un Live sin nombre');
+
+// Un programa futuro no puede quedar marcado como ya ocurrido.
+$futuro = LiveController::interpretar('Programa | 15/01/' . ((int) date('Y') + 1));
+Pruebas::iguales('programado', $futuro[0]['estado'], 'Un programa futuro queda «programado»');
+$pasado = LiveController::interpretar('Programa | 15/01/' . ((int) date('Y') - 1));
+Pruebas::iguales('finalizado', $pasado[0]['estado'], 'Un programa pasado queda «finalizado»');
+
+// Diez lineas pegadas de golpe son diez Lives, y las vacias no cuentan.
+$diez = LiveController::interpretar(implode("\n", array_map(
+    static fn (int $n): string => 'Programa ' . $n . ' | ' . sprintf('%02d', $n) . '/08/2026',
+    range(1, 10)
+)) . "\n\n   \n");
+Pruebas::iguales(10, count($diez), 'Diez líneas pegadas son diez Lives y las vacías se ignoran');
+Pruebas::afirmar(
+    array_filter($diez, static fn (array $f): bool => $f['error'] !== null) === [],
+    'Ninguna de las diez da error'
+);
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 
