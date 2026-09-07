@@ -896,3 +896,134 @@
   font-size: var(--t-sm);
   font-style: italic;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   PORTADA GENERADA
+
+   Una pieza sin foto no deja un hueco: se le fabrica una portada con
+   los colores de la casa. No imita una fotografia a proposito — que se
+   note que es tipografia es parte de la identidad, y evita que nadie
+   confunda una composicion con una imagen real de lo ocurrido.
+
+   Seis composiciones. La que toca la decide la direccion permanente de
+   la pieza, asi que no cambia nunca.
+   ══════════════════════════════════════════════════════════════════ */
+
+.tarjeta__medio--generada {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--e2);
+  aspect-ratio: 16 / 10;
+  padding: var(--e3);
+  overflow: hidden;
+  background: var(--negro);
+  isolation: isolate;
+}
+
+/* La capa geometrica. Va detras del texto y no lo estorba. */
+.tarjeta__medio--generada::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.portada__marca {
+  font-family: var(--titulares);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--rojo-sobre-oscuro);
+  align-self: start;
+}
+
+/* Lleva la seccion, no el titular. El titular ya esta debajo en texto de
+   verdad: repetirlo aqui lo hacia leerse dos veces y, siendo largo, se
+   salia de la caja. La seccion es corta, situa la pieza de un vistazo y
+   nunca desborda. */
+.portada__rotulo {
+  font-family: var(--titulares);
+  font-weight: 800;
+  line-height: .98;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--blanco);
+  align-self: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+/* El cuerpo depende de lo larga que sea la seccion: «Venezuela» aguanta un
+   tamano que «Emprendimiento» no, y con uno fijo la palabra se salia. */
+.portada__rotulo--g { font-size: clamp(1.5rem, 3.1vw, 2.15rem); }
+.portada__rotulo--m { font-size: clamp(1.05rem, 1.95vw, 1.35rem); }
+.portada__rotulo--p { font-size: clamp(.9rem, 1.55vw, 1.1rem); }
+
+.tarjeta--esencial .portada__rotulo--g { font-size: clamp(2rem, 4.4vw, 3.1rem); }
+.tarjeta--esencial .portada__rotulo--m { font-size: clamp(1.4rem, 2.9vw, 2rem); }
+.tarjeta--esencial .portada__rotulo--p { font-size: clamp(1.1rem, 2.2vw, 1.5rem); }
+
+.portada__firma {
+  font-family: var(--titulares);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .58);
+  align-self: end;
+}
+
+/* --- Las seis composiciones ------------------------------------- */
+
+/* 1 · Barra roja al pie, ancha y firme. */
+.portada--1::before {
+  background:
+    linear-gradient(to top, var(--rojo) 0 10px, transparent 10px),
+    linear-gradient(160deg, #1E1E1E 0%, #000 70%);
+}
+
+/* 2 · Diagonal roja cruzando la esquina. */
+.portada--2::before {
+  background:
+    linear-gradient(115deg, transparent 0 58%, var(--rojo) 58% 62%, transparent 62%),
+    linear-gradient(200deg, #191919 0%, #000 75%);
+}
+
+/* 3 · Rejilla tenue, como papel pautado. */
+.portada--3::before {
+  background:
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0 1px, transparent 1px 26px),
+    linear-gradient(to bottom right, #151515 0%, #000 80%);
+}
+
+/* 4 · Bloque rojo lateral, al modo de un marcador. */
+.portada--4::before {
+  background:
+    linear-gradient(to right, var(--rojo) 0 8px, transparent 8px),
+    radial-gradient(120% 90% at 12% 0%, #232323 0%, #000 68%);
+}
+
+/* 5 · Dos franjas paralelas, ritmo de pauta. */
+.portada--5::before {
+  background:
+    repeating-linear-gradient(72deg, rgba(193,18,31,.34) 0 3px, transparent 3px 52px),
+    linear-gradient(140deg, #1B1B1B 0%, #000 72%);
+}
+
+/* 6 · Esquina encendida, luz baja. */
+.portada--6::before {
+  background:
+    radial-gradient(85% 70% at 100% 100%, rgba(193,18,31,.5) 0%, transparent 62%),
+    linear-gradient(200deg, #171717 0%, #000 78%);
+}
+
+/* En la pieza esencial la portada respira mas y el rotulo crece. */
+.tarjeta--esencial .tarjeta__medio--generada { aspect-ratio: 16 / 9; padding: var(--e4); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta__medio--generada { transition: transform .35s ease; }
+  .tarjeta:hover .tarjeta__medio--generada { transform: scale(1.012); }
+}

@@ -8,7 +8,21 @@ $numero    = $numero ?? null;
 $ruta      = '/noticia/' . $pieza['slug'];
 ?>
 <article class="tarjeta<?= $destacada ? ' tarjeta--esencial' : '' ?>" data-entra>
-  <?php if (!empty($pieza['hero_path'])): ?>
+  <?php if (empty($pieza['hero_path'])): ?>
+    <?php /* Sin foto no se deja un hueco: se fabrica una portada con los
+             colores de la casa. Es decorativa —el titular va justo debajo,
+             en texto de verdad—, asi que no se lee dos veces en voz alta. */ ?>
+    <div class="tarjeta__medio tarjeta__medio--generada portada portada--<?= \App\Support\Portada::variante((string) $pieza['slug']) ?>"
+         aria-hidden="true">
+      <?php /* Solo la seccion. El tipo editorial ya va en su etiqueta bajo
+               la portada, y el titular justo debajo: repetirlos aqui hacia
+               leer «Noticia» tres veces en la misma tarjeta. Sin seccion, la
+               portada se queda en geometria y firma. */ ?>
+      <?php $seccionPortada = mb_strtoupper((string) ($pieza['category_name'] ?? '')); ?>
+      <span class="portada__rotulo portada__rotulo--<?= \App\Support\Portada::escala($seccionPortada) ?>"><?= e($seccionPortada) ?></span>
+      <span class="portada__firma">SIN FILTRO</span>
+    </div>
+  <?php else: ?>
     <div class="tarjeta__medio">
       <img src="<?= atributo($pieza['hero_path']) ?>"
            alt="<?= atributo($pieza['hero_media_alt'] ?? $pieza['hero_alt'] ?? '') ?>"

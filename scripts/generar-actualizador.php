@@ -27,6 +27,7 @@ $archivos = [
     'app/Models/Dossier.php'                    => 'app/Models/Dossier.php',
     'app/Models/Live.php'                       => 'app/Models/Live.php',
     'app/Views/partials/tarjeta.php'            => 'app/Views/partials/tarjeta.php',
+    'app/Support/Portada.php'                   => 'app/Support/Portada.php',
     'app/Middleware/RateLimit.php'              => 'app/Middleware/RateLimit.php',
     'scripts/reindexar.php'                     => 'scripts/reindexar.php',
     'app/bootstrap.php'                         => 'app/bootstrap.php',

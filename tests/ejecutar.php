@@ -853,6 +853,61 @@ Pruebas::afirmar(App\Middleware\RateLimit::burst('prueba_asistente', 8, 30) === 
     'La novena se frena');
 
 // =====================================================================
+Pruebas::grupo('21 · La portada generada no cambia sola');
+// =====================================================================
+
+use App\Support\Portada;
+
+// Si la composicion cambiara en cada visita, el sitio pareceria inestable
+// y quien lo lee dudaria tambien de lo demas.
+$slug = 'aunque-cobres-en-dolares-este-ano-perdiste';
+$primera = Portada::variante($slug);
+for ($i = 0; $i < 20; $i++) {
+    if (Portada::variante($slug) !== $primera) {
+        $primera = -1;
+        break;
+    }
+}
+Pruebas::afirmar($primera > 0, 'La misma pieza recibe siempre la misma portada');
+
+// Y el reparto entre composiciones tiene que ser parejo, o la portada se
+// veria repetitiva. Se mide sobre una muestra grande a proposito: con seis
+// nombres sueltos, que caigan tres en la misma es simple azar, y una prueba
+// que falla por azar no vale para nada.
+$reparto = array_fill(1, Portada::VARIANTES, 0);
+for ($i = 0; $i < 600; $i++) {
+    $reparto[Portada::variante('pieza-de-prueba-numero-' . $i . '-con-titular-largo')]++;
+}
+$menor = min($reparto);
+$mayor = max($reparto);
+
+Pruebas::afirmar($menor > 0, 'Ninguna composición se queda sin usar');
+Pruebas::afirmar($mayor <= $menor * 2,
+    'El reparto entre composiciones es parejo (de ' . $menor . ' a ' . $mayor . ' sobre 600)');
+
+// Toda variante tiene que existir en la hoja de estilos.
+$css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/css/componentes.css');
+$faltan = [];
+for ($v = 1; $v <= Portada::VARIANTES; $v++) {
+    if (!str_contains($css, '.portada--' . $v . '::before')) {
+        $faltan[] = $v;
+    }
+}
+Pruebas::afirmar($faltan === [],
+    'Cada composicion posible esta definida en el diseño'
+    . ($faltan === [] ? '' : ' (faltan: ' . implode(', ', $faltan) . ')'));
+
+// Una seccion larga y una corta no pueden ir al mismo cuerpo de letra.
+Pruebas::iguales('g', Portada::escala('VENEZUELA'),      'Una sección corta va en cuerpo grande');
+Pruebas::iguales('m', Portada::escala('EMPRENDIMIENTO'), 'Una sección media baja de cuerpo');
+Pruebas::iguales('p', Portada::escala('SOCIEDAD Y FAMILIA'), 'Una sección larga baja aún más');
+
+foreach (['g', 'm', 'p'] as $escala) {
+    Pruebas::afirmar(str_contains($css, '.portada__rotulo--' . $escala . ' {'),
+        'El diseño define el cuerpo «' . $escala . '»');
+}
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 
