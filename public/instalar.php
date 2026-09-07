@@ -62,13 +62,23 @@ $tablas = 0;
 $roles  = 0;
 $baseOk = false;
 
+// La cuenta de tablas siempre se puede pedir: si esta falla, es que no
+// hay conexión. Contar roles, en cambio, falla tambien cuando la base
+// esta vacia, que es lo normal antes de montarla: eso no es un error y
+// no debe alarmar a nadie.
 try {
     $tablas = (int) Database::value('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()');
-    $roles  = (int) Database::value('SELECT COUNT(*) FROM roles');
-    $baseOk = $tablas >= 40 && $roles > 0;
 } catch (\Throwable) {
     $errores[] = 'No se pudo consultar la base de datos. Revisa los datos de .env.';
 }
+
+try {
+    $roles = (int) Database::value('SELECT COUNT(*) FROM roles');
+} catch (\Throwable) {
+    $roles = 0; // Todavia no existe la tabla. El boton de abajo la crea.
+}
+
+$baseOk = $tablas >= 40 && $roles > 0;
 
 if ($tablas > 0 && $tablas < 40) {
     $errores[] = 'La base existe pero le faltan tablas (' . $tablas . ' de 41). Importa database/schema.sql.';
