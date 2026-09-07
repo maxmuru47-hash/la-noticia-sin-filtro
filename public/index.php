@@ -99,6 +99,7 @@ $router->post('/api/recordatorio/{id:\d+}', [$api, 'reminder']);
 $router->post('/api/evento', [$api, 'event']);
 $router->get('/api/buscar', [$api, 'suggest']);
 $router->post('/api/asistente', [$api, 'assistant']);
+$router->get('/api/ultimas', [$api, 'latest']);
 
 // ---------------------------------------------------------------------
 // RUTAS DEL PANEL

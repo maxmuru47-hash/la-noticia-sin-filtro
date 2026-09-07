@@ -62,6 +62,9 @@ return [
         'instagram_personal' => (string) Env::get('BRAND_INSTAGRAM_PERSONAL', 'maxegonzalezp'),
         'tiktok'            => (string) Env::get('BRAND_TIKTOK', 'sinfiltroconmax'),
         'email'             => (string) Env::get('EDITORIAL_EMAIL', ''),
+        // La casa principal. Es el unico origen al que se le deja leer el
+        // canal de ultimas piezas desde el navegador de un visitante.
+        'sitio_principal'   => rtrim((string) Env::get('SITIO_PRINCIPAL', 'https://sinfiltroconmax.com'), '/'),
         'principle'         => 'No te muestro exito, te muestro el camino.',
         'promise'           => 'La noticia no termina cuando la lees. Comienza cuando la entiendes.',
     ],

@@ -1,0 +1,80 @@
+<!--
+  ══════════════════════════════════════════════════════════════════════
+  SALA DE REDACCIÓN EN VIVO
+  Para pegar en sinfiltroconmax.com, justo ANTES de </body>
+
+  Qué hace: sustituye las noticias escritas a mano de la Sala de redacción
+  por las últimas piezas publicadas de verdad en la plataforma.
+
+  Si algo falla —no hay internet, la plataforma está caída, todavía no has
+  publicado nada— no toca nada y se quedan las que ya tienes escritas. Es
+  deliberado: la página nunca debe quedarse con un hueco.
+  ══════════════════════════════════════════════════════════════════════
+-->
+<script>
+(function () {
+  var ORIGEN = 'https://lanoticia.sinfiltroconmax.com';
+  var rejilla = document.querySelector('.noticias-grid');
+  if (!rejilla || !window.fetch) { return; }
+
+  function texto(cadena) {
+    var d = document.createElement('div');
+    d.textContent = cadena == null ? '' : String(cadena);
+    return d.innerHTML;
+  }
+
+  function fechaCorta(iso) {
+    if (!iso) { return ''; }
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d)) { return ''; }
+    return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // Se construye con las mismas clases que ya usa la seccion, para que lo
+  // que llega de fuera se vea exactamente igual que lo escrito a mano.
+  function articulo(pieza, destacada) {
+    var etiquetas = '<span class="noticia-cat-tag opinion">' + texto(pieza.tipo || 'Noticia') + '</span>';
+    if (pieza.seccion) {
+      etiquetas += '<span class="noticia-cat-tag">' + texto(pieza.seccion) + '</span>';
+    }
+    if (pieza.es_demo) {
+      etiquetas += '<span class="noticia-cat-tag">Demostración</span>';
+    }
+
+    return '<article class="noticia' + (destacada ? ' featured' : ' noticia-small') + '">' +
+             '<div class="noticia-cat">' + etiquetas + '</div>' +
+             '<h3 class="noticia-headline">' +
+               '<a href="' + texto(pieza.url) + '" style="color:inherit;text-decoration:none">' +
+                 texto(pieza.titulo) +
+               '</a>' +
+             '</h3>' +
+             (pieza.entrada ? '<p class="noticia-lead">' + texto(pieza.entrada) + '</p>' : '') +
+             '<div class="noticia-meta">' +
+               '<span class="noticia-date">' + texto(fechaCorta(pieza.fecha)) + '</span>' +
+               '<a class="noticia-toggle" href="' + texto(pieza.url) + '">Leer ↗</a>' +
+             '</div>' +
+           '</article>';
+  }
+
+  fetch(ORIGEN + '/api/ultimas?cuantas=4', { credentials: 'omit' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (datos) {
+      if (!datos || !datos.piezas || datos.piezas.length === 0) { return; }
+
+      var piezas = datos.piezas;
+      var html = articulo(piezas[0], true);
+
+      if (piezas.length > 1) {
+        html += '<div class="noticia-stack">';
+        for (var i = 1; i < piezas.length; i++) { html += articulo(piezas[i], false); }
+        html += '</div>';
+      }
+
+      // Sin esto la fila estira la pieza destacada hasta la altura de las
+      // tres pequeñas juntas, y queda un hueco muerto debajo del titular.
+      rejilla.style.alignItems = 'start';
+      rejilla.innerHTML = html;
+    })
+    .catch(function () { /* Se quedan las noticias escritas a mano. */ });
+})();
+</script>

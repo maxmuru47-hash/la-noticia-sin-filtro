@@ -213,6 +213,52 @@ final class ApiController
     }
 
     /**
+     * Últimas piezas publicadas, para que la casa principal las muestre.
+     *
+     * Existe para que nadie tenga que copiar una noticia a mano de una web a
+     * otra. Lo copiado a mano envejece: se corrige aquí y allí sigue el error.
+     *
+     * Es de solo lectura y solo devuelve lo que ya es público, así que no
+     * expone nada nuevo. Se abre al navegador de la casa principal —y solo a
+     * ella— porque un visitante de sinfiltroconmax.com lo pide desde su
+     * propio navegador, no desde el servidor.
+     */
+    public function latest(Request $request): void
+    {
+        $permitido = (string) ($this->config['brand']['sitio_principal'] ?? '');
+        $origen    = (string) ($_SERVER['HTTP_ORIGIN'] ?? '');
+
+        if ($permitido !== '' && $origen !== '' && hash_equals($permitido, $origen)) {
+            header('Access-Control-Allow-Origin: ' . $permitido);
+            header('Vary: Origin');
+        }
+
+        $cuantas = max(1, min(12, (int) ($request->text('cuantas') ?: 4)));
+
+        $piezas = [];
+        foreach (Article::published(['limit' => $cuantas]) as $pieza) {
+            $piezas[] = [
+                'titulo'   => (string) $pieza['title'],
+                'entrada'  => (string) ($pieza['summary'] ?? ''),
+                'url'      => rtrim((string) $this->config['app']['url'], '/') . '/noticia/' . $pieza['slug'],
+                'seccion'  => (string) ($pieza['category_name'] ?? ''),
+                'tipo'     => Article::EDITORIAL_TYPES[$pieza['editorial_type']] ?? '',
+                'fecha'    => (string) ($pieza['published_at'] ?? ''),
+                'es_demo'  => (bool) ($pieza['is_demo'] ?? false),
+            ];
+        }
+
+        // Cinco minutos: lo bastante para que una visita en punta no toque la
+        // base cada vez, lo bastante poco para que una pieza recién publicada
+        // aparezca enseguida al otro lado.
+        header('Cache-Control: public, max-age=300');
+        Response::json([
+            'sitio'  => rtrim((string) $this->config['app']['url'], '/'),
+            'piezas' => $piezas,
+        ]);
+    }
+
+    /**
      * El asistente de la redacción. Contesta con lo que está escrito o con lo
      * que hay publicado de verdad, nunca con lo que suene bien.
      *

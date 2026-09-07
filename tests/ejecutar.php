@@ -360,10 +360,49 @@ Pruebas::afirmar($soloNoticias, 'El filtro por tipo editorial se respeta');
 $inyeccion = SearchService::search(['q' => '" OR 1=1 -- '], 10, 0);
 Pruebas::afirmar(is_array($inyeccion['items']), 'Una consulta con sintaxis de inyección no rompe nada');
 
-// Coincidencia en transcripción de video, que es la prueba clave.
-$porTranscripcion = SearchService::search(['q' => 'perlacontinental'], 10, 0);
+// Coincidencia en transcripcion de video, que es la prueba clave: lo dicho
+// en camara tiene que poder encontrarse aunque no este escrito en el texto.
+//
+// La prueba se fabrica su propio video. Antes buscaba una palabra que solo
+// existia si alguien habia ejecutado el sembrador de demostracion: cuando esa
+// pieza no estaba, la prueba fallaba y acusaba al buscador de algo que no
+// habia hecho.
+$palabraDicha = 'perlacontinental' . $sufijo;
+
+$idVideo = Database::insert('videos', [
+    'uuid'              => App\Support\Str::uuid(),
+    'title'             => 'Video de prueba ' . $sufijo,
+    'slug'              => 'video-de-prueba-' . $sufijo,
+    'video_type'        => 'clip',
+    'provider'          => 'propio',
+    'transcript_status' => 'revisada',
+    'status'            => 'publicado',
+    'published_at'      => gmdate('Y-m-d H:i:s'),
+]);
+
+Database::insert('video_transcripts', [
+    'video_id' => $idVideo,
+    'language' => 'es',
+    'content'  => 'Esto es lo que se dijo en camara y no esta escrito en el texto: ' . $palabraDicha . '.',
+]);
+
+$idConVideo = ArticleService::create([
+    'title'       => 'Pieza con video ' . $sufijo,
+    'body_blocks' => json_encode([['tipo' => 'parrafo', 'texto' => 'El cuerpo no menciona esa palabra.']], JSON_UNESCAPED_UNICODE),
+]);
+$creadas[] = $idConVideo;
+
+ArticleService::attachVideo($idConVideo, $idVideo, 'principal');
+ArticleService::publish($idConVideo);
+SearchService::reindexArticle($idConVideo);
+
+$porTranscripcion = SearchService::search(['q' => $palabraDicha], 10, 0);
 Pruebas::afirmar($porTranscripcion['total'] >= 1,
     'El buscador encuentra piezas por lo que se dijo en un video');
+
+Database::run('DELETE FROM video_transcripts WHERE video_id = :id', ['id' => $idVideo]);
+Database::run('DELETE FROM article_video_relations WHERE video_id = :id', ['id' => $idVideo]);
+Database::run('DELETE FROM videos WHERE id = :id', ['id' => $idVideo]);
 
 // =====================================================================
 Pruebas::grupo('10 · Fechas y zona horaria');
