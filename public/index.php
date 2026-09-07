@@ -117,6 +117,7 @@ $adminHomepage  = new Admin\HomepageController($config);
 $adminAudit     = new Admin\AuditController($config);
 $adminEditorial = new Admin\EditorialController($config);
 $adminPerfil    = new Admin\PerfilController($config);
+$adminRapido    = new Admin\QuickController();
 
 $router->get('/panel/entrar',  [$adminAuth, 'showLogin']);
 $router->post('/panel/entrar', [$adminAuth, 'login']);
@@ -125,6 +126,9 @@ $router->get('/panel/clave',   [$adminPerfil, 'mostrarClave']);
 $router->post('/panel/clave',  [$adminPerfil, 'cambiarClave']);
 
 $router->get('/panel', [$adminDashboard, 'index']);
+
+$router->get('/panel/rapido',  [$adminRapido, 'form']);
+$router->post('/panel/rapido', [$adminRapido, 'store']);
 
 $router->get('/panel/noticias',                    [$adminArticles, 'index']);
 $router->get('/panel/noticias/nueva',              [$adminArticles, 'create']);

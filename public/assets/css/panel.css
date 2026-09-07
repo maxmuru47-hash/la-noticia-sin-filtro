@@ -67,6 +67,15 @@
 .mini-boton:hover { background: var(--papel-hueco); border-color: var(--tinta); }
 .mini-boton--peligro { color: var(--rojo-oscuro); border-color: var(--rojo-oscuro); }
 
+/* La accion del dia a dia se distingue de las demas sin gritar: publicar es
+   lo que mas se pulsa en esta tabla, y buscarlo entre botones iguales cuesta
+   una mirada cada vez. */
+.mini-boton--fuerte {
+  background: var(--rojo); border-color: var(--rojo); color: var(--blanco);
+  font-weight: 600;
+}
+.mini-boton--fuerte:hover { background: var(--rojo-oscuro); border-color: var(--rojo-oscuro); }
+
 .autoguardado { font-size: var(--t-sm); color: var(--tinta-tenue); }
 
 .entrar { min-height: 100vh; display: grid; place-items: center; background: var(--negro); padding: var(--e4); }

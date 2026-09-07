@@ -56,9 +56,32 @@
           <td><?= e($pieza['author_name'] ?? '—') ?></td>
           <td class="numero"><?= e($pieza['published_at'] ? fechaLarga($pieza['published_at']) : '—') ?></td>
           <td class="numero"><?= (int) $pieza['view_count'] ?></td>
-          <td><?php if ($pieza['published_at'] !== null): ?>
-            <a class="mini-boton" href="/noticia/<?= atributo($pieza['slug']) ?>" target="_blank" rel="noopener">Ver</a>
-          <?php endif; ?></td>
+          <td>
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center">
+              <?php if ($pieza['published_at'] !== null): ?>
+                <a class="mini-boton" href="/noticia/<?= atributo($pieza['slug']) ?>" target="_blank" rel="noopener">Ver</a>
+              <?php endif; ?>
+
+              <?php /* Publicar y archivar sin abrir la pieza: son los dos
+                       gestos del dia a dia y no deberian costar dos pantallas.
+                       El resto de acciones siguen dentro del editor, donde
+                       pueden explicarse y pedir un motivo. */ ?>
+
+              <?php if ($puedePublicar && in_array($pieza['status'], ['borrador', 'programada'], true)): ?>
+                <form method="post" action="/panel/noticias/<?= (int) $pieza['id'] ?>/publicar" style="display:inline">
+                  <?= \App\Support\Csrf::field() ?>
+                  <button class="mini-boton mini-boton--fuerte" type="submit">Publicar</button>
+                </form>
+              <?php endif; ?>
+
+              <?php if ($puedeArchivar && in_array($pieza['status'], ['publicada', 'actualizada'], true)): ?>
+                <form method="post" action="/panel/noticias/<?= (int) $pieza['id'] ?>/archivar" style="display:inline">
+                  <?= \App\Support\Csrf::field() ?>
+                  <button class="mini-boton" type="submit">Archivar</button>
+                </form>
+              <?php endif; ?>
+            </div>
+          </td>
         </tr>
       <?php endforeach; ?>
       <?php if ($piezas === []): ?><tr><td colspan="7">No hay piezas con esos filtros.</td></tr><?php endif; ?>

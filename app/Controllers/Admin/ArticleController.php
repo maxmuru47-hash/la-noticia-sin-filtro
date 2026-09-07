@@ -57,6 +57,8 @@ final class ArticleController
             'paginador' => new Paginator($resultado['total'], $perPage, $page, '/panel/noticias', array_filter($filtros)),
             'filtros'   => $filtros,
             'autores'   => Taxonomy::authors(false),
+            'puedePublicar' => Auth::can(Auth::CAP_ARTICLE_PUBLISH),
+            'puedeArchivar' => Auth::can(Auth::CAP_ARTICLE_ARCHIVE),
         ], 'layouts/admin'));
     }
 

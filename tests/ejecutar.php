@@ -750,6 +750,27 @@ Pruebas::afirmar(str_contains($plantilla, 'empty($pieza[\'category_slug\'])'),
     'La tarjeta comprueba la dirección antes de construir el enlace');
 
 // =====================================================================
+Pruebas::grupo('19 · El JSON de buscadores no puede romper la página');
+// =====================================================================
+
+// Ese JSON viaja dentro de un <script>. Un titular que contenga la cadena de
+// cierre de esa etiqueta cerraría el bloque, y lo que viniera detrás sería
+// HTML vivo en todas las páginas donde aparezca ese titular.
+$tituloTrampa = 'Fuga </script><img src=x onerror=alert(1)> fin';
+$json = App\Services\SeoService::jsonLd(['headline' => $tituloTrampa]);
+
+Pruebas::afirmar(!str_contains($json, '</script'),
+    'La etiqueta de cierre no sale nunca literal');
+Pruebas::afirmar(!str_contains($json, '<') && !str_contains($json, '>'),
+    'Ningún signo de menor o mayor sale sin escapar');
+
+// Escapar no puede costar exactitud: lo que lee un buscador debe ser el
+// titular tal cual se escribió.
+$vuelta = json_decode($json, true);
+Pruebas::afirmar(($vuelta['headline'] ?? null) === $tituloTrampa,
+    'El buscador sigue leyendo el titular exacto');
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 

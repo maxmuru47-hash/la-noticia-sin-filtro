@@ -9,6 +9,7 @@ unset($_SESSION['_flash']);
 $menu = [
     'Editorial' => [
         ['/panel',            'Tablero',   null],
+        ['/panel/rapido',     'Publicar rápido', Auth::CAP_ARTICLE_CREATE],
         ['/panel/noticias',   'Noticias',  Auth::CAP_ARTICLE_CREATE],
         ['/panel/portada',    'Portada',   Auth::CAP_HOMEPAGE_MANAGE],
         ['/panel/taxonomias', 'Categorías y autores', Auth::CAP_TAXONOMY_MANAGE],

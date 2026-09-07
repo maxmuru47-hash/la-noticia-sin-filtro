@@ -234,11 +234,20 @@ final class SeoService
         return $data;
     }
 
+    /**
+     * Este JSON viaja dentro de un <script> en el HTML, asi que un titular
+     * que contenga la cadena de cierre de esa etiqueta cerraria el bloque y
+     * lo que viniera detras seria HTML vivo. Escapar los signos de menor y
+     * mayor lo impide de raiz, y la barra se deja escapar tambien: la salida
+     * es menos bonita de leer y sigue siendo el mismo JSON para quien lo
+     * consume, que son buscadores, no personas.
+     */
     public static function jsonLd(array $data): string
     {
         return json_encode(
             $data,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE
+            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE
+            | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
         ) ?: '{}';
     }
 }

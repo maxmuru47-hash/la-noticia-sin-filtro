@@ -1,6 +1,7 @@
 <div class="panel__cabeza">
   <h1>Tablero</h1>
-  <a class="boton boton--rojo" href="/panel/noticias/nueva">Nueva pieza</a>
+  <a class="boton boton--rojo" href="/panel/rapido">Publicar rápido</a>
+  <a class="boton boton--linea" href="/panel/noticias/nueva">Pieza completa</a>
 </div>
 
 <div class="panel__metricas">
