@@ -325,4 +325,128 @@
       });
     });
   }
+
+  /* -------------------------------------------------------------------
+     ASISTENTE DE LA REDACCION
+
+     Sin JavaScript el formulario lleva al buscador y la persona encuentra
+     lo mismo por otro camino. Con JavaScript, se contesta aqui mismo.
+
+     Nada de lo que devuelve el servidor se inserta como HTML: se escapa
+     y solo despues se permiten las negritas que el propio servidor marca.
+     Un asistente que pinta HTML ajeno es una puerta abierta.
+     ------------------------------------------------------------------- */
+  var asistente = document.querySelector('[data-asistente]');
+  if (asistente) {
+    var hilo       = asistente.querySelector('[data-hilo]');
+    var formulario = asistente.querySelector('[data-formulario]');
+    var entrada    = asistente.querySelector('[data-entrada]');
+    var atajos     = asistente.querySelector('[data-atajos]');
+    var enviando   = false;
+
+    function escapar(texto) {
+      var d = document.createElement('div');
+      d.textContent = texto == null ? '' : String(texto);
+      return d.innerHTML;
+    }
+
+    // El servidor marca énfasis con dos asteriscos. Se aplica DESPUES de
+    // escapar, asi que lo unico que puede producir es <strong>.
+    function conNegritas(texto) {
+      return escapar(texto).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    }
+
+    function turno(clase) {
+      var div = document.createElement('div');
+      div.className = 'asistente__turno asistente__turno--' + clase;
+      hilo.appendChild(div);
+      hilo.scrollTop = hilo.scrollHeight;
+      return div;
+    }
+
+    function decir(clase, texto, piezas) {
+      var div = turno(clase);
+      var p = document.createElement('p');
+      p.className = 'asistente__texto';
+      p.innerHTML = conNegritas(texto);
+      div.appendChild(p);
+
+      if (piezas && piezas.length) {
+        var lista = document.createElement('ul');
+        lista.className = 'asistente__piezas';
+        piezas.forEach(function (pieza) {
+          var li = document.createElement('li');
+          li.className = 'asistente__pieza';
+          var a = document.createElement('a');
+          a.href = pieza.url;                 // la arma el servidor, no la persona
+          a.textContent = pieza.titulo;
+          if (pieza.fecha) {
+            var span = document.createElement('span');
+            span.className = 'asistente__pieza-fecha';
+            span.textContent = pieza.fecha.slice(0, 10);
+            a.appendChild(span);
+          }
+          li.appendChild(a);
+          lista.appendChild(li);
+        });
+        div.appendChild(lista);
+      }
+
+      hilo.scrollTop = hilo.scrollHeight;
+      return div;
+    }
+
+    function preguntar(texto) {
+      if (enviando || !texto) { return; }
+      enviando = true;
+
+      decir('persona', texto);
+      var espera = turno('casa');
+      espera.innerHTML = '<p class="asistente__pensando">Buscando…</p>';
+
+      var datos = new FormData();
+      datos.append('pregunta', texto);
+      var token = formulario.querySelector('input[name="_token"]');
+      if (token) { datos.append('_token', token.value); }
+
+      fetch('/api/asistente', { method: 'POST', body: datos, headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json().catch(function () { return null; }); })
+        .then(function (datos) {
+          espera.remove();
+          if (!datos) {
+            decir('casa', 'No pude responder ahora mismo. Prueba el buscador de abajo.');
+            return;
+          }
+          if (datos.ok === false) {
+            decir('casa', datos.error || 'No pude responder ahora mismo.');
+            return;
+          }
+          decir('casa', datos.respuesta || '', datos.piezas);
+        })
+        .catch(function () {
+          espera.remove();
+          decir('casa', 'Se cortó la conexión. Prueba otra vez, o usa el buscador de abajo.');
+        })
+        .then(function () {
+          enviando = false;
+          entrada.focus();
+        });
+    }
+
+    formulario.addEventListener('submit', function (evento) {
+      var texto = entrada.value.trim();
+      if (!texto) { return; }
+      evento.preventDefault();
+      entrada.value = '';
+      preguntar(texto);
+    });
+
+    if (atajos) {
+      atajos.addEventListener('click', function (evento) {
+        var boton = evento.target.closest('.asistente__atajo');
+        if (boton) { preguntar(boton.textContent.trim()); }
+      });
+    }
+  }
+
 })();

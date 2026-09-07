@@ -310,6 +310,8 @@ $heroPoster     = $config['hero']['poster_path'];
 </section>
 
 <!-- 11. ARCHIVO Y BUSCADOR -->
+<?= \App\Support\View::partial('partials/asistente') ?>
+
 <section class="seccion seccion--oscura">
   <div class="contenedor">
     <div class="seccion__cabeza">

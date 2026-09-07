@@ -65,6 +65,35 @@ final class RateLimit
         return false;
     }
 
+    /**
+     * Deja pasar una ráfaga normal y frena solo el machaque.
+     *
+     * Un intervalo mínimo fijo castiga a quien usa la página bien —pulsar un
+     * atajo y escribir a continuación son dos acciones seguidas y legítimas—
+     * y no detiene a quien abusa, que puede tirar la cookie y empezar de
+     * cero. Contar cuántas veces en una ventana permite ambas cosas: varias
+     * seguidas sí, cien no.
+     */
+    public static function burst(string $action, int $max, int $seconds): bool
+    {
+        $key    = '_rlb_' . $action;
+        $ahora  = time();
+        $marcas = array_values(array_filter(
+            (array) ($_SESSION[$key] ?? []),
+            static fn ($t): bool => is_int($t) && ($ahora - $t) < $seconds
+        ));
+
+        if (count($marcas) >= $max) {
+            $_SESSION[$key] = $marcas;
+            return true;
+        }
+
+        $marcas[] = $ahora;
+        $_SESSION[$key] = $marcas;
+
+        return false;
+    }
+
     public static function purgeOld(int $days = 30): void
     {
         Database::run('DELETE FROM login_attempts WHERE attempted_at < :cutoff', [

@@ -9,6 +9,7 @@ use App\Models\Live;
 use App\Models\Poll;
 use App\Models\Question;
 use App\Services\AnalyticsService;
+use App\Services\AssistantService;
 use App\Services\SearchService;
 use App\Support\Csrf;
 use App\Support\Database;
@@ -209,5 +210,47 @@ final class ApiController
     {
         header('Cache-Control: private, max-age=30');
         Response::json(['items' => SearchService::suggest($request->text('q'))]);
+    }
+
+    /**
+     * El asistente de la redacción. Contesta con lo que está escrito o con lo
+     * que hay publicado de verdad, nunca con lo que suene bien.
+     *
+     * Va limitado por dos motivos: cada pregunta abre una búsqueda contra la
+     * base, y un formulario público sin freno es un ariete gratis.
+     */
+    public function assistant(Request $request): void
+    {
+        if (!Csrf::verify($request->text('_token'))) {
+            Response::json(['ok' => false, 'error' => 'La página lleva demasiado tiempo abierta. Recárgala.'], 419);
+            return;
+        }
+
+        $pregunta = trim($request->text('pregunta'));
+
+        if ($pregunta === '') {
+            Response::json(['ok' => false, 'error' => 'Escribe tu pregunta.'], 422);
+            return;
+        }
+        if (mb_strlen($pregunta) > AssistantService::LIMITE_PREGUNTA) {
+            Response::json([
+                'ok'    => false,
+                'error' => 'Demasiado largo. Máximo ' . AssistantService::LIMITE_PREGUNTA . ' caracteres.',
+            ], 422);
+            return;
+        }
+
+        // Ocho preguntas en medio minuto: de sobra para conversar, poco para
+        // usar la búsqueda del archivo como ariete.
+        if (RateLimit::burst('asistente', 8, 30)) {
+            Response::json([
+                'ok'    => false,
+                'error' => 'Muchas preguntas seguidas. Espera unos segundos y sigue.',
+            ], 429);
+            return;
+        }
+
+        header('Cache-Control: no-store');
+        Response::json(['ok' => true] + AssistantService::responder($pregunta));
     }
 }

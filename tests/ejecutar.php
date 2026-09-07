@@ -771,6 +771,49 @@ Pruebas::afirmar(($vuelta['headline'] ?? null) === $tituloTrampa,
     'El buscador sigue leyendo el titular exacto');
 
 // =====================================================================
+Pruebas::grupo('20 · El asistente no inventa');
+// =====================================================================
+
+use App\Services\AssistantService;
+
+// Lo primero que tiene que hacer bien un asistente de un medio es callarse
+// cuando no sabe. Rellenar el hueco con algo que suene bien es desinformar
+// con la cara de la casa.
+$nada = AssistantService::responder('unicornios en la superficie de marte');
+Pruebas::afirmar($nada['piezas'] === [],
+    'Sin nada publicado, no ofrece ninguna pieza');
+Pruebas::contiene('No encuentro nada publicado', $nada['respuesta'],
+    'Sin nada publicado, lo dice en vez de improvisar');
+
+// Las respuestas fijas no dependen de tildes ni de signos: quien pregunta
+// no deberia tener que acertar con la ortografia.
+foreach (['¿Qué es el Pulso?', 'que es el pulso', 'PULSO'] as $forma) {
+    $r = AssistantService::responder($forma);
+    Pruebas::contiene('Pulso', $r['respuesta'], 'Responde sobre el Pulso escrito «' . $forma . '»');
+}
+
+// Nunca devuelve lo que escribio la persona: si lo repitiera, seria una via
+// para colar codigo en la pagina de quien pregunta.
+$veneno = AssistantService::responder('<script>alert(1)</script> <img src=x onerror=alert(2)>');
+Pruebas::afirmar(!str_contains($veneno['respuesta'], '<script') && !str_contains($veneno['respuesta'], 'onerror'),
+    'La respuesta nunca repite lo que escribió la persona');
+
+// Una pregunta larguisima se recorta antes de llegar a la base.
+$larga = AssistantService::responder(str_repeat('electricidad ', 200));
+Pruebas::afirmar(is_array($larga['piezas']),
+    'Una pregunta desmedida se atiende sin romperse');
+
+// El limite por rafaga deja conversar y frena el machaque.
+$_SESSION = [];
+$bloqueado = false;
+for ($i = 0; $i < 8; $i++) {
+    $bloqueado = $bloqueado || App\Middleware\RateLimit::burst('prueba_asistente', 8, 30);
+}
+Pruebas::afirmar($bloqueado === false, 'Ocho preguntas seguidas pasan sin estorbo');
+Pruebas::afirmar(App\Middleware\RateLimit::burst('prueba_asistente', 8, 30) === true,
+    'La novena se frena');
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 

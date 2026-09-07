@@ -759,3 +759,140 @@
 .respuesta-formulario { font-size: var(--t-base); padding: var(--e2) var(--e3); border-radius: var(--radio); }
 .respuesta-formulario--ok    { background: rgba(31, 111, 67, 0.1); color: var(--confirmado); }
 .respuesta-formulario--error { background: rgba(193, 18, 31, 0.1); color: var(--rojo-oscuro); }
+
+/* ══════════════════════════════════════════════════════════════════
+   ASISTENTE DE LA REDACCIÓN
+
+   Vive sobre fondo carbón. Los turnos de la casa y los de quien pregunta
+   se distinguen por posición y por borde, no solo por color: quien no
+   distingue bien los colores tiene que poder seguir la conversación igual.
+   ══════════════════════════════════════════════════════════════════ */
+
+.asistente {
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.asistente__hilo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  min-height: 6rem;
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: var(--e3);
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: var(--radio);
+}
+
+.asistente__turno {
+  max-width: 90%;
+  padding: var(--e2) var(--e3);
+  border-radius: var(--radio);
+}
+
+.asistente__turno--casa {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, .07);
+  border-left: 3px solid var(--rojo-sobre-oscuro);
+}
+
+.asistente__turno--persona {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, .13);
+  border-right: 3px solid var(--blanco);
+}
+
+.asistente__texto {
+  margin: 0;
+  color: var(--blanco);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.asistente__texto strong { color: var(--rojo-sobre-oscuro); }
+
+/* Las piezas encontradas son enlaces de verdad, no texto suelto: quien
+   pregunta debe poder llegar a la fuente en un clic. */
+.asistente__piezas {
+  list-style: none;
+  margin: var(--e2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+}
+.asistente__pieza a {
+  display: block;
+  color: var(--blanco);
+  text-decoration: none;
+  padding: var(--e2);
+  min-height: 44px;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: var(--radio);
+}
+.asistente__pieza a:hover,
+.asistente__pieza a:focus-visible {
+  background: rgba(255, 255, 255, .14);
+  border-color: var(--rojo-sobre-oscuro);
+}
+.asistente__pieza-fecha {
+  display: block;
+  font-size: var(--t-sm);
+  color: #C9C4BA;
+  margin-top: var(--e0);
+}
+
+.asistente__atajos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e1);
+  margin-top: var(--e3);
+}
+.asistente__atajo {
+  min-height: 44px;
+  padding: 0 var(--e3);
+  color: var(--blanco);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: var(--radio);
+  font: inherit;
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+.asistente__atajo:hover,
+.asistente__atajo:focus-visible {
+  border-color: var(--rojo-sobre-oscuro);
+  background: rgba(255, 255, 255, .08);
+}
+
+.asistente__campo {
+  display: flex;
+  gap: var(--e2);
+  margin-top: var(--e3);
+  flex-wrap: wrap;
+}
+.asistente__campo > * { min-width: 0; }
+.asistente__campo input {
+  flex: 1 1 14rem;
+  min-height: 44px;
+  padding: 0 var(--e3);
+  color: var(--tinta);
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  font: inherit;
+}
+
+.asistente__aviso {
+  margin-top: var(--e2);
+  font-size: var(--t-sm);
+  color: #C9C4BA;
+}
+
+.asistente__pensando {
+  color: #C9C4BA;
+  font-size: var(--t-sm);
+  font-style: italic;
+}
