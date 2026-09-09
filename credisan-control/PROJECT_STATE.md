@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **1 — Backend completa. En espera de aprobación** |
+| **Fase actual** | **1 — Backend completa + portada desplegable. En espera de aprobación** |
 | **Fecha** | 2026-09-09 |
 | **Producción** | control.sinfiltroconmax.com (Hostinger, plan Business, sitio PHP/HTML) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
@@ -114,6 +114,24 @@ auditoría sin secretos y superficie de ejecución.
 - Generar y guardar `CREDISAN_PIN_PEPPER`.
 - Activar el hook de claims y `pg_cron`.
 - Crear el perfil del CEO.
+
+## Frontend entregado en la Fase 1
+
+Portada instalable (PWA) con la identidad oficial y una pantalla de **estado del
+sistema** que comprueba de verdad —no supone— HTTPS, instalabilidad,
+configuración y conexión con Supabase. Sirve para desplegar hoy y verificar
+cada paso de la puesta en marcha.
+
+`public/index.html` · `public/sw.js` · `public/manifest.webmanifest`
+`public/config/env.js` (único archivo a editar) · `public/assets/css/credisan.css`
+`public/src/core/config.js` · `public/src/app/estado.js` · `public/.htaccess`
+
+Empaquetado en `credisan-control-web.zip`, listo para el Administrador de
+archivos de Hostinger. Guía: `docs/SUBIR_A_HOSTINGER.md`.
+
+El `.htaccess` se dejó deliberadamente sin redirección a HTTPS y sin HSTS con
+`includeSubDomains`: eran los dos únicos puntos con alcance más allá de la
+carpeta `control/`. Forzar HTTPS se activa desde hPanel.
 
 ## Siguiente paso
 

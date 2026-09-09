@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CrediSan Control</title>
+<meta name="description" content="Control de asistencia y puntualidad del personal de CrediSan.">
+<meta name="theme-color" content="#662D91">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CrediSan">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/credisan.css">
+</head>
+<body>
+
+<header class="marca">
+  <img class="marca__logo" src="assets/brand/credisan-logo-blanco.png"
+       alt="CrediSan — Pensamos en Ti" width="792" height="204">
+  <p class="marca__slogan">Control de asistencia multisede</p>
+</header>
+
+<main class="contenido">
+
+  <section class="tarjeta">
+    <span class="etiqueta">Fase 1 · Backend</span>
+    <h2>Estado del sistema</h2>
+    <ul class="estado">
+      <li id="e-https">
+        <span class="estado__icono" data-e="espera">·</span>
+        <span class="estado__texto"><strong>Conexión segura</strong><span>Comprobando…</span></span>
+      </li>
+      <li id="e-pwa">
+        <span class="estado__icono" data-e="espera">·</span>
+        <span class="estado__texto"><strong>Aplicación instalable</strong><span>Comprobando…</span></span>
+      </li>
+      <li id="e-config">
+        <span class="estado__icono" data-e="espera">·</span>
+        <span class="estado__texto"><strong>Configuración</strong><span>Comprobando…</span></span>
+      </li>
+      <li id="e-supabase">
+        <span class="estado__icono" data-e="espera">·</span>
+        <span class="estado__texto"><strong>Servidor</strong><span>Comprobando…</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Siguiente paso</h2>
+    <p>Cuando los cuatro puntos estén en verde, el terminal de marcación y los
+       paneles de dirección, administración y jefatura se activan sobre esta
+       misma base.</p>
+    <p>Para conectar el servidor: abra <code>config/env.js</code> en el
+       Administrador de archivos y pegue los dos datos del proyecto Supabase.
+       No hay que tocar nada más.</p>
+  </section>
+
+  <button class="boton boton--amarillo" id="instalar" hidden>
+    Instalar en este dispositivo
+  </button>
+
+</main>
+
+<footer class="pie">
+  CrediSan Control Multisede · <span id="version">v1.0.0</span><br>
+  Pensamos en Ti
+</footer>
+
+<script src="config/env.js"></script>
+<script type="module" src="src/app/estado.js"></script>
+</body>
+</html>

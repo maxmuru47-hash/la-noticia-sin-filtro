@@ -1,6 +1,16 @@
-# CrediSan Control · Apache (Hostinger)
+# =====================================================================
+# CrediSan Control · configuración de Apache
+# =====================================================================
+# Un .htaccess SÓLO afecta a la carpeta donde está y a sus subcarpetas.
+# Este archivo vive dentro de public_html/control/, así que no puede
+# alterar nada de lanoticiasinfiltroconmax.com ni de sinfiltroconmax.com.
+#
+# A propósito NO se incluye:
+#   · redirección a HTTPS  → se activa desde hPanel (Forzar HTTPS)
+#   · HSTS con includeSubDomains → afectaría a otros subdominios
+# =====================================================================
 
-# --- Tipos y caché -------------------------------------------------------
+# El navegador necesita este tipo para reconocer la PWA.
 AddType application/manifest+json .webmanifest
 
 <IfModule mod_headers.c>
@@ -8,34 +18,21 @@ AddType application/manifest+json .webmanifest
   <FilesMatch "sw\.js$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
-  # La configuración tampoco: cambiar de proyecto Supabase debe surtir efecto ya.
+
+  # La configuración tampoco: editarla debe surtir efecto de inmediato.
   <FilesMatch "env\.js$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
-  <FilesMatch "\.(png|jpg|webp|woff2|svg)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
+
+  # Imágenes y fuentes sí: no cambian nunca.
+  <FilesMatch "\.(png|jpg|jpeg|webp|woff2|svg|ico)$">
+    Header set Cache-Control "public, max-age=31536000"
   </FilesMatch>
 
-  # --- Cabeceras de seguridad -------------------------------------------
   Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "DENY"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
 </IfModule>
 
-# --- HTTPS obligatorio ---------------------------------------------------
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTPS} !=on
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-
-  # Enrutado del panel: cualquier ruta que no sea un archivo real cae en el SPA.
-  RewriteCond %{REQUEST_URI} ^/panel/
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ /panel/index.html [L]
-</IfModule>
-
-# --- Nada de listar directorios -----------------------------------------
+# Que nadie liste el contenido de las carpetas.
 Options -Indexes
