@@ -5,8 +5,9 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **1 — Backend completa + portada desplegable. En espera de aprobación** |
+| **Fase actual** | **2 — Panel administrativo completo. Listo para instalar** |
 | **Fecha** | 2026-09-09 |
+| **Instalación** | `supabase/instalador/INSTALAR.sql` — un solo archivo, un solo RUN |
 | **Producción** | control.sinfiltroconmax.com (Hostinger, plan Business, sitio PHP/HTML) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
 | **Repositorio** | `credisan-control/` dentro de `la-noticia-sin-filtro`; separar según `docs/SEPARAR_REPOSITORIO.md` |
@@ -133,10 +134,40 @@ El `.htaccess` se dejó deliberadamente sin redirección a HTTPS y sin HSTS con
 `includeSubDomains`: eran los dos únicos puntos con alcance más allá de la
 carpeta `control/`. Forzar HTTPS se activa desde hPanel.
 
+## Fase 2 — entregada
+
+**Backend** (migraciones 0011 y 0012):
+`reclamar_ceo` (el primer usuario queda como dirección y la puerta se cierra),
+`mi_perfil`, `crear_sede` (sede + horario de 7 días + asignación + terminal, en
+una sola operación), `registrar_usuario`, `horario_sede`, `guardar_dia_horario`
+(valida el orden de las horas y responde en castellano), `resumen_sedes`.
+
+**Panel** (`public/panel/` + `public/src/panel/app.js` + `assets/css/panel.css`):
+acceso con correo y contraseña, y cuatro secciones — Sedes, Personal, Horarios y
+Accesos — con navegación inferior pensada para el teléfono.
+
+Decisión importante: **la Fase 2 no toca el PIN**. Asignarlo exige el pepper,
+que vive fuera de la base de datos, y por tanto una Edge Function. Meterla aquí
+obligaría a guardar el pepper en la base —debilitando el modelo— o a montar el
+despliegue de funciones antes de tiempo. Los trabajadores se registran con su
+horario y quedan marcados «PIN pendiente» hasta la Fase 3, que es cuando el
+terminal existe y la Edge Function hace falta de todos modos.
+
+Otra decisión: crear usuarios de Auth necesita la llave maestra, que jamás va al
+navegador. Por eso el alta se hace en el panel de Supabase y el rol se asigna
+desde CrediSan con `registrar_usuario`, que sólo acepta correos que ya existen.
+
+Validado con `02_fase2.sql` (bootstrap y su cierre, sede completa, activación
+del sábado, rechazo de horas en desorden, alta de accesos, y que una
+administradora no pueda crear sedes ni conceder accesos) y con una prueba de
+navegador real contra un servidor simulado: acceso, listados, alta, cambio de
+horario y el payload exacto que se envía. Esa prueba descubrió que el atributo
+`hidden` no ocultaba la pantalla de acceso, porque `display:grid` lo anulaba;
+corregido con una regla global.
+
 ## Siguiente paso
 
-**Fase 2 — Autenticación y administración**: login, gestión de roles y sedes,
-alta y ficha de trabajadores (con la Edge Function `admin-pin`), asignación de
-horarios y edición del calendario por sede.
-
-*No iniciar sin aprobación de la Fase 1.*
+**Fase 3 — Terminal de marcación**: emparejamiento del dispositivo, teclado de
+PIN, identificación del trabajador, marcación con hora de servidor, captura
+fotográfica y pantalla de resultado. Incluye las Edge Functions `admin-pin`,
+`terminal-pair`, `punch` y `punch-confirm`.

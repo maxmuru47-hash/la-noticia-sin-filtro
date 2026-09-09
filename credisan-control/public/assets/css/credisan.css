@@ -26,6 +26,11 @@
 
 * { box-sizing: border-box; }
 
+/* `hidden` tiene que ganar siempre: cualquier regla que fije `display`
+   (grid, flex, inline-flex) lo anula en silencio, y el elemento se queda
+   a la vista aunque el código crea haberlo ocultado. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {

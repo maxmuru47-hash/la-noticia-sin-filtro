@@ -30,7 +30,7 @@
 <main class="contenido">
 
   <section class="tarjeta">
-    <span class="etiqueta">Fase 1 · Backend</span>
+    <span class="etiqueta">Fase 2 · Panel administrativo</span>
     <h2>Estado del sistema</h2>
     <ul class="estado">
       <li id="e-https">
@@ -52,14 +52,15 @@
     </ul>
   </section>
 
-  <section class="tarjeta">
+  <a class="boton" href="panel/" id="ir-panel">Entrar al panel</a>
+
+  <section class="tarjeta" style="margin-top:1rem">
     <h2>Siguiente paso</h2>
-    <p>Cuando los cuatro puntos estén en verde, el terminal de marcación y los
-       paneles de dirección, administración y jefatura se activan sobre esta
-       misma base.</p>
-    <p>Para conectar el servidor: abra <code>config/env.js</code> en el
-       Administrador de archivos y pegue los dos datos del proyecto Supabase.
-       No hay que tocar nada más.</p>
+    <p id="paso-texto">Para conectar el servidor: abra <code>config/env.js</code>
+       en el Administrador de archivos y pegue los dos datos del proyecto
+       Supabase. No hay que tocar nada más.</p>
+    <p>El terminal de marcación con PIN y fotografía llega en la Fase 3, sobre
+       esta misma base.</p>
   </section>
 
   <button class="boton boton--amarillo" id="instalar" hidden>

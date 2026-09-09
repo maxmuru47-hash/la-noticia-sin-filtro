@@ -99,3 +99,11 @@ boton?.addEventListener('click', async () => {
 });
 
 document.getElementById('version').textContent = 'v' + config.version;
+
+/* El panel sólo tiene sentido con servidor detrás: si no lo hay, se dice
+   por qué en vez de dejar que el usuario choque contra una pantalla muerta. */
+if (!estaConfigurado()) {
+  const ir = document.getElementById('ir-panel');
+  ir.classList.add('boton--secundario');
+  ir.textContent = 'Entrar al panel (falta conectar el servidor)';
+}

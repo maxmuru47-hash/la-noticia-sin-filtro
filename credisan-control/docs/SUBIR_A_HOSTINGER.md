@@ -37,9 +37,10 @@ control/
 └── src/
 ```
 
-> Si al extraer te queda una carpeta `public` dentro de `control`, entra en ella,
-> selecciona todo y muévelo un nivel arriba. El `index.html` tiene que quedar
-> directamente dentro de `control`.
+> **El gestor no extrae si la carpeta de destino ya existe**, y se cierra sin
+> avisar. Si `control` ya tiene algo dentro, bórralo primero. Lo más cómodo:
+> sube el ZIP a `public_html`, borra la carpeta `control` vacía, y extrae
+> poniendo `control` como nombre de carpeta.
 
 ## Paso 2 · Activar HTTPS
 
@@ -61,9 +62,8 @@ y el cuarto punto salgan en ámbar: el servidor todavía no existe.
 2. **New project** → nombre `credisan-control` → región `East US` → guarda la
    contraseña que te pida en un sitio seguro.
 3. Espera unos dos minutos a que termine de crearse.
-4. **SQL Editor** → **New query** → pega el contenido de cada archivo de
-   `supabase/migrations/` **en orden de nombre** (son diez) y ejecuta cada uno.
-   Después haz lo mismo con `supabase/seed/seed.sql`.
+4. **SQL Editor** → **New query** → pega **`INSTALAR.sql`** entero y pulsa RUN.
+   Un solo archivo, una sola vez.
 5. **Settings → API** → copia **Project URL** y la clave **anon public**.
 
 ## Paso 5 · Conectar

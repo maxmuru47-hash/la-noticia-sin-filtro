@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel · CrediSan Control</title>
+<meta name="theme-color" content="#662D91">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/css/credisan.css">
+<link rel="stylesheet" href="../assets/css/panel.css">
+</head>
+<body>
+
+<!-- ── ACCESO ────────────────────────────────────────────────────────── -->
+<section class="acceso" id="pantalla-acceso">
+  <div class="acceso__caja">
+    <img class="acceso__logo" src="../assets/brand/credisan-logo-morado.png"
+         alt="CrediSan — Pensamos en Ti" width="792" height="204">
+
+    <div class="aviso" id="acceso-aviso" data-t="error" hidden></div>
+
+    <form id="form-acceso">
+      <div class="campo">
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" autocomplete="username" required>
+      </div>
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <input type="password" id="clave" autocomplete="current-password" required>
+      </div>
+      <button class="boton" type="submit" id="btn-entrar">Entrar</button>
+    </form>
+
+    <!-- Primer arranque: no hay nadie todavía -->
+    <form id="form-ceo" hidden>
+      <div class="aviso" data-t="info">
+        Es el primer acceso al sistema. Escriba su nombre y quedará
+        registrado como <strong>Dirección General</strong>, con acceso a
+        todas las sedes.
+      </div>
+      <div class="campo">
+        <label for="nombre-ceo">Su nombre</label>
+        <input type="text" id="nombre-ceo" value="Dirección General" required>
+      </div>
+      <button class="boton" type="submit">Continuar</button>
+    </form>
+  </div>
+</section>
+
+<!-- ── PANEL ─────────────────────────────────────────────────────────── -->
+<div id="pantalla-panel" hidden>
+
+  <header class="cabecera">
+    <img class="cabecera__logo" src="../assets/brand/credisan-logo-blanco.png"
+         alt="CrediSan" width="792" height="204">
+    <div class="cabecera__quien">
+      <strong id="mi-nombre">—</strong>
+      <span id="mi-rol">—</span>
+    </div>
+    <button class="cabecera__salir" id="btn-salir" title="Cerrar sesión" aria-label="Cerrar sesión">⏻</button>
+  </header>
+
+  <div class="aviso" id="panel-aviso" data-t="ok" hidden style="margin:1rem"></div>
+
+  <!-- Sedes -->
+  <main class="vista" id="v-sedes">
+    <div class="encabezado-vista">
+      <h1>Sedes</h1>
+      <button class="boton" id="btn-nueva-sede" hidden>+ Nueva</button>
+    </div>
+    <div id="lista-sedes"><p class="cargando">Cargando…</p></div>
+
+    <form class="tarjeta" id="form-sede" hidden>
+      <h2>Nueva sede</h2>
+      <div class="campo">
+        <label for="sede-codigo">Código</label>
+        <input type="text" id="sede-codigo" maxlength="6" placeholder="VAL" required>
+        <p class="ayuda">De 2 a 6 letras. Se usa para los terminales: VAL-01.</p>
+      </div>
+      <div class="campo">
+        <label for="sede-nombre">Nombre</label>
+        <input type="text" id="sede-nombre" placeholder="Valencia" required>
+      </div>
+      <p class="ayuda">Se creará también su horario estándar (lunes a viernes,
+         8:00–12:00 y 14:00–18:00) y su primer terminal.</p>
+      <div class="fila-botones">
+        <button type="button" class="boton boton--secundario" data-cerrar="form-sede">Cancelar</button>
+        <button type="submit" class="boton">Crear sede</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Personal -->
+  <main class="vista" id="v-personal" hidden>
+    <div class="encabezado-vista">
+      <h1>Personal</h1>
+      <button class="boton" id="btn-nuevo-empleado" hidden>+ Nuevo</button>
+    </div>
+
+    <div class="campo" id="filtro-sede-caja" hidden>
+      <label for="filtro-sede">Sede</label>
+      <select id="filtro-sede"></select>
+    </div>
+
+    <div id="lista-personal"><p class="cargando">Cargando…</p></div>
+
+    <form class="tarjeta" id="form-empleado" hidden>
+      <h2 id="form-empleado-titulo">Nuevo trabajador</h2>
+      <div class="campo campo--mitad">
+        <div><label for="emp-nombres">Nombres</label><input type="text" id="emp-nombres" required></div>
+        <div><label for="emp-apellidos">Apellidos</label><input type="text" id="emp-apellidos" required></div>
+      </div>
+      <div class="campo campo--mitad">
+        <div><label for="emp-cedula">Cédula</label><input type="text" id="emp-cedula" placeholder="V-12345678" required></div>
+        <div><label for="emp-codigo">Código interno</label><input type="text" id="emp-codigo" placeholder="MCB-001" required></div>
+      </div>
+      <div class="campo">
+        <label for="emp-cargo">Cargo</label>
+        <input type="text" id="emp-cargo" placeholder="Cajera" required>
+      </div>
+      <div class="campo">
+        <label for="emp-sede">Sede</label>
+        <select id="emp-sede" required></select>
+      </div>
+      <div class="campo campo--mitad">
+        <div><label for="emp-ingreso">Fecha de ingreso</label><input type="date" id="emp-ingreso" required></div>
+        <div><label for="emp-telefono">Teléfono</label><input type="tel" id="emp-telefono"></div>
+      </div>
+      <div class="campo">
+        <label for="emp-correo">Correo</label>
+        <input type="email" id="emp-correo">
+      </div>
+      <div class="campo" id="caja-salario">
+        <label for="emp-salario">Salario semanal base (USD)</label>
+        <input type="number" id="emp-salario" min="0" step="0.01" placeholder="0.00">
+        <p class="ayuda">Dato restringido: sólo lo ven dirección y administración.
+           El sistema nunca descuenta nada de forma automática.</p>
+      </div>
+      <div class="aviso" data-t="info">
+        El PIN de marcación se genera en la Fase 3, junto con el terminal.
+      </div>
+      <div class="fila-botones">
+        <button type="button" class="boton boton--secundario" data-cerrar="form-empleado">Cancelar</button>
+        <button type="submit" class="boton">Guardar</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Horarios -->
+  <main class="vista" id="v-horarios" hidden>
+    <h1>Horarios</h1>
+    <div class="campo">
+      <label for="horario-sede">Sede</label>
+      <select id="horario-sede"></select>
+    </div>
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      Un día apagado es descanso: no cuenta como ausencia. Activar el sábado
+      es cambiar este interruptor, nada más.
+    </p>
+    <div id="lista-horario"><p class="cargando">Cargando…</p></div>
+  </main>
+
+  <!-- Usuarios -->
+  <main class="vista" id="v-usuarios" hidden>
+    <h1>Accesos al panel</h1>
+    <div class="aviso" data-t="info">
+      Primero cree la persona en Supabase: <strong>Authentication → Users →
+      Add user</strong>, con su correo y una contraseña. Después escriba aquí
+      ese mismo correo para darle rol y sede.
+    </div>
+    <form class="tarjeta" id="form-usuario">
+      <div class="campo">
+        <label for="usr-correo">Correo</label>
+        <input type="email" id="usr-correo" required>
+      </div>
+      <div class="campo">
+        <label for="usr-nombre">Nombre completo</label>
+        <input type="text" id="usr-nombre" required>
+      </div>
+      <div class="campo">
+        <label for="usr-rol">Rol</label>
+        <select id="usr-rol">
+          <option value="admin">Administradora — su sede completa</option>
+          <option value="supervisor">Jefe operativo — operación de su sede</option>
+          <option value="ceo">Dirección — todas las sedes</option>
+        </select>
+      </div>
+      <div class="campo" id="caja-usr-sede">
+        <label for="usr-sede">Sede</label>
+        <select id="usr-sede"></select>
+      </div>
+      <button type="submit" class="boton">Dar acceso</button>
+    </form>
+  </main>
+
+  <nav class="nav">
+    <button data-vista="v-sedes"    aria-current="true"><span>🏢</span>Sedes</button>
+    <button data-vista="v-personal"><span>👥</span>Personal</button>
+    <button data-vista="v-horarios"><span>🕒</span>Horarios</button>
+    <button data-vista="v-usuarios" id="nav-usuarios" hidden><span>🔑</span>Accesos</button>
+  </nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../config/env.js"></script>
+<script type="module" src="../src/panel/app.js"></script>
+</body>
+</html>
