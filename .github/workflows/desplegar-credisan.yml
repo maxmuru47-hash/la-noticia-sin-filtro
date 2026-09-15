@@ -77,10 +77,42 @@ jobs:
         if: steps.credenciales.outputs.listas == 'si'
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_despliegue
+
+          # Si la llave se cargó desde Windows, viene con retornos de carro
+          # y puede traer marca de orden de bytes. OpenSSL la rechaza con un
+          # escueto "error in libcrypto". Se normaliza antes de usarla.
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" \
+            | tr -d '\r' \
+            | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/id_despliegue
+          # Toda llave debe terminar en salto de línea.
+          [ -n "$(tail -c1 ~/.ssh/id_despliegue)" ] && echo >> ~/.ssh/id_despliegue
           chmod 600 ~/.ssh/id_despliegue
-          ssh-keyscan -p "${{ secrets.VPS_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Comprobar aquí y decirlo en castellano, en vez de fallar luego
+          # con un mensaje de OpenSSL que no explica nada.
+          if ! ssh-keygen -y -f ~/.ssh/id_despliegue > /dev/null 2>&1; then
+            {
+              echo "### La llave de despliegue no es válida"
+              echo ""
+              echo "El secreto \`VPS_SSH_KEY\` no contiene una llave privada que OpenSSH pueda leer."
+              echo ""
+              echo "Causas habituales:"
+              echo "- Se cargó el archivo \`.pub\` (la llave pública) en vez del privado"
+              echo "- Se copió sólo una parte: debe ir desde \`-----BEGIN\` hasta \`-----END\` incluidos"
+              echo "- PowerShell la guardó en UTF-16. Cárguela con:"
+              echo "  \`gh secret set VPS_SSH_KEY --repo maxmuru47-hash/la-noticia-sin-filtro --body (Get-Content \$env:USERPROFILE\\.ssh\\credisan_despliegue -Raw)\`"
+            } >> $GITHUB_STEP_SUMMARY
+            echo "::error::VPS_SSH_KEY no es una llave privada legible. Vea el resumen del flujo."
+            exit 1
+          fi
+          echo "Llave válida: $(ssh-keygen -l -f ~/.ssh/id_despliegue | awk '{print $1, $4}')"
+
+          ssh-keyscan -p "${{ secrets.VPS_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::No se pudo leer la huella del servidor. ¿Está el puerto SSH abierto para GitHub?"
+            exit 1
+          fi
 
       - name: Respaldar lo que está en producción
         if: steps.credenciales.outputs.listas == 'si'
