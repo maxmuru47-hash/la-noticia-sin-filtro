@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>CrediSan Control · Terminal</title>
+<meta name="theme-color" content="#662D91">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../assets/icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/css/credisan.css">
+<link rel="stylesheet" href="../assets/css/kiosk.css">
+</head>
+<body>
+
+<!-- ── EMPAREJAMIENTO (una sola vez por dispositivo) ─────────────────── -->
+<section class="pantalla" id="p-emparejar" hidden>
+  <img class="k-logo" src="../assets/brand/credisan-logo-blanco.png" alt="CrediSan">
+  <div class="k-caja">
+    <h2>Vincular este dispositivo</h2>
+    <p>Pida a administración el código de emparejamiento. Vale 10 minutos
+       y se usa una sola vez.</p>
+    <form id="form-emparejar">
+      <label for="e-terminal">Terminal</label>
+      <input id="e-terminal" placeholder="MCB-01" autocomplete="off" required>
+      <label for="e-codigo">Código</label>
+      <input id="e-codigo" placeholder="AB3K9XQ2" maxlength="8" autocomplete="off" required>
+      <label for="e-dispositivo">Nombre del dispositivo</label>
+      <input id="e-dispositivo" placeholder="Tablet mostrador" autocomplete="off" required>
+      <button class="boton" type="submit" id="btn-emparejar">Vincular</button>
+    </form>
+  </div>
+  <p class="k-aviso" id="aviso-emparejar"></p>
+</section>
+
+<!-- ── TECLADO ───────────────────────────────────────────────────────── -->
+<section class="pantalla" id="p-pin" hidden>
+  <div class="k-sede">
+    <span id="pin-sede">—</span>
+    <span id="pin-reloj">--:--</span>
+  </div>
+
+  <img class="k-logo" src="../assets/brand/credisan-logo-blanco.png"
+       alt="CrediSan — Pensamos en Ti">
+
+  <p class="k-titulo">Ingresa tu PIN</p>
+
+  <div class="k-puntos" id="puntos" aria-label="Dígitos introducidos">
+    <i class="k-punto"></i><i class="k-punto"></i><i class="k-punto"></i>
+    <i class="k-punto"></i><i class="k-punto"></i><i class="k-punto"></i>
+  </div>
+
+  <div class="k-teclado" id="teclado">
+    <button class="k-tecla" data-d="1">1</button>
+    <button class="k-tecla" data-d="2">2</button>
+    <button class="k-tecla" data-d="3">3</button>
+    <button class="k-tecla" data-d="4">4</button>
+    <button class="k-tecla" data-d="5">5</button>
+    <button class="k-tecla" data-d="6">6</button>
+    <button class="k-tecla" data-d="7">7</button>
+    <button class="k-tecla" data-d="8">8</button>
+    <button class="k-tecla" data-d="9">9</button>
+    <button class="k-tecla k-tecla--accion" data-accion="limpiar">C</button>
+    <button class="k-tecla" data-d="0">0</button>
+    <button class="k-tecla k-tecla--accion" data-accion="borrar">←</button>
+  </div>
+
+  <p class="k-aviso" id="aviso-pin"></p>
+</section>
+
+<!-- ── IDENTIDAD Y CONFIRMACIÓN ──────────────────────────────────────── -->
+<section class="pantalla" id="p-identidad" hidden>
+  <div class="k-retrato" id="retrato">—</div>
+  <p class="k-nombre" id="ident-nombre">—</p>
+  <p class="k-cargo"  id="ident-cargo">—</p>
+
+  <div class="k-evento">
+    <span>Vas a registrar</span>
+    <strong id="ident-evento">—</strong>
+  </div>
+
+  <div class="k-botones">
+    <button class="k-boton k-boton--no" id="btn-cancelar">Cancelar</button>
+    <button class="k-boton k-boton--si" id="btn-confirmar">Confirmar</button>
+  </div>
+
+  <div class="k-camara" id="camara" hidden>
+    <video id="video" playsinline muted autoplay></video>
+  </div>
+</section>
+
+<!-- ── RESULTADO ─────────────────────────────────────────────────────── -->
+<section class="pantalla" id="p-resultado" hidden>
+  <div class="k-marca" id="res-icono">✓</div>
+  <p class="k-nombre" id="res-nombre">—</p>
+  <p class="k-hora"   id="res-hora">--:--</p>
+  <span class="k-estado" id="res-estado">—</span>
+  <p class="k-detalle" id="res-detalle"></p>
+</section>
+
+<p class="k-pie" id="pie">CrediSan Control</p>
+
+<script src="../config/env.js"></script>
+<script type="module" src="../src/kiosk/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* CrediSan Control · terminal de marcación
+   Pantalla completa, un teléfono fijo en el mostrador. Todo está pensado
+   para una mano, a un brazo de distancia y con prisa: botones de 72 px,
+   nada de desplazamiento, ningún paso que no haga falta. */
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--morado);
+  color: var(--blanco);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pantalla {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.pantalla[hidden] { display: none; }
+
+/* ── Marca ───────────────────────────────────────────────────────── */
+.k-logo { width: min(240px, 60vw); margin-bottom: 1.5rem; }
+.k-slogan { color: var(--amarillo); font-size: .9rem; font-weight: 500; margin: 0 0 1.25rem; }
+.k-sede {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: calc(.5rem + env(safe-area-inset-top)) 1rem .5rem;
+  display: flex; justify-content: space-between;
+  font-size: .78rem; color: rgba(255,255,255,.65);
+}
+
+/* ── Teclado ─────────────────────────────────────────────────────── */
+.k-titulo { font-size: 1.15rem; font-weight: 600; margin: 0 0 1rem; }
+
+.k-puntos { display: flex; gap: .7rem; margin-bottom: 1.5rem; min-height: 20px; }
+.k-punto {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.45);
+  transition: background .12s, border-color .12s, transform .12s;
+}
+.k-punto[data-lleno="1"] { background: var(--amarillo); border-color: var(--amarillo); transform: scale(1.12); }
+
+.k-teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .7rem;
+  width: min(330px, 86vw);
+}
+.k-tecla {
+  height: 72px;
+  border: 0; border-radius: 16px;
+  background: rgba(255,255,255,.14);
+  color: var(--blanco);
+  font-family: inherit; font-size: 1.7rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .1s, transform .06s;
+}
+.k-tecla:active { background: rgba(255,255,255,.3); transform: scale(.96); }
+.k-tecla--accion { font-size: 1.1rem; background: rgba(255,255,255,.07); }
+.k-tecla--ok { background: var(--amarillo); color: var(--negro); }
+
+/* ── Identidad ───────────────────────────────────────────────────── */
+.k-retrato {
+  width: 108px; height: 108px; border-radius: 50%;
+  background: rgba(255,255,255,.16);
+  display: grid; place-items: center;
+  font-size: 2.2rem; font-weight: 700;
+  margin-bottom: .9rem;
+  overflow: hidden;
+  border: 3px solid var(--amarillo);
+}
+.k-retrato img { width: 100%; height: 100%; object-fit: cover; }
+.k-nombre { font-size: 1.45rem; font-weight: 700; margin: 0; line-height: 1.2; }
+.k-cargo  { color: rgba(255,255,255,.75); font-size: .95rem; margin: .2rem 0 1.25rem; }
+
+.k-evento {
+  background: rgba(0,0,0,.2);
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.k-evento span { display: block; font-size: .8rem; color: rgba(255,255,255,.7); }
+.k-evento strong { display: block; font-size: 1.6rem; font-weight: 700; letter-spacing: .01em; }
+
+.k-botones { display: grid; grid-template-columns: 1fr 1.6fr; gap: .7rem; width: min(360px, 88vw); }
+.k-boton {
+  min-height: 64px;
+  border: 0; border-radius: 16px;
+  font-family: inherit; font-size: 1.05rem; font-weight: 700;
+  cursor: pointer;
+}
+.k-boton--si { background: var(--amarillo); color: var(--negro); }
+.k-boton--no { background: rgba(255,255,255,.14); color: var(--blanco); }
+.k-boton:active { transform: scale(.97); }
+
+/* Vista de cámara: pequeña, sólo para que la persona se vea encuadrada */
+.k-camara {
+  position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); right: 1rem;
+  width: 84px; height: 84px; border-radius: 14px;
+  overflow: hidden; background: rgba(0,0,0,.35);
+  border: 2px solid rgba(255,255,255,.3);
+}
+.k-camara video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.k-camara[hidden] { display: none; }
+
+/* ── Resultado ───────────────────────────────────────────────────── */
+.k-marca {
+  width: 116px; height: 116px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 3.4rem; margin-bottom: 1.1rem;
+  background: rgba(255,255,255,.16);
+}
+.k-hora { font-size: 3rem; font-weight: 700; line-height: 1; margin: .2rem 0 .5rem; }
+.k-estado {
+  display: inline-block;
+  padding: .4rem 1.1rem; border-radius: 999px;
+  font-size: 1rem; font-weight: 700;
+  background: var(--amarillo); color: var(--negro);
+}
+.k-detalle { color: rgba(255,255,255,.8); font-size: .9rem; margin-top: .9rem; }
+
+/* El fondo dice el resultado antes de que nadie lea nada */
+.pantalla[data-tono="bien"]  { background: #1E7A3C; }
+.pantalla[data-tono="aviso"] { background: #A85B00; }
+.pantalla[data-tono="mal"]   { background: #A32B1D; }
+
+/* ── Emparejamiento ──────────────────────────────────────────────── */
+.k-caja {
+  background: var(--blanco); color: var(--texto);
+  border-radius: var(--radio);
+  padding: 1.5rem 1.25rem;
+  width: min(380px, 92vw);
+  text-align: left;
+}
+.k-caja h2 { margin: 0 0 .35rem; font-size: 1.1rem; }
+.k-caja p  { margin: 0 0 1.1rem; font-size: .88rem; color: var(--texto-suave); }
+.k-caja label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .3rem; }
+.k-caja input {
+  width: 100%; min-height: 48px; margin-bottom: .9rem;
+  padding: .6rem .75rem;
+  border: 1.5px solid var(--linea); border-radius: 10px;
+  font-family: inherit; font-size: 1.05rem; text-transform: uppercase;
+}
+.k-caja input:focus { outline: none; border-color: var(--morado); }
+
+.k-aviso {
+  min-height: 1.4rem;
+  margin-top: 1rem;
+  font-size: .95rem; font-weight: 600;
+  color: var(--amarillo);
+}
+.k-aviso[data-t="error"] { color: #FFC9C2; }
+
+.k-pie {
+  position: fixed; bottom: calc(.6rem + env(safe-area-inset-bottom)); left: 0; right: 0;
+  font-size: .7rem; color: rgba(255,255,255,.35);
+}

@@ -30,7 +30,7 @@
 <main class="contenido">
 
   <section class="tarjeta">
-    <span class="etiqueta">Fase 2 · Panel administrativo</span>
+    <span class="etiqueta">Fase 3 · Terminal de marcación</span>
     <h2>Estado del sistema</h2>
     <ul class="estado">
       <li id="e-https">
@@ -53,14 +53,18 @@
   </section>
 
   <a class="boton" href="panel/" id="ir-panel">Entrar al panel</a>
+  <a class="boton boton--secundario" href="kiosk/" style="margin-top:.6rem">
+    Abrir terminal de marcación
+  </a>
 
   <section class="tarjeta" style="margin-top:1rem">
     <h2>Siguiente paso</h2>
     <p id="paso-texto">Para conectar el servidor: abra <code>config/env.js</code>
        en el Administrador de archivos y pegue los dos datos del proyecto
        Supabase. No hay que tocar nada más.</p>
-    <p>El terminal de marcación con PIN y fotografía llega en la Fase 3, sobre
-       esta misma base.</p>
+    <p>El terminal de marcación se abre en el teléfono de cada sede, se vincula
+       una sola vez con un código de administración, y a partir de ahí sólo pide
+       el PIN del trabajador.</p>
   </section>
 
   <button class="boton boton--amarillo" id="instalar" hidden>

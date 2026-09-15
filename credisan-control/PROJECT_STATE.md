@@ -5,9 +5,9 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **2 — Panel administrativo completo. Listo para instalar** |
+| **Fase actual** | **3 — Terminal de marcación completo. Listo para instalar** |
 | **Fecha** | 2026-09-09 |
-| **Instalación** | `supabase/instalador/INSTALAR.sql` — un solo archivo, un solo RUN |
+| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE3.sql` (ya instalado) |
 | **Producción** | control.sinfiltroconmax.com (Hostinger, plan Business, sitio PHP/HTML) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
 | **Repositorio** | `credisan-control/` dentro de `la-noticia-sin-filtro`; separar según `docs/SEPARAR_REPOSITORIO.md` |
@@ -165,9 +165,63 @@ horario y el payload exacto que se envía. Esa prueba descubrió que el atributo
 `hidden` no ocultaba la pantalla de acceso, porque `display:grid` lo anulaba;
 corregido con una regla global.
 
+## Fase 3 — entregada
+
+**Backend** (migración 0013): `puedo_gestionar_empleado`, `terminales`,
+`desemparejar_terminal`, `marcaciones_hoy`, y el puente `edge_*` hacia el motor.
+
+Decisión: PostgREST sólo publica `public`, y el motor vive en `app`. En vez de
+exponer `app` entero en la API —que es lo cómodo y lo peligroso— hay siete
+envolturas `edge_*` en `public`, cada una con `revoke` a todo el mundo y
+`grant` únicamente a `service_role`. La batería comprueba que ni el CEO puede
+ejecutarlas desde el panel.
+
+**Función del servidor** (`supabase/functions/credisan/index.ts`): una sola,
+con cuatro acciones —emparejar, pin, confirmar, asignar-pin—. Aquí vive el
+pepper, que nunca toca la base de datos.
+
+Dos decisiones que conviene recordar:
+
+- Se publica con **Verify JWT desactivado**. El terminal no tiene ni debe tener
+  sesión de Supabase: es un teléfono en un mostrador. La función hace su propia
+  comprobación, más estricta —`device_token` para marcar, token de la persona
+  más consulta a la RLS para generar PIN, código de un solo uso para emparejar—.
+- `asignar-pin` resuelve el permiso **con el token de quien lo pide**, llamando
+  a `puedo_gestionar_empleado`. La llave maestra sólo se usa después de que la
+  RLS haya dicho que sí.
+
+**Kiosco** (`public/kiosk/` + `public/src/kiosk/app.js`): emparejamiento,
+teclado de seis dígitos, identidad, cámara frontal, resultado a color y vuelta
+automática. El PIN viaja una sola vez y se cambia por un ticket de 60 s.
+
+**Panel**: terminales con su estado dentro de la vista de Sedes, generación de
+códigos de vinculación, desvinculación de un aparato perdido, y el botón de PIN
+en cada ficha —que lo enseña una vez y nunca más—.
+
+Validado con `03_fase3.sql` (asignación de PIN, emparejamiento, token falso
+rechazado, PIN erróneo con su rastro intacto, marcación clasificada, evidencia
+con su fecha de purga, desvinculación que invalida el token sin tocar el
+historial, y el panel sin poder ejecutar las funciones del servidor) y con dos
+pruebas de navegador real: el kiosco completo con cámara simulada —incluida la
+fotografía que se envía y la comprobación de que el PIN no vuelve a viajar al
+confirmar— y el panel con terminales y PIN.
+
+Esa segunda prueba encontró que `generarPin` usaba `config` sin importarlo, y
+el `try/catch` lo disfrazaba de «no se pudo conectar». Corregido, y el mensaje
+de error ahora dice lo que realmente pasó.
+
+## Deuda de la Fase 3
+
+- Con Verify JWT desactivado, la acción `emparejar` queda abierta a internet.
+  La protege un código de 40 bits, vivo 10 minutos y de un solo uso. Aceptado;
+  si hiciera falta, se añade un límite de intentos por IP.
+- El kiosco guarda su credencial en `localStorage`. Para un aparato de mostrador
+  equivale a IndexedDB; la cola offline de la Fase 6 sí necesitará IndexedDB.
+- La foto de ficha del trabajador todavía no se muestra en el terminal: se ven
+  sus iniciales. Falta el subidor de fotos en el panel.
+
 ## Siguiente paso
 
-**Fase 3 — Terminal de marcación**: emparejamiento del dispositivo, teclado de
-PIN, identificación del trabajador, marcación con hora de servidor, captura
-fotográfica y pantalla de resultado. Incluye las Edge Functions `admin-pin`,
-`terminal-pair`, `punch` y `punch-confirm`.
+**Fase 4 — Dashboards**: pantalla del jefe operativo (presentes, faltantes,
+retrasados, novedades del día), tablero de administración por sede y tablero
+ejecutivo nacional con comparativo entre sedes y ranking.

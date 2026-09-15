@@ -4,7 +4,7 @@
    filtrada por las políticas de la base de datos, así que lo que se
    oculta aquí es por comodidad, nunca por seguridad. */
 
-import { estaConfigurado } from '../core/config.js';
+import { config, estaConfigurado } from '../core/config.js';
 import { crearCliente, traducir } from '../core/supabase.js';
 
 const $ = (id) => document.getElementById(id);
@@ -169,7 +169,75 @@ async function cargarSedes() {
     ['emp-sede', 'horario-sede'].forEach((id) => { $(id).value = yo.branch_id; });
     $('emp-sede').disabled = yo.rol !== 'ceo';   // nadie da de alta fuera de su sede
   }
+
+  await cargarTerminales();
 }
+
+/* ── Terminales ─────────────────────────────────────────────────────── */
+
+async function cargarTerminales() {
+  const caja = $('lista-terminales');
+  const { data, error } = await sb.rpc('terminales');
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+  if (!data.length) { caja.innerHTML = '<p class="vacio">No hay terminales.</p>'; return; }
+
+  const puedeEditar = yo.rol === 'ceo' || yo.rol === 'admin';
+
+  caja.innerHTML = data.map((t) => `
+    <div class="ficha">
+      <div class="ficha__inicial" style="font-size:.72rem">${esc(t.code.split('-')[1] || '01')}</div>
+      <div class="ficha__cuerpo">
+        <strong>${esc(t.code)} · ${esc(t.sede)}</strong>
+        <span>${t.emparejado
+          ? esc(t.device_label || 'Dispositivo vinculado') + ' · ' + t.marcaciones_hoy + ' marcaciones hoy'
+          : 'Sin vincular · esperando dispositivo'}</span>
+        <span style="margin-top:.25rem;display:block">
+          <span class="pastilla pastilla--${t.emparejado ? 'activo' : 'inactivo'}">
+            ${t.emparejado ? 'Vinculado' : 'Sin vincular'}</span>
+        </span>
+      </div>
+      ${puedeEditar ? (t.emparejado
+        ? `<button class="ficha__accion" data-desvincular="${t.id}" data-code="${esc(t.code)}">Desvincular</button>`
+        : `<button class="ficha__accion" data-emparejar="${t.id}" data-code="${esc(t.code)}">Vincular</button>`) : ''}
+    </div>`).join('');
+
+  caja.querySelectorAll('[data-emparejar]').forEach((b) => {
+    b.addEventListener('click', () => generarCodigo(b.dataset.emparejar, b.dataset.code));
+  });
+  caja.querySelectorAll('[data-desvincular]').forEach((b) => {
+    b.addEventListener('click', () => desvincular(b.dataset.desvincular, b.dataset.code));
+  });
+}
+
+async function generarCodigo(id, code) {
+  const { data, error } = await sb.rpc('crear_codigo_emparejamiento', { p_terminal: id });
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+
+  revelar('Código de vinculación',
+    `En el teléfono de la sede, abra <strong>${location.origin}/kiosk/</strong>, escriba
+     el terminal <strong>${esc(code)}</strong> y este código:`,
+    data, 'Vale 10 minutos y se usa una sola vez. Si vence, genere otro.');
+  await cargarTerminales();
+}
+
+async function desvincular(id, code) {
+  if (!confirm(`¿Desvincular el dispositivo de ${code}?\n\nEl teléfono dejará de poder marcar en el acto. Las marcaciones ya registradas no se tocan.`)) return;
+  const { error } = await sb.rpc('desemparejar_terminal', { p_terminal: id });
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+  avisoPanel('Dispositivo desvinculado. Su credencial ya no sirve.');
+  await cargarTerminales();
+}
+
+/* Tarjeta de un solo uso: enseña algo que no se puede volver a consultar. */
+function revelar(titulo, texto, codigo, nota) {
+  $('rev-titulo').textContent = titulo;
+  $('rev-texto').innerHTML = texto;
+  $('rev-codigo').textContent = codigo;
+  $('rev-vence').textContent = nota;
+  $('revelacion').hidden = false;
+}
+
+$('rev-cerrar').addEventListener('click', () => { $('revelacion').hidden = true; });
 
 $('btn-nueva-sede').addEventListener('click', () => {
   $('form-sede').hidden = false;
@@ -233,12 +301,63 @@ async function cargarPersonal() {
           ${e.pin_updated_at ? '' : '<span class="pastilla pastilla--pin">PIN pendiente</span>'}
         </span>
       </div>
-      ${puedeEditar ? `<button class="ficha__accion" data-editar="${e.id}">Editar</button>` : ''}
+      ${puedeEditar ? `<div style="display:grid;gap:.35rem">
+        <button class="ficha__accion" data-editar="${e.id}">Editar</button>
+        <button class="ficha__accion" data-pin="${e.id}">${e.pin_updated_at ? 'Nuevo PIN' : 'Dar PIN'}</button>
+      </div>` : ''}
     </div>`).join('');
 
   caja.querySelectorAll('[data-editar]').forEach((b) => {
     b.addEventListener('click', () => abrirEmpleado(data.find((x) => x.id === b.dataset.editar)));
   });
+  caja.querySelectorAll('[data-pin]').forEach((b) => {
+    b.addEventListener('click', () => generarPin(data.find((x) => x.id === b.dataset.pin), b));
+  });
+}
+
+/* El PIN se genera en el servidor y se ve UNA sola vez. Ni el sistema ni
+   esta pantalla pueden volver a mostrarlo: si se pierde, se genera otro. */
+async function generarPin(emp, boton) {
+  const tenia = !!emp.pin_updated_at;
+  if (tenia && !confirm(
+    `¿Generar un PIN nuevo para ${emp.first_name} ${emp.last_name}?\n\n` +
+    'El PIN anterior deja de funcionar de inmediato.')) return;
+
+  const original = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = '…';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(config.supabaseUrl + '/functions/v1/credisan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: config.supabaseAnonKey,
+        Authorization: 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({ accion: 'asignar-pin', empleado: emp.id })
+    });
+    const datos = await r.json();
+
+    if (!datos.ok) {
+      avisoPanel(datos.motivo === 'FALTA_PEPPER'
+        ? 'Falta configurar el secreto CREDISAN_PIN_PEPPER en Supabase.'
+        : traducir(new Error(datos.motivo || 'ERROR')), 'error');
+      return;
+    }
+
+    revelar(`PIN de ${emp.first_name} ${emp.last_name}`,
+      'Anótelo y entrégueselo en persona. <strong>No se podrá volver a ver.</strong>',
+      datos.pin,
+      'Con este PIN marcará en el terminal de su sede. Si lo olvida, se genera otro.');
+    await cargarPersonal();
+  } catch (e) {
+    avisoPanel('No se pudo generar el PIN: ' + (e?.message || 'sin conexión con el servidor.'), 'error');
+  } finally {
+    boton.disabled = false;
+    boton.textContent = original;
+  }
 }
 
 $('btn-nuevo-empleado').addEventListener('click', () => abrirEmpleado(null));

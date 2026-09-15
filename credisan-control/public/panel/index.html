@@ -75,6 +75,9 @@
     </div>
     <div id="lista-sedes"><p class="cargando">Cargando…</p></div>
 
+    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Terminales de marcación</h2>
+    <div id="lista-terminales"><p class="cargando">Cargando…</p></div>
+
     <form class="tarjeta" id="form-sede" hidden>
       <h2>Nueva sede</h2>
       <div class="campo">
@@ -197,6 +200,17 @@
       <button type="submit" class="boton">Dar acceso</button>
     </form>
   </main>
+
+  <div class="tarjeta" id="revelacion" hidden
+       style="position:fixed;inset:auto 1rem 5rem;max-width:520px;margin:0 auto;z-index:30;
+              border:2px solid var(--morado);box-shadow:0 8px 40px rgba(74,31,107,.3)">
+    <h2 id="rev-titulo">—</h2>
+    <p id="rev-texto" style="margin-bottom:.75rem"></p>
+    <p id="rev-codigo" style="font-size:2.1rem;font-weight:700;letter-spacing:.12em;
+          text-align:center;margin:0 0 .75rem;color:var(--morado);font-variant-numeric:tabular-nums">—</p>
+    <p class="ayuda" id="rev-vence"></p>
+    <button class="boton" id="rev-cerrar" style="margin-top:.75rem">Ya lo anoté</button>
+  </div>
 
   <nav class="nav">
     <button data-vista="v-sedes"    aria-current="true"><span>🏢</span>Sedes</button>
