@@ -84,8 +84,9 @@ jobs:
           printf '%s' "${{ secrets.VPS_SSH_KEY }}" \
             | tr -d '\r' \
             | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/id_despliegue
-          # Toda llave debe terminar en salto de línea.
-          [ -n "$(tail -c1 ~/.ssh/id_despliegue)" ] && echo >> ~/.ssh/id_despliegue
+          # Toda llave debe terminar en salto de línea. El `|| true` importa:
+          # con `set -e`, un `&&` que no se cumple mataría el paso.
+          [ -n "$(tail -c1 ~/.ssh/id_despliegue)" ] && echo >> ~/.ssh/id_despliegue || true
           chmod 600 ~/.ssh/id_despliegue
 
           # Comprobar aquí y decirlo en castellano, en vez de fallar luego
@@ -107,11 +108,20 @@ jobs:
           fi
           echo "Llave válida: $(ssh-keygen -l -f ~/.ssh/id_despliegue | awk '{print $1, $4}')"
 
-          ssh-keyscan -p "${{ secrets.VPS_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Anotar la huella del servidor. Si el cortafuegos no deja hacer el
+          # sondeo, no es motivo para abortar: se acepta la huella en la
+          # primera conexión. La autenticación sigue dependiendo de la llave.
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -p "${{ secrets.VPS_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" \
+            >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
-          if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "::error::No se pudo leer la huella del servidor. ¿Está el puerto SSH abierto para GitHub?"
-            exit 1
+
+          if [ -s ~/.ssh/known_hosts ]; then
+            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes" >> $GITHUB_ENV
+            echo "Huella del servidor anotada."
+          else
+            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
+            echo "No se pudo sondear la huella; se aceptará en la primera conexión."
           fi
 
       - name: Respaldar lo que está en producción
@@ -119,8 +129,7 @@ jobs:
         run: |
           # Antes de tocar nada, una copia con fecha. Volver atrás es
           # descomprimir un archivo, no rehacer el trabajo.
-          ssh -i ~/.ssh/id_despliegue -p "${{ secrets.VPS_PORT || 22 }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "cd /opt/proyectos/credisan-control && \
              tar -czf respaldo-\$(date +%Y%m%d-%H%M).tar.gz public && \
              ls -1t respaldo-*.tar.gz | tail -n +11 | xargs -r rm --"
@@ -135,15 +144,14 @@ jobs:
             --exclude 'config/env.js' \
             --exclude '.htaccess' \
             --exclude '.DS_Store' \
-            -e "ssh -i ~/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }}" \
+            -e "ssh $SSH" \
             credisan-control/public/ \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:$DESTINO/"
 
       - name: Devolver los permisos a Caddy
         if: steps.credenciales.outputs.listas == 'si'
         run: |
-          ssh -i ~/.ssh/id_despliegue -p "${{ secrets.VPS_PORT || 22 }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "chown -R caddy:caddy $DESTINO 2>/dev/null || sudo chown -R caddy:caddy $DESTINO"
 
       - name: Comprobar que la web responde
