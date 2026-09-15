@@ -1,15 +1,15 @@
 # =====================================================================
-# CrediSan Control · despliegue automático a Hostinger
+# CrediSan Control · despliegue automático al VPS
 # =====================================================================
-# Cada vez que cambie algo dentro de credisan-control/public/, este flujo
-# sube los archivos por FTP a public_html/control/ y la web queda al día.
-# Se acabó el ZIP, borrar la carpeta y extraer.
+# Cada vez que cambie algo dentro de credisan-control/public/, GitHub
+# copia los archivos al VPS por SSH y Caddy los sirve al instante.
 #
-# Sólo toca esa carpeta. lanoticiasinfiltroconmax.com y sinfiltroconmax.com
-# no se rozan.
+# Toca EXCLUSIVAMENTE /opt/proyectos/credisan-control/public/.
+# No se acerca a centro, comprainteligente, sinfiltroconmax ni
+# cambiosganancia, que viven en el mismo servidor.
 #
-# Requiere tres secretos en GitHub (Settings → Secrets and variables →
-# Actions): FTP_SERVIDOR, FTP_USUARIO y FTP_CLAVE. Ver docs/DESPLIEGUE_AUTOMATICO.md
+# Necesita tres secretos en GitHub (Settings → Secrets and variables →
+# Actions). Ver credisan-control/docs/DESPLIEGUE_AUTOMATICO.md
 # =====================================================================
 
 name: Desplegar CrediSan Control
@@ -22,11 +22,14 @@ on:
     paths:
       - 'credisan-control/public/**'
       - '.github/workflows/desplegar-credisan.yml'
-  workflow_dispatch:          # botón para lanzarlo a mano cuando haga falta
+  workflow_dispatch:
 
 concurrency:
   group: despliegue-credisan
-  cancel-in-progress: false   # dos despliegues a la vez dejarían la web a medias
+  cancel-in-progress: false      # dos despliegues a la vez dejarían la web a medias
+
+env:
+  DESTINO: /opt/proyectos/credisan-control/public
 
 jobs:
   desplegar:
@@ -35,65 +38,103 @@ jobs:
       - name: Traer el código
         uses: actions/checkout@v4
 
-      - name: ¿Están las credenciales del hosting?
+      - name: ¿Están las credenciales del servidor?
         id: credenciales
         run: |
-          if [ -z "${{ secrets.FTP_SERVIDOR }}" ]; then
+          if [ -z "${{ secrets.VPS_HOST }}" ] || [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
             echo "listas=no" >> $GITHUB_OUTPUT
             {
               echo "### Falta configurar el despliegue"
               echo ""
-              echo "Añada estos tres secretos en **Settings → Secrets and variables → Actions**:"
+              echo "Añada estos secretos en **Settings → Secrets and variables → Actions**:"
               echo ""
-              echo "| Secreto | De dónde sale |"
+              echo "| Secreto | Valor |"
               echo "|---|---|"
-              echo "| \`FTP_SERVIDOR\` | hPanel → Archivos → Cuentas FTP → *Servidor FTP* |"
-              echo "| \`FTP_USUARIO\` | la misma pantalla → *Nombre de usuario FTP* |"
-              echo "| \`FTP_CLAVE\` | la contraseña de esa cuenta FTP |"
+              echo "| \`VPS_HOST\` | la IP del VPS |"
+              echo "| \`VPS_USER\` | el usuario con el que entra por SSH |"
+              echo "| \`VPS_SSH_KEY\` | la llave privada de despliegue (contenido completo) |"
               echo ""
               echo "Hecho eso, vuelva aquí y pulse **Re-run jobs**."
             } >> $GITHUB_STEP_SUMMARY
-            echo "Sin credenciales: no hay nada que subir todavía."
+            echo "Sin credenciales: no hay nada que publicar todavía."
           else
             echo "listas=si" >> $GITHUB_OUTPUT
           fi
 
-      - name: Comprobar que no se sube configuración con claves
+      - name: Comprobar que no se publica configuración con claves
+        if: steps.credenciales.outputs.listas == 'si'
         run: |
-          # config/env.js viaja en el repositorio con los valores VACÍOS, a
-          # propósito. El del servidor tiene las claves reales y NO se toca
-          # (está en la lista de exclusión). Esta comprobación existe para
-          # que nadie acabe subiendo claves al repositorio sin darse cuenta.
+          # En el repositorio, config/env.js viaja VACÍO a propósito. El del
+          # servidor tiene las claves reales y está excluido del envío. Esta
+          # comprobación evita que alguien acabe subiendo claves a GitHub.
           if grep -qE "supabaseAnonKey:\s*'[^']+'" credisan-control/public/config/env.js; then
             echo "::error::config/env.js del repositorio lleva una clave. Vacíela antes de publicar."
             exit 1
           fi
           echo "Configuración limpia."
 
-      - name: Subir a Hostinger
-        if: steps.credenciales.outputs.listas == 'si'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server:      ${{ secrets.FTP_SERVIDOR }}
-          username:    ${{ secrets.FTP_USUARIO }}
-          password:    ${{ secrets.FTP_CLAVE }}
-          local-dir:   ./credisan-control/public/
-          server-dir:  /public_html/control/
-          protocol:    ftps
-          # La configuración del servidor manda: tiene las claves reales.
-          # Si se sobrescribiera, la web se quedaría sin servidor cada vez
-          # que publicásemos un cambio.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/config/env.js
-            **/.DS_Store
-
-      - name: Resumen
+      - name: Preparar la llave de acceso
         if: steps.credenciales.outputs.listas == 'si'
         run: |
-          echo "### CrediSan Control desplegado" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "https://control.sinfiltroconmax.com" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "config/env.js del servidor no se tocó." >> $GITHUB_STEP_SUMMARY
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_despliegue
+          chmod 600 ~/.ssh/id_despliegue
+          ssh-keyscan -p "${{ secrets.VPS_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Respaldar lo que está en producción
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          # Antes de tocar nada, una copia con fecha. Volver atrás es
+          # descomprimir un archivo, no rehacer el trabajo.
+          ssh -i ~/.ssh/id_despliegue -p "${{ secrets.VPS_PORT || 22 }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "cd /opt/proyectos/credisan-control && \
+             tar -czf respaldo-\$(date +%Y%m%d-%H%M).tar.gz public && \
+             ls -1t respaldo-*.tar.gz | tail -n +11 | xargs -r rm --"
+          echo "Respaldo hecho (se conservan los 10 últimos)."
+
+      - name: Publicar
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          # --delete borra del servidor lo que ya no exista en el repositorio,
+          # pero NUNCA lo excluido: config/env.js se queda intacto.
+          rsync -az --delete \
+            --exclude 'config/env.js' \
+            --exclude '.htaccess' \
+            --exclude '.DS_Store' \
+            -e "ssh -i ~/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }}" \
+            credisan-control/public/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:$DESTINO/"
+
+      - name: Devolver los permisos a Caddy
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          ssh -i ~/.ssh/id_despliegue -p "${{ secrets.VPS_PORT || 22 }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "chown -R caddy:caddy $DESTINO 2>/dev/null || sudo chown -R caddy:caddy $DESTINO"
+
+      - name: Comprobar que la web responde
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          fallos=0
+          for ruta in / /panel/ /kiosk/ /sw.js; do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' "https://control.sinfiltroconmax.com$ruta")
+            echo "$ruta → HTTP $codigo"
+            [ "$codigo" = "200" ] || fallos=$((fallos+1))
+          done
+          if [ "$fallos" -gt 0 ]; then
+            echo "::error::$fallos ruta(s) no responden 200. Revise el respaldo en el VPS."
+            exit 1
+          fi
+          {
+            echo "### CrediSan Control publicado"
+            echo ""
+            echo "https://control.sinfiltroconmax.com — portada, panel, terminal y service worker responden."
+            echo ""
+            echo "\`config/env.js\` del servidor no se tocó."
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Recoger la llave
+        if: always()
+        run: rm -f ~/.ssh/id_despliegue
