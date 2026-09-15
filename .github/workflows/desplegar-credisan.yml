@@ -1,0 +1,99 @@
+# =====================================================================
+# CrediSan Control · despliegue automático a Hostinger
+# =====================================================================
+# Cada vez que cambie algo dentro de credisan-control/public/, este flujo
+# sube los archivos por FTP a public_html/control/ y la web queda al día.
+# Se acabó el ZIP, borrar la carpeta y extraer.
+#
+# Sólo toca esa carpeta. lanoticiasinfiltroconmax.com y sinfiltroconmax.com
+# no se rozan.
+#
+# Requiere tres secretos en GitHub (Settings → Secrets and variables →
+# Actions): FTP_SERVIDOR, FTP_USUARIO y FTP_CLAVE. Ver docs/DESPLIEGUE_AUTOMATICO.md
+# =====================================================================
+
+name: Desplegar CrediSan Control
+
+on:
+  push:
+    branches:
+      - main
+      - claude/practical-maxwell-2ihoma
+    paths:
+      - 'credisan-control/public/**'
+      - '.github/workflows/desplegar-credisan.yml'
+  workflow_dispatch:          # botón para lanzarlo a mano cuando haga falta
+
+concurrency:
+  group: despliegue-credisan
+  cancel-in-progress: false   # dos despliegues a la vez dejarían la web a medias
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: ¿Están las credenciales del hosting?
+        id: credenciales
+        run: |
+          if [ -z "${{ secrets.FTP_SERVIDOR }}" ]; then
+            echo "listas=no" >> $GITHUB_OUTPUT
+            {
+              echo "### Falta configurar el despliegue"
+              echo ""
+              echo "Añada estos tres secretos en **Settings → Secrets and variables → Actions**:"
+              echo ""
+              echo "| Secreto | De dónde sale |"
+              echo "|---|---|"
+              echo "| \`FTP_SERVIDOR\` | hPanel → Archivos → Cuentas FTP → *Servidor FTP* |"
+              echo "| \`FTP_USUARIO\` | la misma pantalla → *Nombre de usuario FTP* |"
+              echo "| \`FTP_CLAVE\` | la contraseña de esa cuenta FTP |"
+              echo ""
+              echo "Hecho eso, vuelva aquí y pulse **Re-run jobs**."
+            } >> $GITHUB_STEP_SUMMARY
+            echo "Sin credenciales: no hay nada que subir todavía."
+          else
+            echo "listas=si" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comprobar que no se sube configuración con claves
+        run: |
+          # config/env.js viaja en el repositorio con los valores VACÍOS, a
+          # propósito. El del servidor tiene las claves reales y NO se toca
+          # (está en la lista de exclusión). Esta comprobación existe para
+          # que nadie acabe subiendo claves al repositorio sin darse cuenta.
+          if grep -qE "supabaseAnonKey:\s*'[^']+'" credisan-control/public/config/env.js; then
+            echo "::error::config/env.js del repositorio lleva una clave. Vacíela antes de publicar."
+            exit 1
+          fi
+          echo "Configuración limpia."
+
+      - name: Subir a Hostinger
+        if: steps.credenciales.outputs.listas == 'si'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server:      ${{ secrets.FTP_SERVIDOR }}
+          username:    ${{ secrets.FTP_USUARIO }}
+          password:    ${{ secrets.FTP_CLAVE }}
+          local-dir:   ./credisan-control/public/
+          server-dir:  /public_html/control/
+          protocol:    ftps
+          # La configuración del servidor manda: tiene las claves reales.
+          # Si se sobrescribiera, la web se quedaría sin servidor cada vez
+          # que publicásemos un cambio.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config/env.js
+            **/.DS_Store
+
+      - name: Resumen
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          echo "### CrediSan Control desplegado" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "https://control.sinfiltroconmax.com" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "config/env.js del servidor no se tocó." >> $GITHUB_STEP_SUMMARY
