@@ -22,6 +22,13 @@ async function abrir(b, rol) {
   await p.route('**/supabase-js@**', (r) => r.fulfill({ contentType: 'application/javascript', body: MOCK }));
   await p.route('**/config/env.js', (r) => r.fulfill({ contentType: 'application/javascript', body: ENV }));
   await p.route('**/fonts.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/css', body: '' }));
+  // El panel comprueba si la función del servidor está publicada, para
+  // poder explicar por qué nadie tiene PIN. Sin simularla, la petición
+  // sale a la red de verdad y ensucia la consola.
+  await p.route('**/functions/v1/credisan', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, pimienta: true, sin_conexion: true })
+  }));
   await p.goto('http://localhost:8099/panel/index.html', { waitUntil: 'domcontentloaded' });
   await p.fill('#correo', rol + '@credisan.test');
   await p.fill('#clave', 'secreta');

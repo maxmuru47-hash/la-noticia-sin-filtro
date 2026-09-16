@@ -157,7 +157,9 @@ Deno.serve(async (peticion) => {
         // La marcación ya está registrada. A partir de aquí, un fallo con la
         // fotografía NO puede tumbarla: se anota que no hay evidencia y se
         // abre una novedad, pero la hora del trabajador queda guardada.
-        await guardarEvidencia(sb, marca, cuerpo.branch_id,
+        // La sede sale de `marca`, que la trae la base de datos. NO del
+        // cuerpo de la petición: ver el comentario de `guardarEvidencia`.
+        await guardarEvidencia(sb, marca,
           typeof cuerpo.foto === 'string' ? cuerpo.foto : '',
           String(cuerpo.motivo_sin_foto ?? 'camara_no_disponible'));
 
@@ -271,7 +273,7 @@ Deno.serve(async (peticion) => {
           // camino que la del flujo en línea. Si no subiera, la marcación
           // queda igualmente registrada y sin evidencia, nunca perdida.
           if (data?.ok) {
-            await guardarEvidencia(sb, data, data.branch_id ?? cuerpo.branch_id,
+            await guardarEvidencia(sb, data,
               typeof item?.foto === 'string' ? item.foto : '',
               'sin_camara_offline');
           }
@@ -349,20 +351,54 @@ Deno.serve(async (peticion) => {
         if (error) return responder({ ok: false, motivo: limpiar(error.message) }, 400);
         if (!pendientes?.length) return responder({ ok: true, purgadas: 0, quedan: 0 });
 
-        // Se confirma SÓLO lo que de verdad se borró. Si Storage falla con
-        // un archivo, ese registro se queda pendiente y se reintenta la
-        // próxima vez: decir que se purgó algo que sigue ahí sería peor
-        // que no purgarlo.
+        // Se confirma SÓLO lo que de verdad se borró, y eso hay que mirarlo
+        // en la respuesta, no darlo por hecho: `remove` NO devuelve error
+        // por una ruta que no existe; simplemente la deja fuera de la
+        // lista de borrados. Confiando en el error se marcarían como
+        // purgadas fotografías que siguen en el depósito, y el sistema
+        // diría que cumplió una promesa que no cumplió.
         const rutas = pendientes.map((p: any) => String(p.ruta));
-        const { error: eBorrado } = await sb.storage.from('evidencia').remove(rutas);
+        const { data: borradas, error: eBorrado } =
+          await sb.storage.from('evidencia').remove(rutas);
         if (eBorrado) return responder({ ok: false, motivo: 'NO_SE_PUDO_BORRAR',
                                          detalle: eBorrado.message.slice(0, 120) }, 500);
 
-        const ids = pendientes.map((p: any) => String(p.id));
-        const { error: eConfirmar } = await sb.rpc('edge_confirmar_purga', { p_ids: ids });
-        if (eConfirmar) return responder({ ok: false, motivo: limpiar(eConfirmar.message) }, 500);
+        const hechas = new Set((borradas ?? []).map((o: any) => String(o.name)));
+        const ids = pendientes
+          .filter((p: any) => hechas.has(String(p.ruta)))
+          .map((p: any) => String(p.id));
 
-        return responder({ ok: true, purgadas: ids.length, quedan: pendientes.length === 500 ? 'mas' : 0 });
+        if (ids.length) {
+          const { error: eConfirmar } = await sb.rpc('edge_confirmar_purga', { p_ids: ids });
+          if (eConfirmar) return responder({ ok: false, motivo: limpiar(eConfirmar.message) }, 500);
+        }
+
+        // Lo que no se pudo borrar se queda pendiente y se reintenta la
+        // próxima noche. Se informa, porque si el número no baja nunca hay
+        // algo que mirar.
+        const fallidas = pendientes.length - ids.length;
+        return responder({ ok: true, purgadas: ids.length, sin_borrar: fallidas,
+                           quedan: pendientes.length === 500 ? 'mas' : 0 });
+      }
+
+
+      // ── ¿Está viva y configurada? ─────────────────────────────────
+      // La usan el panel y la página de estado para poder decir POR QUÉ
+      // no se pueden generar PIN, en vez de dejar a alguien mirando una
+      // lista de «PIN pendiente» sin explicación.
+      //
+      // Responde 200 a propósito: preguntar por una acción inexistente
+      // también servía, pero dejaba un error 400 en la consola del
+      // navegador cada vez que alguien entraba al panel.
+      //
+      // No dice nada que no se pueda decir sin sesión: si está publicada
+      // y si tiene sus secretos. Ni versiones, ni rutas, ni nombres.
+      case 'estado': {
+        return responder({
+          ok: true,
+          pimienta: PEPPER.length > 0,
+          sin_conexion: LLAVE_OFFLINE.length > 0
+        });
       }
 
       default:
@@ -407,12 +443,32 @@ function aBinario(base64: string): Uint8Array<ArrayBuffer> {
 // conexión). La regla es la misma en ambos y por eso vive en un solo
 // sitio: la marcación ya está registrada cuando se llega aquí, así que
 // nada de lo que pase con la foto puede tumbarla.
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function guardarEvidencia(
-  sb: ReturnType<typeof admin>, marca: any, branchId: string,
+  sb: ReturnType<typeof admin>, marca: any,
   foto: string, motivoSinFoto: string
 ): Promise<void> {
   if (!marca?.id || marca.duplicado) return;
   const evento = marca.id as string;
+
+  // La sede es el PRIMER SEGMENTO de la ruta, y ese segmento es lo que
+  // decide después quién puede leer el archivo. Antes venía en el cuerpo
+  // de la petición, es decir: la elegía el terminal, que es un teléfono
+  // en un mostrador y hay que tratarlo como hostil. Cambiando un valor
+  // en su propio almacenamiento podía hacer que esta función —con la
+  // llave maestra— escribiera bajo la sede que quisiera, o con `..`
+  // fuera del depósito entero.
+  //
+  // Ahora sale de `marca.branch_id`, que lo pone la base de datos al
+  // escribir la marcación. Y aun así se comprueba que sea un UUID: una
+  // ruta se construye pegando texto, y ahí no se confía en nadie.
+  const branchId = String(marca.branch_id ?? '');
+  if (!ES_UUID.test(branchId)) {
+    await sb.rpc('edge_sin_evidencia', { p_event: evento, p_motivo: 'sede_no_resuelta' });
+    marca.evidencia = 'sin_evidencia';
+    return;
+  }
 
   if (!foto.startsWith('data:image/jpeg;base64,')) {
     await sb.rpc('edge_sin_evidencia', {

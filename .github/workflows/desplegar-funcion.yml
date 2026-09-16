@@ -177,12 +177,12 @@ jobs:
         run: |
           url="https://$REF.supabase.co/functions/v1/credisan"
 
-          # Una acción que no existe es la prueba más limpia: si contesta
-          # ACCION_DESCONOCIDA, la función está viva Y la pimienta está
-          # puesta —porque si faltara, contestaría FALTA_PEPPER antes—.
+          # La acción `estado` dice si está viva y si tiene sus secretos,
+          # y responde 200 para no dejar errores en las consolas de quien
+          # la consulte desde el navegador.
           respuesta=$(curl -s -m 30 -X POST "$url" \
             -H 'Content-Type: application/json' \
-            -d '{"accion":"comprobacion-de-despliegue"}' || echo '')
+            -d '{"accion":"estado"}' || echo '')
 
           echo "Respuesta: $respuesta"
 
@@ -190,11 +190,15 @@ jobs:
             echo "::error::La función está publicada pero le falta el secreto CREDISAN_PIN_PEPPER."
             exit 1
           fi
-          if ! echo "$respuesta" | grep -q 'ACCION_DESCONOCIDA'; then
+          if ! echo "$respuesta" | grep -q '"ok":true'; then
             echo "::error::La función no respondió como se esperaba. Vea la respuesta de arriba."
             exit 1
           fi
-          echo "La función está publicada y responde."
+          if ! echo "$respuesta" | grep -q '"pimienta":true'; then
+            echo "::error::La función está publicada pero sin la pimienta del PIN."
+            exit 1
+          fi
+          echo "La función está publicada, responde, y tiene sus secretos."
 
       # ── La llave pública tiene que llegar al terminal ────────────────
       # Sólo se ejecuta cuando se acaban de generar las llaves. El archivo

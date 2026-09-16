@@ -630,6 +630,61 @@ async function cargarPersonal() {
   // Las fotos que ya existen, cada una con su URL firmada. Se piden
   // después de pintar la lista para que la lista salga ya.
   data.filter((e) => e.photo_path).forEach((e) => pintarRetrato(e));
+
+  // Si alguien está sin PIN, conviene saber si es que falta dárselo o si
+  // es que el sistema todavía no puede dárselo a nadie.
+  if (puedeEditar() && data.some((e) => !e.pin_updated_at)) {
+    comprobarFuncion().then(avisoFuncion);
+  }
+}
+
+/* ── ¿Está publicada la función del servidor? ───────────────────────
+   Sin ella no hay PIN, y el panel enseña a todo el personal como «PIN
+   pendiente» sin decir por qué. Se comprueba una vez al entrar y se
+   avisa arriba de la lista, donde se está mirando el problema. */
+
+let funcionPublicada = null;          // null = todavía no se sabe
+
+async function comprobarFuncion() {
+  if (funcionPublicada !== null) return funcionPublicada;
+  try {
+    const r = await fetch(config.supabaseUrl + '/functions/v1/credisan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: config.supabaseAnonKey,
+        Authorization: 'Bearer ' + config.supabaseAnonKey
+      },
+      body: JSON.stringify({ accion: 'estado' })
+    });
+    const t = await r.text();
+    if (t.includes('FALTA_PEPPER')) funcionPublicada = 'sin_pimienta';
+    else if (r.ok) {
+      const d = JSON.parse(t);
+      funcionPublicada = d.pimienta ? true : 'sin_pimienta';
+    } else {
+      funcionPublicada = false;
+    }
+  } catch {
+    funcionPublicada = false;
+  }
+  return funcionPublicada;
+}
+
+function avisoFuncion() {
+  const caja = $('aviso-funcion');
+  if (!caja) return;
+  if (funcionPublicada === true || funcionPublicada === null) { caja.hidden = true; return; }
+
+  caja.innerHTML = funcionPublicada === 'sin_pimienta'
+    ? '<strong>Falta el secreto del PIN.</strong> La función del servidor está publicada, '
+      + 'pero le falta <code>CREDISAN_PIN_PEPPER</code>. Sin él no se puede generar ningún PIN.'
+    : '<strong>Todavía no se pueden generar PIN.</strong> La función del servidor no está '
+      + 'publicada, y por eso todo el personal aparece como «PIN pendiente». '
+      + 'Se resuelve en GitHub → <em>Actions</em> → <em>Poner en marcha CrediSan</em>. '
+      + 'Está explicado paso a paso en <code>docs/EMPEZAR-AQUI.md</code>.';
+  caja.dataset.t = 'error';
+  caja.hidden = false;
 }
 
 /* ── Foto de ficha ──────────────────────────────────────────────────
@@ -806,14 +861,28 @@ async function generarPin(emp, boton) {
       },
       body: JSON.stringify({ accion: 'asignar-pin', empleado: emp.id })
     });
-    const datos = await r.json();
+    const datos = await r.json().catch(() => ({}));
+
+    // Un 404 aquí no es un error del trabajador ni de la red: es que la
+    // función del servidor todavía no se ha publicado. Decir «no se pudo
+    // generar el PIN» y callar el motivo deja a alguien buscando en el
+    // sitio equivocado, que es justo lo que pasó.
+    if (r.status === 404) {
+      funcionPublicada = false;
+      avisoFuncion();
+      avisoPanel('La función del servidor no está publicada todavía. Por eso nadie tiene PIN.', 'error');
+      return;
+    }
 
     if (!datos.ok) {
       avisoPanel(datos.motivo === 'FALTA_PEPPER'
-        ? 'Falta configurar el secreto CREDISAN_PIN_PEPPER en Supabase.'
+        ? 'La función está publicada pero le falta el secreto CREDISAN_PIN_PEPPER. Sin él no se puede generar ningún PIN.'
         : traducir(new Error(datos.motivo || 'ERROR')), 'error');
       return;
     }
+
+    funcionPublicada = true;
+    avisoFuncion();
 
     revelar(`PIN de ${emp.first_name} ${emp.last_name}`,
       'Anótelo y entrégueselo en persona. <strong>No se podrá volver a ver.</strong>',

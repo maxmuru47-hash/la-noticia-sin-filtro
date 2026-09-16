@@ -80,6 +80,65 @@ if (!estaConfigurado()) {
     .finally(() => clearTimeout(tiempo));
 }
 
+/* 5 · La función del servidor — es lo último que suele faltar
+   ---------------------------------------------------------------------
+   Sin ella no hay PIN, y sin PIN no hay marcaciones: el panel enseña a
+   todo el personal como «PIN pendiente» y no hay forma de saber por qué
+   mirando el panel. Así que se comprueba aquí y se dice con todas las
+   letras, incluido qué hacer.
+
+   Se pregunta por una acción que no existe: si contesta
+   ACCION_DESCONOCIDA, la función está viva Y tiene su pimienta, porque
+   si le faltara contestaría FALTA_PEPPER antes de llegar ahí. */
+if (!estaConfigurado()) {
+  pintar('e-funcion', 'espera', 'Sin comprobar',
+         'Se comprobará en cuanto haya configuración.');
+} else {
+  pintar('e-funcion', 'espera', 'Comprobando…', 'Función credisan');
+
+  const ctrl = new AbortController();
+  const reloj = setTimeout(() => ctrl.abort(), 8000);
+
+  fetch(config.supabaseUrl + '/functions/v1/credisan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: config.supabaseAnonKey,
+      Authorization: 'Bearer ' + config.supabaseAnonKey
+    },
+    body: JSON.stringify({ accion: 'estado' }),
+    signal: ctrl.signal
+  })
+    .then((r) => r.text().then((t) => ({ estado: r.status, texto: t })))
+    .then(({ estado, texto }) => {
+      let cuerpo = null;
+      try { cuerpo = JSON.parse(texto); } catch { /* no era JSON */ }
+
+      if (cuerpo?.ok && cuerpo.pimienta) {
+        pintar('e-funcion', 'ok', 'Función del servidor publicada',
+               cuerpo.sin_conexion
+                 ? 'Ya se pueden generar PIN y marcar, también sin internet.'
+                 : 'Ya se pueden generar PIN y marcar asistencia. Falta la llave del modo sin conexión.');
+      } else if (cuerpo?.ok && !cuerpo.pimienta) {
+        pintar('e-funcion', 'error', 'Falta el secreto del PIN',
+               'La función está publicada pero le falta CREDISAN_PIN_PEPPER. Sin él no se puede generar ningún PIN.');
+      } else if (texto.includes('FALTA_PEPPER')) {
+        pintar('e-funcion', 'error', 'Falta el secreto del PIN',
+               'La función está publicada pero le falta CREDISAN_PIN_PEPPER. Sin él no se puede generar ningún PIN.');
+      } else if (estado === 404) {
+        pintar('e-funcion', 'error', 'La función del servidor no está publicada',
+               'Por eso todo el personal aparece con «PIN pendiente». Se resuelve en Actions → «Poner en marcha CrediSan». Vea docs/EMPEZAR-AQUI.md.');
+      } else {
+        pintar('e-funcion', 'aviso', 'La función respondió de forma inesperada',
+               `Código ${estado}. Revise el registro en Supabase → Edge Functions.`);
+      }
+    })
+    .catch((e) => pintar('e-funcion', 'error', 'No se pudo comprobar la función',
+      e.name === 'AbortError' ? 'No respondió en 8 segundos.'
+                              : 'Puede que todavía no esté publicada. Vea docs/EMPEZAR-AQUI.md.'))
+    .finally(() => clearTimeout(reloj));
+}
+
 /* Botón de instalación: sólo aparece si el navegador lo ofrece de verdad */
 let invitacion = null;
 const boton = document.getElementById('instalar');

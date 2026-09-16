@@ -448,6 +448,66 @@ marcaciones de una jornada y exige que entren las cuatro.
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
 
+## Revisión de seguridad
+
+Se hizo una revisión de seguridad completa antes de que el sistema guarde datos
+reales. Encontró **dos fallos ciertos**, ambos corregidos:
+
+**1 · El terminal elegía dónde se guardaba la fotografía.** La evidencia se
+archiva en `<sede>/<año>/<mes>/<día>/`, y ese primer segmento es lo que
+`app.path_branch()` usa para decidir quién puede leer el archivo: es la bisagra
+de toda la separación por sedes en el almacenamiento.
+
+Pero la sede venía en el cuerpo de la petición, es decir: la elegía el
+terminal. Y el terminal es un teléfono en un mostrador, hostil por diseño.
+Cambiando un valor en su propio almacenamiento podía hacer que la función del
+servidor —con la llave maestra— escribiera bajo la sede que quisiera, o con
+`..` fuera del depósito entero.
+
+La corrección: la sede la devuelve la base de datos, que es quien la sabe. Y
+aun así se comprueba que sea un UUID antes de pegarla a una ruta.
+
+Al escribir la prueba salió que **había dos caminos, no uno**:
+`app.register_punch` tiene su propio retorno de reenvío que nunca llega a
+`_insert_punch`, y es justamente el que cualquiera puede repetir a voluntad. Si
+sólo se hubiera arreglado el primero, el agujero seguía abierto en el único
+caso que un atacante controla por completo.
+
+**2 · La purga daba por borrado lo que quizá no se borró.** `storage.remove()`
+**no** devuelve error por una ruta que no existe: simplemente la deja fuera de
+la lista de borrados. El código miraba el error y confirmaba todos los
+identificadores, así que una fotografía que siguiera en el depósito quedaba
+marcada como purgada —y `evidencia_de` respondería «purgada», de modo que nadie
+podría encontrarla ya—. La promesa de los 180 días fallaría en silencio.
+
+Ahora se confirma sólo lo que aparece en la lista de borrados, y lo demás se
+reintenta la noche siguiente.
+
+**Y un cerrojo para lo que venga.** PostgreSQL concede `EXECUTE` a `public` en
+cada función nueva. La migración 0008 lo revocó en bloque, pero eso sólo
+alcanzó a las que existían entonces. Ninguna de las añadidas después filtraba
+nada —todas comprueban rol o sede— pero era una trampa esperando a la próxima
+que se escribiera sin acordarse. Se vuelve a cerrar en bloque, y hay una prueba
+que falla si alguna función queda al alcance de `anon`.
+
+### Lo que la revisión confirmó que está bien
+
+El jefe operativo no alcanza el salario por ningún camino, tampoco por la
+auditoría. Ninguna sede lee datos de otra por ninguna de las funciones nuevas.
+No hay XSS en el panel: cada interpolación de texto del servidor pasa por
+`esc()`. Ninguna función `security definer` carece de `search_path`. El sobre
+cerrado del PIN resiste: clave efímera por sobre, curva validada por WebCrypto,
+y AES-GCM falla cerrado si alguien lo toca.
+
+### Una decisión que conviene que Max confirme
+
+`evidencia_de` deja ver la fotografía al **jefe operativo** de su sede. Lo
+decidí así a propósito —es quien está en el mostrador y quien va a notar que la
+cara no corresponde al PIN— pero la matriz de roles de la Fase 1 decía que la
+evidencia era «SIN ACCESO» para ese rol. Es un cambio de alcance sobre datos
+personales, y toda consulta queda auditada. Si Max prefiere lo otro, es quitar
+un rol de una condición.
+
 ## El sistema se mantiene solo
 
 Cuatro trabajos tenían que correr cada noche para que los números del día
