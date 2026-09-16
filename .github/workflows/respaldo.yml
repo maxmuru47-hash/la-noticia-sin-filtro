@@ -37,6 +37,19 @@ on:
     - cron: '10 5 * * *'
   workflow_dispatch:
 
+  # Y a la orden, empujando este archivo desde la rama de trabajo.
+  #
+  # Hace falta por una razón que no es un capricho: GitHub SÓLO ejecuta
+  # tareas programadas desde la rama principal del repositorio, y estos
+  # flujos viven en la rama de trabajo. Mientras no estén allí, el
+  # `schedule` de arriba no se dispara nunca —comprobado: cero
+  # ejecuciones programadas desde que existe el repositorio— y sin esto
+  # no habría forma de correrlo.
+  push:
+    branches: [claude/practical-maxwell-2ihoma]
+    paths:
+      - '.github/workflows/respaldo.yml'
+
 concurrency:
   group: respaldo-credisan
   cancel-in-progress: false
