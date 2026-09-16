@@ -66,18 +66,18 @@ Es la conexión a la base de datos.
 
 ---
 
-## Ahora, dos botones
+## Ahora, un botón
 
-En GitHub, pestaña **Actions**:
+En GitHub, pestaña **Actions** → **Poner en marcha CrediSan** → *Run
+workflow*.
 
-1. **Migrar base CrediSan** → *Run workflow* → esperar a que quede verde.
-2. **Desplegar función CrediSan** → *Run workflow* → esperar a que quede verde.
+Eso hace las dos cosas en el orden correcto: primero pone la base al día,
+después publica la función del servidor y crea sus llaves. Tarda unos tres
+minutos y al terminar escribe un resumen en castellano diciendo qué hizo.
 
-En ese orden: el primero pone al día la base, el segundo publica la función
-y crea sus llaves.
-
-Cada uno tarda menos de dos minutos y al terminar escribe un resumen en
-castellano diciendo qué hizo.
+> Los dos pasos existen también por separado —*Migrar base CrediSan* y
+> *Desplegar función CrediSan*— por si alguna vez hace falta lanzar sólo
+> uno. Para empezar, el botón único es suficiente.
 
 ---
 
@@ -90,6 +90,7 @@ Entre a **control.sinfiltroconmax.com/panel/** con su usuario:
 | Pestaña **Hoy** con las tres sedes | La base está en la fase 6 |
 | Pestaña **Cierres** | La fase 5 está aplicada |
 | **Más → Auditoría** con movimientos | La auditoría funciona |
+| **Más → Terminales y conexión** | La fase 6 está aplicada |
 | **Más → Terminales y conexión** | La fase 6 está aplicada |
 | En **Personal**, el botón **PIN** genera un PIN de 6 dígitos | La función del servidor está publicada y funcionando |
 
