@@ -1,3 +1,5 @@
-node_modules/
+# Sin barra final: así atrapa también el enlace simbólico que se crea al
+# ejecutar las pruebas desde otra carpeta. Con `node_modules/` se colaba.
+node_modules
 *.png
 package-lock.json
