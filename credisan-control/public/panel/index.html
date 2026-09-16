@@ -248,7 +248,15 @@
     <div id="lista-terminales"><p class="cargando">Cargando…</p></div>
 
     <section id="bloque-accesos" hidden>
-      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Accesos al panel</h2>
+      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Accesos al panel · personal</h2>
+      <div class="aviso" data-t="info">
+        Para <strong>administradoras, jefes operativos y dirección</strong>. Cada uno
+        pertenece a <strong>una sola sede</strong>.
+        <br><br>
+        ¿Va a dar acceso a un <strong>socio</strong>, que consulta varias sedes?
+        Eso se hace <strong>más abajo, en «Socios»</strong> —
+        <a href="#bloque-socios">ir ahí</a>.
+      </div>
       <div class="aviso" data-t="info">
         Primero cree la persona en Supabase: <strong>Authentication → Users →
         Add user</strong>. Después escriba aquí ese mismo correo para darle rol y sede.
@@ -280,8 +288,11 @@
 
     <!-- ══ SOCIOS ═══════════════════════════════════════════════════ -->
     <section id="bloque-socios" hidden>
-      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Socios</h2>
+      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Socios · varias sedes</h2>
       <div class="aviso" data-t="info">
+        Aquí <strong>no se elige rol</strong>: se marcan sedes con casillas. Un socio
+        puede consultar una, dos o las tres.
+        <br><br>
         Un socio <strong>consulta</strong> las sedes que usted le marque: quién
         llegó, a qué hora y el cierre de la semana. No ve salarios ni
         fotografías, y no puede modificar nada.
