@@ -143,20 +143,61 @@ es una decisión consciente que se toma sabiendo lo que se rompe.
 
 ---
 
-## Lo que sigue siendo manual, a propósito
+---
 
-Las **migraciones SQL** se siguen aplicando a mano, pegando el archivo
-`ACTUALIZAR-FASEn.sql` en el SQL Editor.
+# La base de datos, también automática
 
-No es que no se pueda automatizar. Es que una publicación de código no debería
-cambiar la estructura de la base de datos sin que nadie mire, y además hay una
-razón concreta en este proyecto: la base se creó pegando `INSTALAR.sql` en el
-editor, así que Supabase no tiene registro de qué migraciones se aplicaron. La
-herramienta oficial (`supabase db push`) intentaría aplicarlas todas desde
-cero y fallaría.
+Tercer flujo, **«Migrar base CrediSan»**. Aplica los cambios de estructura sin
+que nadie pegue SQL en el editor.
 
-Se puede automatizar igualmente —los archivos `ACTUALIZAR-*.sql` están hechos
-para ejecutarse dos veces sin consecuencias—, pero haría falta guardar la
-contraseña de la base como secreto y aceptar que un `git push` cambie la
-estructura de la base de producción. Es una decisión que conviene tomar a
-propósito, no de rebote.
+## Lo que hay que hacer una vez
+
+Un secreto más: **`SUPABASE_DB_URL`**.
+
+supabase.com → su proyecto → botón **Connect** (arriba) → pestaña **Session
+pooler** → copie la cadena entera y sustituya `[YOUR-PASSWORD]` por su
+contraseña.
+
+> **Use Session pooler, no *Direct connection*.** La directa sólo responde por
+> IPv6 y los servidores de GitHub no llegan hasta ahí. Es la causa número uno
+> de que este flujo falle.
+
+Esa cadena da acceso completo a la base. Como las demás: se pega en GitHub,
+nunca en el chat.
+
+## Por qué se puede automatizar esto sin miedo
+
+Porque los archivos que aplica **no modifican ni una tabla**. Los cuatro
+`ACTUALIZAR-*.sql` son exclusivamente `create or replace function`: cambian lo
+que el sistema *sabe hacer*, nunca lo que *tiene guardado*.
+
+Y no se confía en que siga siendo así: **antes de cada ejecución el flujo lee
+los archivos** y se planta si aparece un `drop`, un `truncate` o un `delete`.
+Se planta antes de conectarse a la base, así que no llega a tocarla.
+
+## Las cuatro barreras
+
+1. **Se lee antes de ejecutar.** Si un archivo trajera algo destructivo, el
+   flujo aborta sin conectarse.
+2. **Una transacción por archivo.** Si algo falla a mitad, la base queda
+   exactamente como estaba. Nada a medias, nunca.
+3. **Se cuenta antes y después.** Trabajadores y marcaciones. Si bajara
+   cualquiera de los dos, el flujo falla y lo dice en rojo.
+4. **La copia que se guarda es sólo la estructura**, sin una sola fila. Sacar
+   los nombres, cédulas y horarios de su personal a un artefacto de GitHub
+   sería llevárselos de donde deben estar. De los datos se encarga el respaldo
+   de Supabase.
+
+## Qué hace en cada ejecución
+
+- Si la base está **vacía** → la instala entera con `INSTALAR.sql`.
+- Si ya está **instalada** → aplica los `ACTUALIZAR-*.sql` en orden.
+
+Los archivos están hechos para ejecutarse las veces que haga falta: si una fase
+ya estaba, lo dice y sigue. Por eso el flujo **converge desde cualquier estado**
+sin llevar la cuenta de nada — no hay un registro que se pueda desincronizar.
+
+Probado contra una base que replica el estado real de producción —fases 1 a 3
+aplicadas, con personal y salarios cargados—: la llevó hasta la fase 6 con los
+doce trabajadores y sus doce salarios intactos, y una segunda pasada completa
+no cambió absolutamente nada.

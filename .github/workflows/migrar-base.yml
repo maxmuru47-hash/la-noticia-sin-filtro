@@ -1,0 +1,244 @@
+# =====================================================================
+# CrediSan Control · migraciones de la base de datos
+# =====================================================================
+# Aplica los cambios de estructura a la base de Supabase sin que nadie
+# tenga que pegar SQL a mano en el editor.
+#
+# QUÉ HAY EN JUEGO
+# ----------------
+# Esta base guarda a qué hora llega y a qué hora sale cada trabajador de
+# CrediSan, y sus datos personales. Un flujo automático que la toca tiene
+# que ser especialmente conservador, así que:
+#
+#   · Antes de aplicar nada, se LEE lo que se va a ejecutar y se aborta
+#     si aparece un `drop`, un `truncate` o un `delete`. No se confía en
+#     que los archivos sean inofensivos: se comprueba cada vez.
+#   · Cada archivo se aplica en UNA SOLA TRANSACCIÓN. Si algo falla a
+#     mitad, no queda nada a medias.
+#   · Se cuentan los trabajadores y las marcaciones antes y después. Si
+#     bajara cualquiera de los dos, el flujo falla y lo grita.
+#   · La copia de seguridad que se guarda es SÓLO LA ESTRUCTURA, sin una
+#     sola fila. Sacar los datos del personal a un artefacto de GitHub
+#     sería llevárselos de donde deben estar. De los datos se encarga el
+#     respaldo de Supabase.
+#
+# Necesita un secreto más en GitHub. Ver DESPLIEGUE_AUTOMATICO.md
+# =====================================================================
+
+name: Migrar base CrediSan
+
+on:
+  push:
+    branches:
+      - main
+      - claude/practical-maxwell-2ihoma
+    paths:
+      - 'credisan-control/supabase/migrations/**'
+      - 'credisan-control/supabase/instalador/**'
+      - '.github/workflows/migrar-base.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: migraciones-credisan     # jamás dos a la vez sobre la misma base
+  cancel-in-progress: false
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: credisan-control
+
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: ¿Está la conexión a la base?
+        id: credenciales
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "listas=no" >> $GITHUB_OUTPUT
+            {
+              echo "### Falta la conexión a la base de datos"
+              echo ""
+              echo "Añada el secreto \`SUPABASE_DB_URL\` en **Settings → Secrets and variables → Actions**."
+              echo ""
+              echo "Sale de: supabase.com → su proyecto → **Connect** (arriba) →"
+              echo "pestaña **Session pooler** → copie la cadena completa y ponga su contraseña"
+              echo "donde dice \`[YOUR-PASSWORD]\`."
+              echo ""
+              echo "> Use **Session pooler**, no *Direct connection*: la directa sólo responde"
+              echo "> por IPv6 y los servidores de GitHub no llegan."
+              echo ""
+              echo "Esa cadena da acceso completo a la base. No se escribe en el chat:"
+              echo "se pega aquí, en GitHub."
+            } >> $GITHUB_STEP_SUMMARY
+            echo "Sin conexión: no hay nada que migrar todavía."
+          else
+            echo "listas=si" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Instalar el cliente de PostgreSQL
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      # ── Puerta de seguridad ──────────────────────────────────────────
+      # Se lee lo que se va a ejecutar ANTES de ejecutarlo. Si alguien
+      # añadiera un `drop table` a un archivo de actualización, el flujo
+      # se planta aquí en vez de llevárselo por delante.
+      - name: Comprobar que no se va a destruir nada
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          # Se quitan los comentarios antes de mirar: en este proyecto se
+          # explica mucho, y la palabra «delete» aparece en más de una
+          # explicación sin ser una instrucción.
+          sospechoso=0
+          for f in supabase/instalador/ACTUALIZAR-*.sql; do
+            sin_comentarios=$(sed 's/--.*//' "$f")
+            if echo "$sin_comentarios" | grep -qiE 'drop +(table|schema|column|database)|truncate|delete +from|alter +table[^;]*drop'; then
+              echo "::error::$f contiene una instrucción destructiva. No se aplica nada."
+              sospechoso=1
+            fi
+          done
+          [ "$sospechoso" = 0 ] || exit 1
+          echo "Los archivos sólo crean o reemplazan funciones. Nada que destruir."
+
+      - name: Mirar cómo está la base ahora
+        if: steps.credenciales.outputs.listas == 'si'
+        id: antes
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          q() { psql "$PGURL" -tAc "$1" 2>/dev/null || echo ''; }
+
+          instalada=$(q "select 1 from information_schema.tables where table_schema='public' and table_name='branches'")
+          if [ "$instalada" = "1" ]; then
+            echo "instalada=si" >> $GITHUB_OUTPUT
+            emp=$(q "select count(*) from employees")
+            mar=$(q "select count(*) from attendance_events")
+            echo "empleados=$emp" >> $GITHUB_OUTPUT
+            echo "marcaciones=$mar" >> $GITHUB_OUTPUT
+            echo "Base ya instalada · $emp trabajadores · $mar marcaciones"
+          else
+            echo "instalada=no" >> $GITHUB_OUTPUT
+            echo "empleados=0" >> $GITHUB_OUTPUT
+            echo "marcaciones=0" >> $GITHUB_OUTPUT
+            echo "Base vacía: se instalará desde cero."
+          fi
+
+      - name: Guardar la estructura de antes
+        if: steps.credenciales.outputs.listas == 'si' && steps.antes.outputs.instalada == 'si'
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # --schema-only: se lleva la forma de la base, NI UNA FILA. Los
+          # datos del personal no salen de Supabase.
+          pg_dump "$PGURL" --schema-only --no-owner --no-privileges \
+            > /tmp/estructura-antes.sql 2>/dev/null || echo "(no se pudo volcar la estructura)"
+          echo "Estructura guardada: $(wc -l < /tmp/estructura-antes.sql 2>/dev/null || echo 0) líneas, 0 filas de datos."
+
+      - name: Instalar desde cero
+        if: steps.credenciales.outputs.listas == 'si' && steps.antes.outputs.instalada == 'no'
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          psql "$PGURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f supabase/instalador/INSTALAR.sql
+
+      - name: Aplicar las actualizaciones
+        if: steps.credenciales.outputs.listas == 'si' && steps.antes.outputs.instalada == 'si'
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          # En orden, y cada uno en su propia transacción. Están hechos
+          # para ejecutarse las veces que haga falta: si una fase ya
+          # estaba, avisa y sigue. Así el flujo converge desde cualquier
+          # estado en que esté la base, sin llevar la cuenta de nada.
+          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort); do
+            echo "─────────────────────────────────────────────"
+            echo "  $(basename "$f")"
+            echo "─────────────────────────────────────────────"
+            psql "$PGURL" --single-transaction -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Comprobar que no se perdió nada
+        if: steps.credenciales.outputs.listas == 'si'
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+          ANTES_EMP: ${{ steps.antes.outputs.empleados }}
+          ANTES_MAR: ${{ steps.antes.outputs.marcaciones }}
+        run: |
+          q() { psql "$PGURL" -tAc "$1"; }
+          emp=$(q "select count(*) from employees")
+          mar=$(q "select count(*) from attendance_events")
+          fn=$(q "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                   where n.nspname='public' and p.proname in
+                   ('tablero_hoy','cierres','edge_offline','sincronizacion','auditoria')")
+
+          echo "Trabajadores:  $ANTES_EMP → $emp"
+          echo "Marcaciones:   $ANTES_MAR → $mar"
+          echo "Funciones clave de las fases 4, 5 y 6: $fn de 5"
+
+          # La comprobación que de verdad importa: los datos del personal
+          # y sus horas de entrada y salida no pueden haber disminuido.
+          if [ "$emp" -lt "$ANTES_EMP" ]; then
+            echo "::error::Se perdieron trabajadores ($ANTES_EMP → $emp). Revise el respaldo de Supabase."
+            exit 1
+          fi
+          if [ "$mar" -lt "$ANTES_MAR" ]; then
+            echo "::error::Se perdieron marcaciones ($ANTES_MAR → $mar). Revise el respaldo de Supabase."
+            exit 1
+          fi
+          if [ "$fn" -lt 5 ]; then
+            echo "::error::Faltan funciones: la migración no se completó."
+            exit 1
+          fi
+
+          {
+            echo "### Base de datos al día"
+            echo ""
+            echo "| | Antes | Después |"
+            echo "|---|---|---|"
+            echo "| Trabajadores | $ANTES_EMP | **$emp** |"
+            echo "| Marcaciones (entradas y salidas) | $ANTES_MAR | **$mar** |"
+            echo ""
+            echo "Funciones de las fases 4, 5 y 6: **$fn de 5**."
+            echo ""
+            echo "> Los archivos aplicados sólo crean o reemplazan funciones."
+            echo "> Ninguna tabla se modifica y ninguna fila se toca."
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Guardar la estructura resultante
+        if: always() && steps.credenciales.outputs.listas == 'si'
+        uses: actions/upload-artifact@v4
+        with:
+          name: estructura-base
+          path: /tmp/estructura-antes.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Explicar el fallo
+        if: failure() && steps.credenciales.outputs.listas == 'si'
+        run: |
+          {
+            echo "### La migración no se completó"
+            echo ""
+            echo "**Nada quedó a medias.** Cada archivo se aplica en una sola"
+            echo "transacción: si falla, la base se queda exactamente como estaba."
+            echo ""
+            echo "Causas más frecuentes, en orden:"
+            echo ""
+            echo "1. La cadena de conexión no es la del **Session pooler**. La"
+            echo "   *Direct connection* sólo responde por IPv6 y GitHub no llega."
+            echo "2. La contraseña dentro de la cadena no es la correcta, o lleva"
+            echo "   caracteres que hay que escapar."
+            echo "3. Falta aplicar una fase anterior y el archivo se plantó a"
+            echo "   propósito en vez de aplicarse a medias. El mensaje de arriba"
+            echo "   dice cuál."
+            echo ""
+            echo "Mientras tanto puede seguir aplicándolas a mano en el SQL Editor:"
+            echo "es exactamente el mismo archivo."
+          } >> $GITHUB_STEP_SUMMARY

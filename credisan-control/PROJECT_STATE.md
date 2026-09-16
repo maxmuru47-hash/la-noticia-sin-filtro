@@ -451,6 +451,7 @@ Dos flujos de GitHub, ambos en `.github/workflows/`:
 |---|---|---|
 | `desplegar-credisan.yml` | La web al VPS por SSH | cambios en `public/**` |
 | `desplegar-funcion.yml` | La Edge Function a Supabase | cambios en `supabase/functions/**` |
+| `migrar-base.yml` | La estructura de la base | cambios en `migrations/**` o `instalador/**` |
 
 El segundo también se encarga de los secretos, con una regla que manda sobre
 todo lo demás: **un secreto que ya existe no se toca nunca**. Los crea sólo si
@@ -473,16 +474,38 @@ Dos apuntes del flujo, por si hiciera falta tocarlo:
 - La función se publica con `--no-verify-jwt`, que es deliberado y está
   explicado en `docs/FASE3_TERMINAL.md`.
 
+### Las migraciones
+
+Se automatizaron a petición expresa. Se pudo hacer sin riesgo real porque los
+cuatro `ACTUALIZAR-*.sql` son **exclusivamente `create or replace function`**:
+cambian lo que el sistema sabe hacer, nunca lo que tiene guardado. Ni un
+`alter table`, ni un `drop`, ni un `delete`.
+
+Y no se confía en que siga siendo así. Cuatro barreras, en este orden:
+
+1. **Se leen los archivos antes de ejecutarlos** y el flujo aborta —sin
+   conectarse siquiera a la base— si aparece un `drop`, `truncate` o `delete`.
+   Los comentarios se descartan antes de mirar, porque este proyecto explica
+   mucho en castellano y esas palabras salen en las explicaciones.
+2. **Una transacción por archivo.** Un fallo a mitad deja la base como estaba.
+3. **Se cuentan trabajadores y marcaciones antes y después.** Si bajara
+   cualquiera de los dos, el flujo falla en rojo.
+4. **La copia guardada es sólo la estructura**, sin una fila. Sacar nombres,
+   cédulas y horarios a un artefacto de GitHub sería llevárselos de donde deben
+   estar; de los datos se encarga el respaldo de Supabase.
+
+No hay registro de migraciones que pueda desincronizarse: los archivos son
+idempotentes y se aplican todos en orden, así que el flujo **converge desde
+cualquier estado**. Si la base está vacía, instala desde cero.
+
+Probado contra una base que replica el estado real de producción —fases 1 a 3,
+con doce trabajadores y sus salarios—: la llevó a la fase 6 con todo intacto, y
+una segunda pasada completa no cambió nada. La barrera antidestrucción se probó
+plantando un archivo con `drop table employees`: el flujo se detuvo antes de
+conectarse.
+
 ## Estado: las seis fases entregadas
 
-Falta únicamente lo que depende de la cuenta de Supabase del cliente:
-
-1. Dos secretos en GitHub (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`) y
-   pulsar *Run workflow* una vez. Eso publica la función y crea sus secretos.
-2. Las **migraciones SQL** siguen pegándose a mano en el SQL Editor. No por
-   falta de herramienta, sino porque la base se creó pegando `INSTALAR.sql`, así
-   que Supabase no tiene registro de qué migraciones se aplicaron y
-   `supabase db push` intentaría aplicarlas todas desde cero. Automatizarlo es
-   posible —los `ACTUALIZAR-*.sql` son idempotentes— pero exige guardar la
-   contraseña de la base como secreto y aceptar que un `git push` cambie la
-   estructura de producción. Es una decisión que conviene tomar a propósito.
+Falta únicamente lo que depende de la cuenta de Supabase del cliente, y que no
+puede hacerse desde aquí porque son sus llaves: **tres secretos en GitHub y dos
+botones**. Paso a paso en `docs/EMPEZAR-AQUI.md`.

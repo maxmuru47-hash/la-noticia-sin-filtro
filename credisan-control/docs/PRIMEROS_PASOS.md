@@ -107,6 +107,9 @@ registrados y con horario, listos para marcar en cuanto exista el terminal.
 **Hoy** — la operación del día. **Cierres** — la semana medida y revisada.
 **Más** — horarios, sedes, reportes en Excel y auditoría.
 
+> **¿Acaba de llegar y no sabe por dónde empezar?** Lea `docs/EMPEZAR-AQUI.md`:
+> son los tres secretos y los dos botones que ponen todo en marcha.
+
 ## Guías por fase
 
 | Guía | Para qué |
