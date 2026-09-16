@@ -54,14 +54,17 @@ jobs:
   mantener:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: credisan-control
+
+    # Sin `checkout` y sin `working-directory`, a propósito: este flujo no
+    # lee un solo archivo del repositorio. Todo su SQL va escrito aquí
+    # dentro y lo demás son llamadas a Supabase.
+    #
+    # Importa porque las tareas programadas de GitHub se ejecutan desde
+    # la RAMA PRINCIPAL, y allí no existe la carpeta credisan-control. Con
+    # el `working-directory` puesto, cada paso habría fallado con «no
+    # existe el directorio» —y de noche, sin nadie mirando—.
 
     steps:
-      - name: Traer el código
-        uses: actions/checkout@v4
-
       - name: ¿Está la conexión a la base?
         id: cred
         run: |
