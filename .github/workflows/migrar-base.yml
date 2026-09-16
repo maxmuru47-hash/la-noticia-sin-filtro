@@ -107,13 +107,17 @@ jobs:
           [ "$sospechoso" = 0 ] || exit 1
           echo "Los archivos sólo crean o reemplazan funciones. Nada que destruir."
 
-          # El orden alfabético TIENE que coincidir con el orden de las
-          # fases: cada archivo se planta si falta la fase anterior, así
-          # que uno mal nombrado —«ACTUALIZAR-EVIDENCIA» va antes que
-          # «ACTUALIZAR-FASE3»— tumbaría la migración entera.
+          # El orden de aplicación TIENE que coincidir con el orden de
+          # las fases: cada archivo se planta si falta la fase anterior,
+          # así que uno fuera de sitio tumbaría la migración entera.
+          #
+          # Se ordena por versión (`sort -V`), no alfabéticamente: en
+          # orden alfabético «FASE10» va ANTES que «FASE3», porque
+          # compara el «1» con el «3». Y aun así se comprueba abajo, que
+          # es lo que de verdad protege.
           mal=0
           anterior=0
-          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort); do
+          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort -V); do
             n=$(basename "$f" | grep -oE 'FASE[0-9]+' | grep -oE '[0-9]+' || echo '')
             if [ -z "$n" ]; then
               echo "::error::$(basename "$f") no dice a qué fase pertenece."
@@ -180,7 +184,7 @@ jobs:
           # para ejecutarse las veces que haga falta: si una fase ya
           # estaba, avisa y sigue. Así el flujo converge desde cualquier
           # estado en que esté la base, sin llevar la cuenta de nada.
-          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort); do
+          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort -V); do
             echo "─────────────────────────────────────────────"
             echo "  $(basename "$f")"
             echo "─────────────────────────────────────────────"

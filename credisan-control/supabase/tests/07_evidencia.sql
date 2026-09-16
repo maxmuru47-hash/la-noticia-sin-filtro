@@ -79,21 +79,33 @@ rollback;
 \echo '  ✔  1. Administración la ve, y queda registrado quién miró la de quién'
 
 -- =====================================================================
---  2. El jefe operativo de esa sede también
+--  2. El jefe operativo NO la ve, ni siquiera en su propia sede
 -- =====================================================================
--- Se le incluye a propósito: es quien está en el mostrador y quien va a
--- notar que la cara no corresponde al PIN.
+-- Así lo dice la matriz de roles que se aprobó en la Fase 1. Una
+-- fotografía de la cara de alguien es de lo más sensible que guarda
+-- este sistema, y el jefe operativo sigue viendo quién marcó, a qué
+-- hora y si fue con foto o sin ella: si algo no le cuadra, lo reporta
+-- como novedad y administración mira la fotografía.
 begin;
   select set_config('request.jwt.claims',
     json_build_object('sub','33333333-3333-3333-3333-333333333333',
                       'app_role','supervisor','branch_id', :'mcb')::text, true);
   set local role authenticated;
-  do $$ declare r jsonb; begin
-    r := public.evidencia_de(current_setting('t.ev')::uuid);
-    assert (r->>'ok')::boolean, 'FALLA: el jefe de la sede no pudo verla: ' || r::text;
+  do $$ declare ok boolean := false; begin
+    begin perform public.evidencia_de(current_setting('t.ev')::uuid);
+    exception when others then ok := (sqlerrm like '%NO_AUTORIZADO%'); end;
+    assert ok, 'FALLA GRAVE: el jefe operativo vio la fotografía de un trabajador';
+  end $$;
+
+  -- Y el intento no figura como consulta: no miró nada
+  do $$ begin
+    assert not exists (select 1 from audit_logs
+                        where action = 'evidencia.consultada'
+                          and actor_id = '33333333-3333-3333-3333-333333333333'),
+      'FALLA: un intento denegado quedó registrado como consulta';
   end $$;
 rollback;
-\echo '  ✔  2. El jefe operativo de la sede la ve: es quien está en el mostrador'
+\echo '  ✔  2. El jefe operativo NO la ve: manda la matriz de roles aprobada'
 
 -- =====================================================================
 --  3. El de la OTRA sede no, por mucho que pregunte

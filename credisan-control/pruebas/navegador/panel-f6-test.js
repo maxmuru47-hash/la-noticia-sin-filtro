@@ -77,6 +77,12 @@ async function abrir(b, rol) {
     ok(await p.locator('#nav-mas').isHidden(), 'no ve el menú Más');
     const todo = await p.evaluate(() => document.body.innerText);
     ok(!/Terminales y conexión/.test(todo), 'ni el nombre de la pantalla aparece');
+
+    // Y en la pantalla que SÍ ve, nada de abrir fotografías: la matriz
+    // de roles aprobada deja la evidencia en dirección y administración.
+    ok((await p.$$eval('[data-ver-foto]', (n) => n.length)) === 0,
+       'no se le ofrece abrir la fotografía de nadie');
+    ok(!/📷/.test(todo), 'ni aparece el icono de la cámara');
     ok(errs.length === 0, 'sin errores de JavaScript', errs.join(' | '));
     await p.close();
   }

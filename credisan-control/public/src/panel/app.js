@@ -58,6 +58,16 @@ function ocupado(boton, si, textoOriginal) {
 const puedeEditar = () => yo && (yo.rol === 'ceo' || yo.rol === 'admin');
 const esCeo = () => yo && yo.rol === 'ceo';
 
+// La fotografía de una marcación es de lo más sensible que guarda el
+// sistema: la cara de una persona. La matriz de roles aprobada la deja
+// en dirección y administración. El jefe operativo ve QUIÉN marcó, a qué
+// hora y si fue con foto o sin ella; si algo no le cuadra lo reporta
+// como novedad, y administración mira.
+//
+// Esto oculta el botón. Quien decide de verdad es `evidencia_de`, en la
+// base de datos: ocultar aquí es por cortesía, nunca por seguridad.
+const puedeVerEvidencia = () => puedeEditar();
+
 function rango(cual) {
   const hoy = new Date();
   const fin = hoy.toISOString().slice(0, 10);
@@ -248,7 +258,7 @@ async function cargarHoy() {
   }
 
   $('hoy-lista').innerHTML = data.empleados.map((e) => `
-    <div class="ficha"${e.evento_id && e.evidencia === 'almacenada'
+    <div class="ficha"${(puedeVerEvidencia() && e.evento_id && e.evidencia === 'almacenada')
       ? ` data-ver-foto="${e.evento_id}" data-nombre="${esc(e.nombre)}" style="cursor:pointer"` : ''}>
       <span class="estado-punto" data-e="${e.estado}"></span>
       <div class="ficha__cuerpo">
@@ -263,7 +273,8 @@ async function cargarHoy() {
         ${e.entrada ? `<strong>${e.entrada}</strong>` : (e.esperada ? e.esperada : '—')}
         ${e.entrada && e.minutos ? `<br>${e.minutos > 0 ? '+' : ''}${e.minutos} min` : ''}
         ${e.salida ? `<br>↩ ${e.salida}` : ''}
-        ${e.evento_id && e.evidencia === 'almacenada' ? '<br><span class="ver-foto">📷 ver</span>' : ''}
+        ${(puedeVerEvidencia() && e.evento_id && e.evidencia === 'almacenada')
+          ? '<br><span class="ver-foto">📷 ver</span>' : ''}
       </div>
     </div>`).join('');
 
@@ -1390,7 +1401,7 @@ async function cargarConexion() {
   }
 
   lista.innerHTML = off.marcaciones.map((m) => `
-    <div class="ficha"${m.evidencia === 'almacenada'
+    <div class="ficha"${(puedeVerEvidencia() && m.evidencia === 'almacenada')
       ? ` data-ver-foto="${m.id}" data-nombre="${esc(m.nombre)}" style="cursor:pointer"` : ''}>
       <span class="estado-punto" data-e="${m.estado === 'retraso' ? 'retrasado' : 'presente'}"></span>
       <div class="ficha__cuerpo">

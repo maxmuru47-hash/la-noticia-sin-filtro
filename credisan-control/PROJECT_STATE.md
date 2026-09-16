@@ -532,14 +532,26 @@ No hay XSS en el panel: cada interpolación de texto del servidor pasa por
 cerrado del PIN resiste: clave efímera por sobre, curva validada por WebCrypto,
 y AES-GCM falla cerrado si alguien lo toca.
 
-### Una decisión que conviene que Max confirme
+### La evidencia volvió a la matriz aprobada
 
-`evidencia_de` deja ver la fotografía al **jefe operativo** de su sede. Lo
-decidí así a propósito —es quien está en el mostrador y quien va a notar que la
-cara no corresponde al PIN— pero la matriz de roles de la Fase 1 decía que la
-evidencia era «SIN ACCESO» para ese rol. Es un cambio de alcance sobre datos
-personales, y toda consulta queda auditada. Si Max prefiere lo otro, es quitar
-un rol de una condición.
+Al habilitar la consulta de la fotografía dejé que el **jefe operativo** también
+la viera. El argumento era bueno —es quien está en el mostrador y quien notaría
+que la cara no corresponde al PIN— pero la matriz de roles de la Fase 1, la que
+se aprobó antes de escribir una línea, dice que la evidencia es «sin acceso»
+para ese rol, y la política `evidence_select` decía lo mismo.
+
+Ensanchar por mi cuenta un permiso sobre la fotografía de la cara de una
+persona no era una decisión mía. Revertido: dirección y administración, cada
+una en su sede.
+
+**Lo operativo no se pierde.** El jefe operativo sigue viendo quién marcó, a qué
+hora, y si fue con foto o sin ella. Si algo no le cuadra lo reporta como
+novedad y administración —que sí puede— mira la fotografía. Es un paso más, y
+es el paso correcto: mirar la cara de alguien debería costar algo.
+
+En el panel ni siquiera se le ofrece el botón, y la prueba de navegador exige
+que no aparezca. Pero quien decide de verdad es `evidencia_de` en la base de
+datos: ocultarlo en la pantalla es por cortesía, nunca por seguridad.
 
 ## El sistema se mantiene solo
 
