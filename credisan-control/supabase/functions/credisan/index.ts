@@ -333,7 +333,13 @@ Deno.serve(async (peticion) => {
       // La llama el mantenimiento nocturno con la llave de servicio. No
       // hay forma de dispararla desde el panel ni desde el terminal.
       case 'purgar': {
-        if (String(cuerpo.llave ?? '') !== LLAVE_MAESTRA) {
+        // La credencial va en la CABECERA, no en el cuerpo: un cuerpo de
+        // petición acaba con facilidad en un registro de errores, y ésta
+        // es la llave que lo abre todo. Y se compara en tiempo constante,
+        // porque una comparación normal se rinde en el primer carácter
+        // distinto y eso, medido muchas veces, filtra la llave.
+        const dada = (peticion.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+        if (!LLAVE_MAESTRA || !igualSinFiltrar(dada, LLAVE_MAESTRA)) {
           return responder({ ok: false, motivo: 'NO_AUTORIZADO' }, 401);
         }
 
@@ -379,6 +385,16 @@ function limpiar(mensaje: string): string {
 // segundo, WebCrypto no lo acepta como `BufferSource` al comprobar tipos:
 // en ejecución funciona igual, pero el código debe ser correcto también
 // para quien lo compile, no sólo para quien lo ejecute.
+// Comparación que tarda lo mismo acierte o falle. Con `===`, el tiempo de
+// respuesta depende de cuántos caracteres coincidieron, y quien pruebe
+// muchas veces puede reconstruir la llave carácter a carácter.
+function igualSinFiltrar(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let dif = 0;
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
+
 function aBinario(base64: string): Uint8Array<ArrayBuffer> {
   const crudo = atob(base64);
   const bytes = new Uint8Array(new ArrayBuffer(crudo.length));

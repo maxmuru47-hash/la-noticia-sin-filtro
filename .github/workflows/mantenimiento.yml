@@ -126,7 +126,8 @@ jobs:
           for i in 1 2 3 4 5; do
             r=$(curl -s -m 60 -X POST "https://$REF.supabase.co/functions/v1/credisan" \
               -H 'Content-Type: application/json' \
-              -d "{\"accion\":\"purgar\",\"llave\":\"$LLAVE\",\"limite\":500}" || echo '')
+              -H "Authorization: Bearer $LLAVE" \
+              -d '{"accion":"purgar","limite":500}' || echo '')
             n=$(echo "$r" | grep -oE '"purgadas":[0-9]+' | grep -oE '[0-9]+' || echo 0)
             total=$((total + n))
             echo "  vuelta $i: $n fotografías"
