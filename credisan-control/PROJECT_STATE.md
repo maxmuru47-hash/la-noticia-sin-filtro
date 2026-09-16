@@ -116,6 +116,7 @@ una base limpia por batería —no se contaminan entre sí— y corre las cuatro
 | `03_fase3.sql` | PIN asignado, emparejamiento, token falso, PIN erróneo con su rastro, marcación clasificada, evidencia con fecha de purga, desvinculación, y el panel sin poder ejecutar las `edge_*` |
 | `04_fase4.sql` | tablero por rol, aislamiento entre sedes, ausencia de datos salariales por estructura, y que la fase no alteró ni un dato existente |
 | `05_fase5.sql` | que el cierre no toca dinero (leído del código fuente), recalcular respetando lo revisado, reporte sin cédulas, y la auditoría vista por cada rol |
+| `09_dia_completo.sql` | **Una jornada real de punta a punta**: tres personas, ocho marcaciones con hora exacta, y el camino completo hasta el cierre semanal, el reporte y el tablero |
 | `06_fase6.sql` | cola entera tras un corte largo, secuencia que no retrocede, ventana de 72 h, pimienta obligatoria, sede ajena, reloj desviado y la puerta cerrada al panel |
 
 **Las seis en verde.** Además, seis pruebas de navegador real (Playwright con
@@ -447,6 +448,38 @@ marcaciones de una jornada y exige que entren las cuatro.
 `node supabase/functions/generar-llaves.mjs` imprime el par. La pública va en
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
+
+## Una jornada completa, de punta a punta
+
+Todas las demás baterías prueban PIEZAS. `09_dia_completo.sql` prueba el
+SISTEMA: un día de trabajo en Maracaibo con tres personas que se portan de tres
+maneras, y después el camino entero hasta el cierre y el reporte.
+
+```
+Ana Pérez   entrada  07:58  puntual   -2 min     → completo, 8h 04m
+Luis Rojas  entrada  08:12  retraso  +12 min     → completo, 7h 50m, 15 min tarde
+Mara Silva  (no vino)                            → ausente
+```
+
+Ocho marcaciones con hora exacta, enviadas en orden como haría un terminal al
+recuperar la señal. Después se comprueba que la ausencia aparece sola —nadie la
+registra al no venir—, que los minutos de retraso llegan al cierre semanal y al
+reporte, que a quien llegó **antes** no se le anota ni un minuto, y que las
+horas trabajadas cuadran con el reloj y no con el horario.
+
+Los 15 minutos de Luis son 12 de la entrada más 3 al volver del almuerzo: las
+dos son llegadas, y las dos cuentan.
+
+### Lo que esta prueba me enseñó a mí
+
+La primera versión exigía «Ana: cero ausencias en la semana». Falló, y el
+sistema tenía razón: el cierre abarca la semana entera y la simulación sólo
+llena un día, así que los otros días laborables son ausencias de verdad para
+los tres. Estaba pidiéndole al sistema que mintiera.
+
+La comprobación correcta es relativa: Mara tiene **una ausencia más** que dos
+personas que en todo lo demás son idénticas. Eso sí mide la jornada, y no
+depende de en qué día de la semana se ejecute la prueba.
 
 ## Revisión de seguridad
 
