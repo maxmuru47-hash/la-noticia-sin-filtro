@@ -1,0 +1,234 @@
+# =====================================================================
+# CrediSan Control · despliegue automático de la función del servidor
+# =====================================================================
+# Publica la Edge Function `credisan` en Supabase y se asegura de que
+# existan sus dos secretos. Con esto desaparecen los dos pasos manuales
+# que quedaban: copiar el código a mano en el panel de Supabase y crear
+# los secretos uno por uno.
+#
+# UNA REGLA QUE MANDA EN TODO ESTE ARCHIVO
+# ----------------------------------------
+# Un secreto que ya existe NO SE TOCA NUNCA. Regenerar la pimienta
+# invalidaría el PIN de todos los trabajadores a la vez; regenerar la
+# llave del modo sin conexión dejaría ilegibles las marcaciones que
+# estuvieran esperando en un terminal. Se generan sólo si no existen.
+#
+# Toca EXCLUSIVAMENTE el proyecto Supabase de CrediSan y, para dejar la
+# llave pública en su sitio, el archivo config/env.js de
+# /opt/proyectos/credisan-control/. Nada más del servidor.
+#
+# Necesita dos secretos en GitHub (Settings → Secrets and variables →
+# Actions). Ver credisan-control/docs/DESPLIEGUE_AUTOMATICO.md
+# =====================================================================
+
+name: Desplegar función CrediSan
+
+on:
+  push:
+    branches:
+      - main
+      - claude/practical-maxwell-2ihoma
+    paths:
+      - 'credisan-control/supabase/functions/**'
+      - '.github/workflows/desplegar-funcion.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: funcion-credisan
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: credisan-control
+
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: ¿Están las credenciales de Supabase?
+        id: credenciales
+        run: |
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] || [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "listas=no" >> $GITHUB_OUTPUT
+            {
+              echo "### Falta configurar el despliegue de la función"
+              echo ""
+              echo "Añada estos dos secretos en **Settings → Secrets and variables → Actions**:"
+              echo ""
+              echo "| Secreto | De dónde sale |"
+              echo "|---|---|"
+              echo "| \`SUPABASE_ACCESS_TOKEN\` | supabase.com → foto de perfil → **Access Tokens** → *Generate new token* |"
+              echo "| \`SUPABASE_PROJECT_REF\` | La parte del medio de la dirección de su proyecto: \`https://<ESTO>.supabase.co\` |"
+              echo ""
+              echo "Ninguno de los dos se escribe en el chat: se pegan aquí, en GitHub."
+              echo ""
+              echo "Hecho eso, vuelva y pulse **Re-run jobs**."
+            } >> $GITHUB_STEP_SUMMARY
+            echo "Sin credenciales de Supabase: no hay nada que publicar todavía."
+          else
+            echo "listas=si" >> $GITHUB_OUTPUT
+          fi
+
+          # El contexto `secrets` no se puede consultar dentro de un `if`
+          # de paso: allí sale siempre vacío y la condición nunca se
+          # cumpliría. Se resuelve aquí y se pasa como salida.
+          if [ -n "${{ secrets.VPS_HOST }}" ] && [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "vps=si" >> $GITHUB_OUTPUT
+          else
+            echo "vps=no" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Instalar la herramienta de Supabase
+        if: steps.credenciales.outputs.listas == 'si'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Revisar qué secretos existen ya
+        if: steps.credenciales.outputs.listas == 'si'
+        id: secretos
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          # `secrets list` enseña los NOMBRES y una huella, nunca el valor.
+          # Con eso basta para saber qué falta sin leer nada secreto.
+          lista=$(supabase secrets list --project-ref "$REF" 2>/dev/null || echo '')
+
+          tiene() { echo "$lista" | grep -q "$1" && echo si || echo no; }
+          echo "pepper=$(tiene CREDISAN_PIN_PEPPER)"   >> $GITHUB_OUTPUT
+          echo "offline=$(tiene CREDISAN_OFFLINE_PRIVATE_KEY)" >> $GITHUB_OUTPUT
+
+          echo "Pimienta del PIN ya configurada: $(tiene CREDISAN_PIN_PEPPER)"
+          echo "Llave del modo sin conexión ya configurada: $(tiene CREDISAN_OFFLINE_PRIVATE_KEY)"
+
+      - name: Crear la pimienta del PIN, si no existía
+        if: steps.credenciales.outputs.listas == 'si' && steps.secretos.outputs.pepper == 'no'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          # No la ve nadie, ni hace falta: su único trabajo es no cambiar
+          # nunca. Si cambiara, ningún PIN existente volvería a funcionar.
+          supabase secrets set "CREDISAN_PIN_PEPPER=$(openssl rand -base64 48)" --project-ref "$REF"
+          echo "Pimienta creada. A partir de ahora no se vuelve a tocar."
+
+      - name: Crear las llaves del modo sin conexión, si no existían
+        if: steps.credenciales.outputs.listas == 'si' && steps.secretos.outputs.offline == 'no'
+        id: llaves
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          par=$(node supabase/functions/generar-llaves.mjs --json)
+          privada=$(echo "$par" | python3 -c 'import json,sys; print(json.load(sys.stdin)["privada"])')
+          publica=$(echo "$par" | python3 -c 'import json,sys; print(json.load(sys.stdin)["publica"])')
+
+          supabase secrets set "CREDISAN_OFFLINE_PRIVATE_KEY=$privada" --project-ref "$REF"
+
+          # La pública no es secreta —sólo sirve para CERRAR sobres— así
+          # que puede viajar por aquí y quedar a la vista en el resumen.
+          echo "publica=$publica" >> $GITHUB_OUTPUT
+          echo "Llaves creadas. La privada queda en Supabase; la pública va al terminal."
+
+      - name: Publicar la función
+        if: steps.credenciales.outputs.listas == 'si'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          # --no-verify-jwt es deliberado y está explicado en
+          # docs/FASE3_TERMINAL.md: el terminal es un teléfono en un
+          # mostrador y no tiene ni debe tener sesión de Supabase. La
+          # función hace su propia comprobación, que es más estricta.
+          supabase functions deploy credisan --project-ref "$REF" --no-verify-jwt
+
+      - name: Comprobar que la función responde
+        if: steps.credenciales.outputs.listas == 'si'
+        env:
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          url="https://$REF.supabase.co/functions/v1/credisan"
+
+          # Una acción que no existe es la prueba más limpia: si contesta
+          # ACCION_DESCONOCIDA, la función está viva Y la pimienta está
+          # puesta —porque si faltara, contestaría FALTA_PEPPER antes—.
+          respuesta=$(curl -s -m 30 -X POST "$url" \
+            -H 'Content-Type: application/json' \
+            -d '{"accion":"comprobacion-de-despliegue"}' || echo '')
+
+          echo "Respuesta: $respuesta"
+
+          if echo "$respuesta" | grep -q 'FALTA_PEPPER'; then
+            echo "::error::La función está publicada pero le falta el secreto CREDISAN_PIN_PEPPER."
+            exit 1
+          fi
+          if ! echo "$respuesta" | grep -q 'ACCION_DESCONOCIDA'; then
+            echo "::error::La función no respondió como se esperaba. Vea la respuesta de arriba."
+            exit 1
+          fi
+          echo "La función está publicada y responde."
+
+      # ── La llave pública tiene que llegar al terminal ────────────────
+      # Sólo se ejecuta cuando se acaban de generar las llaves. El archivo
+      # config/env.js del servidor está excluido del otro despliegue a
+      # propósito —para no borrar las claves del cliente— así que esta
+      # línea hay que ponerla aquí.
+      - name: Dejar la llave pública en el terminal
+        if: steps.llaves.outputs.publica != '' && steps.credenciales.outputs.vps == 'si'
+        env:
+          PUBLICA: ${{ steps.llaves.outputs.publica }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/k
+          [ -n "$(tail -c1 ~/.ssh/k)" ] && echo >> ~/.ssh/k || true
+          chmod 600 ~/.ssh/k
+          SSH="-i $HOME/.ssh/k -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new"
+          ENVJS=/opt/proyectos/credisan-control/public/config/env.js
+
+          # Copia con fecha antes de tocar nada, y se cambia SÓLO la línea
+          # de la llave pública. Las demás claves del cliente ni se rozan.
+          # Un solo camino, y por tanto una sola cosa que pueda salir mal:
+          # se borra la línea si existía y se añade detrás de la clave
+          # anon. Antes, una copia con fecha del archivo.
+          ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -e
+             cp '$ENVJS' '$ENVJS.bak-'\$(date +%Y%m%d-%H%M)
+             sed -i '/offlinePublicKey/d' '$ENVJS'
+             sed -i \"/supabaseAnonKey/a\\  offlinePublicKey: '$PUBLICA',\" '$ENVJS'
+             n=\$(grep -c offlinePublicKey '$ENVJS')
+             test \"\$n\" = 1 || { echo \"env.js quedó con \$n líneas de llave\"; exit 1; }
+             node --check '$ENVJS' 2>/dev/null || true"
+
+          rm -f ~/.ssh/k
+          echo "Llave pública instalada en el terminal."
+
+      - name: Resumen
+        if: always() && steps.credenciales.outputs.listas == 'si'
+        run: |
+          {
+            echo "### Función CrediSan publicada"
+            echo ""
+            echo "La Edge Function \`credisan\` está en línea con **Verify JWT desactivado**,"
+            echo "que es como tiene que estar (el terminal no tiene sesión de Supabase)."
+            echo ""
+            if [ "${{ steps.secretos.outputs.pepper }}" = "no" ]; then
+              echo "- Se creó la **pimienta del PIN**. No la ve nadie y no hace falta:"
+              echo "  su único trabajo es no cambiar nunca. Ya puede generar PIN desde el panel."
+            else
+              echo "- La pimienta del PIN ya existía y **no se tocó**."
+            fi
+            if [ "${{ steps.secretos.outputs.offline }}" = "no" ]; then
+              echo "- Se crearon las **llaves del modo sin conexión**. La privada quedó en"
+              echo "  Supabase; la pública se instaló en el terminal."
+            else
+              echo "- Las llaves del modo sin conexión ya existían y **no se tocaron**."
+            fi
+            echo ""
+            echo "> Un secreto que ya existe nunca se regenera: cambiar la pimienta"
+            echo "> invalidaría el PIN de todos los trabajadores a la vez."
+          } >> $GITHUB_STEP_SUMMARY

@@ -15,9 +15,21 @@ entero → **Run** → acepte el aviso de operaciones destructivas.
 
 No borra nada: sus sedes, su personal y sus horarios quedan igual.
 
-## 2 · Publicar la función del servidor *(5 min)*
+## 2 · Publicar la función del servidor
 
 Es la pieza que separa el teléfono del mostrador de la base de datos.
+
+### Lo normal: que se publique sola *(5 min, una vez)*
+
+Hay un flujo de GitHub que la publica, la configura y comprueba que
+responde. Se configura una sola vez y después no se vuelve a tocar:
+**`docs/DESPLIEGUE_AUTOMATICO.md`**, sección «La función del servidor,
+también automática».
+
+Ese camino además crea los secretos del paso 3 solo, así que si lo usa
+puede saltarse el paso siguiente.
+
+### A mano, si lo prefiere
 
 1. Menú izquierdo → **Edge Functions**
 2. **Deploy a new function** → **Via Editor**

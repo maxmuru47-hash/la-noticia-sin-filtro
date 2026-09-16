@@ -443,9 +443,46 @@ marcaciones de una jornada y exige que entren las cuatro.
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
 
+## Despliegue automático
+
+Dos flujos de GitHub, ambos en `.github/workflows/`:
+
+| Flujo | Qué publica | Se dispara con |
+|---|---|---|
+| `desplegar-credisan.yml` | La web al VPS por SSH | cambios en `public/**` |
+| `desplegar-funcion.yml` | La Edge Function a Supabase | cambios en `supabase/functions/**` |
+
+El segundo también se encarga de los secretos, con una regla que manda sobre
+todo lo demás: **un secreto que ya existe no se toca nunca**. Los crea sólo si
+faltan. Regenerar la pimienta invalidaría el PIN de todos los trabajadores a
+la vez; regenerar la llave del modo sin conexión dejaría ilegibles las
+marcaciones que estuvieran esperando en un terminal. Por eso no hay botón de
+«regenerar».
+
+Cuando genera las llaves del modo sin conexión, deja la pública en el
+`config/env.js` del servidor: copia con fecha antes, y se cambia sólo esa
+línea. Probado contra las dos formas que puede tener ese archivo —con la línea
+y sin ella—, comprobando que la clave del cliente, la URL y la versión quedan
+intactas y que sigue siendo JavaScript válido.
+
+Dos apuntes del flujo, por si hiciera falta tocarlo:
+
+- El contexto `secrets` **no se puede consultar dentro de un `if` de paso**:
+  allí sale siempre vacío y la condición no se cumpliría nunca. Se resuelve en
+  un paso previo y se pasa como salida.
+- La función se publica con `--no-verify-jwt`, que es deliberado y está
+  explicado en `docs/FASE3_TERMINAL.md`.
+
 ## Estado: las seis fases entregadas
 
-Falta únicamente lo que depende de la cuenta de Supabase del cliente y no del
-código: publicar la Edge Function `credisan` y crear los dos secretos
-(`CREDISAN_PIN_PEPPER` y `CREDISAN_OFFLINE_PRIVATE_KEY`). Hasta entonces no
-hay PIN, ni marcaciones, ni cierres con datos.
+Falta únicamente lo que depende de la cuenta de Supabase del cliente:
+
+1. Dos secretos en GitHub (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`) y
+   pulsar *Run workflow* una vez. Eso publica la función y crea sus secretos.
+2. Las **migraciones SQL** siguen pegándose a mano en el SQL Editor. No por
+   falta de herramienta, sino porque la base se creó pegando `INSTALAR.sql`, así
+   que Supabase no tiene registro de qué migraciones se aplicaron y
+   `supabase db push` intentaría aplicarlas todas desde cero. Automatizarlo es
+   posible —los `ACTUALIZAR-*.sql` son idempotentes— pero exige guardar la
+   contraseña de la base como secreto y aceptar que un `git push` cambie la
+   estructura de producción. Es una decisión que conviene tomar a propósito.

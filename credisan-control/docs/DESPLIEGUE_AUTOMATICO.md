@@ -96,9 +96,67 @@ tar -xzf respaldo-AAAAMMDD-HHMM.tar.gz   # restaura la carpeta public
 chown -R caddy:caddy public
 ```
 
+---
+
+# La función del servidor, también automática
+
+Hay un segundo flujo, **«Desplegar función CrediSan»**, que publica la Edge
+Function en Supabase y se encarga de sus dos secretos. Con esto desaparece el
+paso de copiar el código a mano en el panel de Supabase.
+
+## Lo que hay que hacer una vez
+
+Dos secretos más en **Settings → Secrets and variables → Actions**:
+
+| Secreto | De dónde sale |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | supabase.com → su foto arriba a la derecha → **Access Tokens** → *Generate new token* |
+| `SUPABASE_PROJECT_REF` | La parte del medio de la dirección de su proyecto: `https://`**`esto`**`.supabase.co` |
+
+Ninguno de los dos se escribe en el chat. Se pegan en GitHub y ya.
+
+Después, en la pestaña **Actions** → **Desplegar función CrediSan** → **Run
+workflow**. A partir de ahí se publica sola cada vez que cambie la función.
+
+## Qué hace, y qué NO hace
+
+Publica la función con **Verify JWT desactivado** —que es como tiene que estar,
+explicado en `FASE3_TERMINAL.md`— y comprueba que responde.
+
+Con los secretos hace algo que conviene entender bien:
+
+> **Un secreto que ya existe no se toca nunca.**
+
+Sólo los crea si no existen:
+
+- **La pimienta del PIN.** Si no está, la genera. No la ve nadie y no hace
+  falta: su único trabajo es no cambiar jamás. Si cambiara, **ningún PIN de
+  ningún trabajador volvería a funcionar**, todos a la vez.
+- **Las llaves del modo sin conexión.** Si no están, genera el par, guarda la
+  privada en Supabase y deja la pública en el `config/env.js` del servidor
+  —haciendo antes una copia con fecha y cambiando sólo esa línea—. Si
+  cambiaran, las marcaciones que estuvieran esperando en un terminal quedarían
+  ilegibles para siempre.
+
+Por eso no hay un botón de «regenerar». Si alguna vez hiciera falta rotarlas,
+es una decisión consciente que se toma sabiendo lo que se rompe.
+
+---
+
 ## Lo que sigue siendo manual, a propósito
 
-Las **migraciones SQL** y la **función del servidor** se siguen aplicando a mano
-en Supabase. No es que no se pueda automatizar: es que una publicación de código
-no debería cambiar la estructura de la base de datos sin que nadie mire. Son dos
-o tres veces por fase, con un archivo que se pega y un botón que se pulsa.
+Las **migraciones SQL** se siguen aplicando a mano, pegando el archivo
+`ACTUALIZAR-FASEn.sql` en el SQL Editor.
+
+No es que no se pueda automatizar. Es que una publicación de código no debería
+cambiar la estructura de la base de datos sin que nadie mire, y además hay una
+razón concreta en este proyecto: la base se creó pegando `INSTALAR.sql` en el
+editor, así que Supabase no tiene registro de qué migraciones se aplicaron. La
+herramienta oficial (`supabase db push`) intentaría aplicarlas todas desde
+cero y fallaría.
+
+Se puede automatizar igualmente —los archivos `ACTUALIZAR-*.sql` están hechos
+para ejecutarse dos veces sin consecuencias—, pero haría falta guardar la
+contraseña de la base como secreto y aceptar que un `git push` cambie la
+estructura de la base de producción. Es una decisión que conviene tomar a
+propósito, no de rebote.

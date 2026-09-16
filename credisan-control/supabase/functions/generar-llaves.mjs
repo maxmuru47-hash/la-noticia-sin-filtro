@@ -26,6 +26,13 @@ const par = await crypto.subtle.generateKey(
 const publica = b64(await crypto.subtle.exportKey('spki',  par.publicKey));
 const privada = b64(await crypto.subtle.exportKey('pkcs8', par.privateKey));
 
+// El despliegue automático llama a esto con --json y se queda con las dos
+// llaves sin tener que leer el texto de abajo.
+if (process.argv.includes('--json')) {
+  console.log(JSON.stringify({ publica, privada }));
+  process.exit(0);
+}
+
 console.log(`
 ═══════════════════════════════════════════════════════════════════
   LLAVES DEL MODO SIN CONEXIÓN · CrediSan Control

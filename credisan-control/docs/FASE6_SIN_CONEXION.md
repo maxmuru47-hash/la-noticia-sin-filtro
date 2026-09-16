@@ -25,7 +25,18 @@ entero → **Run** → acepte el aviso de operaciones destructivas.
 
 ---
 
-## 2 · Generar las llaves *(3 min)*
+## 2 · Generar las llaves
+
+### Lo normal: que se generen solas
+
+Si tiene configurado el despliegue automático de la función
+(`docs/DESPLIEGUE_AUTOMATICO.md`), **los pasos 2 y 3 ya están hechos**: ese
+flujo genera el par, guarda la privada en Supabase y deja la pública en el
+`config/env.js` del servidor. No tiene que hacer nada más.
+
+Y no las regenera nunca si ya existen, que es justo lo que hay que evitar.
+
+### A mano, si lo prefiere *(3 min)*
 
 Aquí hay algo que entender, y es el corazón de esta fase.
 
@@ -56,10 +67,11 @@ Imprime dos textos largos:
 
 ---
 
-## 3 · Pegar la pública en el servidor *(2 min)*
+## 3 · Pegar la pública en el servidor *(2 min, sólo si lo hizo a mano)*
 
-El despliegue automático **no toca** `config/env.js` a propósito, para no
-borrarle sus claves. Así que esa línea hay que añadirla en el servidor:
+El despliegue de la web **no toca** `config/env.js` a propósito, para no
+borrarle sus claves. Así que, si generó las llaves usted mismo, esa línea
+hay que añadirla en el servidor:
 
 En el VPS, el archivo está en
 `/opt/proyectos/credisan-control/public/config/env.js`. Queda así:
