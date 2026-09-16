@@ -151,7 +151,19 @@ async function entrar() {
 
   yo = data;
   $('mi-nombre').textContent = yo.nombre;
-  $('mi-rol').textContent = ROLES[yo.rol] + (yo.sede ? ' · ' + yo.sede : ' · Nacional');
+  // El sello con el que se publicó este programa. Lo pone el despliegue
+  // en la dirección del script (app.js?v=abc123) y aquí se lee de vuelta.
+  //
+  // Está a la vista por una razón práctica: cuando algo «no aparece»,
+  // la primera pregunta es si el navegador está corriendo la versión
+  // nueva o una guardada de antes. Sin este dato, esa pregunta sólo se
+  // puede contestar adivinando, y se pierde media tarde.
+  const sello = (document.currentScript?.src
+                 || import.meta.url || '').split('?v=')[1] || 'local';
+
+  $('mi-rol').textContent = ROLES[yo.rol]
+    + (yo.sede ? ' · ' + yo.sede : ' · Nacional')
+    + ' · v' + sello;
   $('pantalla-acceso').hidden = true;
   $('pantalla-panel').hidden = false;
 

@@ -106,7 +106,11 @@ async function abrir(rol, preparar) {
   console.log('\n3 · El socio: consulta, y sólo eso');
   {
     const { b, p, errs } = await abrir('socio');
-    es('se le nombra por su rol', await p.textContent('#mi-rol'), 'Socio · Nacional');
+    const rol = await p.textContent('#mi-rol');
+    si('se le nombra por su rol', rol.startsWith('Socio · Nacional'), rol);
+    // El sello dice qué versión del programa está corriendo. Sin él, un
+    // «no me aparece» sólo se puede contestar adivinando.
+    si('y el panel dice con qué versión corre', /· v\S+$/.test(rol), rol);
 
     si('tiene la pestaña de cierres', await p.locator('#nav-cierres').isVisible());
     si('NO tiene «Más» (sedes, horarios, auditoría)',

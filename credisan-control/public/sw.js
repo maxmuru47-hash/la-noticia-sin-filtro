@@ -111,7 +111,12 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => caches.match(req)
+        // `ignoreSearch` porque el HTML pide el programa con un sello de
+        // versión —app.js?v=abc123— para que ningún navegador pueda
+        // quedarse con el viejo. Sin señal ese sello no debe impedir
+        // encontrar la copia guardada: da igual la versión, lo que hace
+        // falta es que el terminal encienda.
+        .catch(() => caches.match(req, { ignoreSearch: true })
           .then((r) => r || caches.match(BASE + 'kiosk/index.html'))
           .then((r) => r || caches.match(BASE)))
     );
@@ -119,7 +124,7 @@ self.addEventListener('fetch', (e) => {
   }
 
   e.respondWith(
-    caches.match(req).then((cacheada) => cacheada || fetch(req).then((res) => {
+    caches.match(req, { ignoreSearch: true }).then((cacheada) => cacheada || fetch(req).then((res) => {
       if (res && res.ok) {
         const copia = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copia)).catch(() => null);

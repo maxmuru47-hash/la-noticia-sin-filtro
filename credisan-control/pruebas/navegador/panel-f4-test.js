@@ -110,7 +110,9 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
   console.log('\n2 · Jefe operativo (sólo Maracaibo, sin dinero)');
   {
     const { p, errs } = await abrir(b, 'supervisor');
-    ok((await textoDe(p, '#mi-rol')) === 'Jefe operativo · Maracaibo', 'se identifica su sede',
+    // El rol lleva detrás el sello de versión del programa, así que se
+    // comprueba el principio: lo que importa es el rol y la sede.
+    ok((await textoDe(p, '#mi-rol')).startsWith('Jefe operativo · Maracaibo'), 'se identifica su sede',
        await textoDe(p, '#mi-rol'));
     ok(await p.locator('#nav-mas').isHidden(), 'no ve el menú Más (horarios, sedes, auditoría)');
     ok(await p.locator('#nav-cierres').isHidden(), 'no ve Cierres');

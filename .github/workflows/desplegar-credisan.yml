@@ -142,6 +142,28 @@ jobs:
              ls -1t respaldo-*.tar.gz | tail -n +11 | xargs -r rm --"
           echo "Respaldo hecho (se conservan los 10 últimos)."
 
+      # ── El sello de versión ──────────────────────────────────────────
+      # Cada publicación marca el programa con el identificador de este
+      # cambio: app.js?v=6ee4ea5. Así NINGÚN navegador puede seguir
+      # usando el programa viejo, por mucho que lo tenga guardado: la
+      # dirección que pide ya no es la misma, y va a buscarlo.
+      #
+      # Existe porque pasó: Max recargó, cerró la aplicación, y seguía
+      # viendo la versión anterior. Pedirle a alguien que «limpie la
+      # caché» no es una solución, es una disculpa.
+      - name: Sellar el programa con la versión
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          sello=$(git rev-parse --short HEAD)
+          for f in $(grep -rl '?v=DEV' credisan-control/public --include='*.html'); do
+            sed -i "s/?v=DEV/?v=$sello/g" "$f"
+            echo "  $(basename $(dirname $f))/$(basename $f) → $sello"
+          done
+          # Y el nombre de la caché, para que la vieja se borre entera.
+          sed -i "s/^const CACHE = .*/const CACHE = 'credisan-$sello';/" \
+            credisan-control/public/sw.js
+          grep -n "^const CACHE" credisan-control/public/sw.js
+
       - name: Publicar
         if: steps.credenciales.outputs.listas == 'si'
         run: |
