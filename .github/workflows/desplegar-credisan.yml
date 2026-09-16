@@ -34,6 +34,7 @@ env:
 jobs:
   desplegar:
     runs-on: ubuntu-latest
+    timeout-minutes: 10        # si el VPS no contesta, se corta y se avisa
     steps:
       - name: Traer el código
         uses: actions/checkout@v4
@@ -116,11 +117,16 @@ jobs:
             >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
 
+          # Topes de conexión. Sin ellos, un servidor apagado no da error:
+          # deja la conexión esperando, y el despliegue se queda colgado
+          # horas sin decir por qué. Con esto falla en 20 segundos.
+          LIMITES="-o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+
           if [ -s ~/.ssh/known_hosts ]; then
-            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes" >> $GITHUB_ENV
+            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} $LIMITES" >> $GITHUB_ENV
             echo "Huella del servidor anotada."
           else
-            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
+            echo "SSH=-i $HOME/.ssh/id_despliegue -p ${{ secrets.VPS_PORT || 22 }} $LIMITES -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
             echo "No se pudo sondear la huella; se aceptará en la primera conexión."
           fi
 
@@ -173,6 +179,38 @@ jobs:
             echo "https://control.sinfiltroconmax.com — portada, panel, terminal y service worker responden."
             echo ""
             echo "\`config/env.js\` del servidor no se tocó."
+          } >> $GITHUB_STEP_SUMMARY
+
+      # Un despliegue que falla y no explica nada obliga a leer registros.
+      # Este paso traduce el fallo más probable: el servidor no contestó.
+      - name: Explicar el fallo
+        if: failure() && steps.credenciales.outputs.listas == 'si'
+        run: |
+          {
+            echo "### El despliegue no pudo completarse"
+            echo ""
+            echo "La causa más frecuente, con diferencia, es que **el VPS no contestó**."
+            echo "La llave ya se validó antes de intentar conectar, así que el problema"
+            echo "no está en las credenciales."
+            echo ""
+            echo "Qué comprobar, en este orden:"
+            echo ""
+            echo "1. Que el VPS esté encendido en el panel de su proveedor."
+            echo "2. Que el servicio SSH esté vivo y escuchando en el puerto configurado."
+            echo "3. Que el cortafuegos no haya empezado a bloquear a GitHub."
+            echo ""
+            echo "Sobre la web que ya estaba publicada:"
+            echo ""
+            echo "- Si falló **antes** del paso «Publicar» —que es lo habitual cuando el"
+            echo "  servidor no contesta—, en el VPS sigue exactamente lo que había."
+            echo "- Si falló **durante** «Publicar», la copia pudo quedarse a medias. Para"
+            echo "  eso está el respaldo con fecha que se hizo justo antes, en"
+            echo "  \`/opt/proyectos/credisan-control/respaldo-*.tar.gz\`."
+            echo ""
+            echo "Mire arriba qué paso salió en rojo: eso dice en cuál de los dos casos está."
+            echo ""
+            echo "Cuando el VPS vuelva, basta con volver a lanzar este mismo flujo desde"
+            echo "«Re-run jobs». Es idempotente: copiar otra vez lo mismo no rompe nada."
           } >> $GITHUB_STEP_SUMMARY
 
       - name: Recoger la llave
