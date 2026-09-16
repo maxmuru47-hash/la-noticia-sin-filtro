@@ -107,6 +107,28 @@ jobs:
           [ "$sospechoso" = 0 ] || exit 1
           echo "Los archivos sólo crean o reemplazan funciones. Nada que destruir."
 
+          # El orden alfabético TIENE que coincidir con el orden de las
+          # fases: cada archivo se planta si falta la fase anterior, así
+          # que uno mal nombrado —«ACTUALIZAR-EVIDENCIA» va antes que
+          # «ACTUALIZAR-FASE3»— tumbaría la migración entera.
+          mal=0
+          anterior=0
+          for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort); do
+            n=$(basename "$f" | grep -oE 'FASE[0-9]+' | grep -oE '[0-9]+' || echo '')
+            if [ -z "$n" ]; then
+              echo "::error::$(basename "$f") no dice a qué fase pertenece."
+              echo "  Nómbrelo ACTUALIZAR-FASE<n>-loquesea.sql para que el orden sea el correcto."
+              mal=1
+            elif [ "$n" -le "$anterior" ]; then
+              echo "::error::$(basename "$f") se aplicaría fuera de orden (fase $n tras fase $anterior)."
+              mal=1
+            else
+              anterior=$n
+            fi
+          done
+          [ "$mal" = 0 ] || exit 1
+          echo "El orden de aplicación es el correcto."
+
       - name: Mirar cómo está la base ahora
         if: steps.credenciales.outputs.listas == 'si'
         id: antes
