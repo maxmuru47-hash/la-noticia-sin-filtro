@@ -58,7 +58,14 @@ const ok = (c, t, e = '') => { console.log((c?'  ✔ ':'  ✘ ')+t+(e?'  → '+e
   ok(sw.activo, 'y queda activo');
 
   const guardado = await p.evaluate(async () => {
-    const c = await caches.open('credisan-v2');
+    // El nombre de la caché lleva versión y sube cuando cambia la
+    // estrategia. Escribirlo a mano aquí convertía una subida de versión
+    // en ocho comprobaciones en rojo que no significaban nada. Lo que
+    // importa es QUÉ se guardó, no en qué cajón.
+    const nombres = await caches.keys();
+    const cual = nombres.find((n) => n.startsWith('credisan-'));
+    if (!cual) return [];
+    const c = await caches.open(cual);
     const ks = await c.keys();
     return ks.map((r) => new URL(r.url).pathname).sort();
   });

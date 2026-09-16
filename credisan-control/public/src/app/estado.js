@@ -166,3 +166,27 @@ if (!estaConfigurado()) {
   ir.classList.add('boton--secundario');
   ir.textContent = 'Entrar al panel (falta conectar el servidor)';
 }
+
+/* ── Red de seguridad: nada se queda «Comprobando» para siempre ──────
+   Una comprobación que nunca termina es peor que una que falla: quien
+   la mira no sabe si esperar o si algo se rompió, y se queda ahí.
+
+   Pasó de verdad. El navegador tenía guardada una versión vieja de este
+   archivo —que conocía cuatro comprobaciones— contra un HTML nuevo con
+   cinco. La quinta no la pintaba nadie y se quedaba girando.
+
+   El service worker ya no deja que ese desajuste ocurra. Esto es por si
+   vuelve a ocurrir de otra manera: a los quince segundos, lo que siga
+   sin respuesta lo dice claro y explica qué hacer. */
+setTimeout(() => {
+  document.querySelectorAll('.estado__icono[data-e="espera"]').forEach((icono) => {
+    const fila = icono.closest('li');
+    const texto = fila && fila.querySelector('.estado__texto span');
+    if (!texto || !/Comprobando/i.test(texto.textContent)) return;
+
+    icono.dataset.e = 'aviso';
+    icono.textContent = '!';
+    texto.textContent = 'No respondió. Cierre esta página del todo y vuelva a abrirla; '
+                      + 'si sigue igual, es que esa parte todavía no está publicada.';
+  });
+}, 15000);

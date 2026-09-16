@@ -8,6 +8,14 @@ import { config, estaConfigurado } from '../core/config.js';
 import { crearCliente, traducir } from '../core/supabase.js';
 
 const $ = (id) => document.getElementById(id);
+
+// Enseñar u ocultar algo sin romperse si ese algo no está en esta
+// versión del HTML. Devuelve el elemento por si hace falta seguir.
+const ver = (id, visible) => {
+  const el = $(id);
+  if (el) el.hidden = !visible;
+  return el;
+};
 const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const ROLES = { ceo: 'Dirección general', admin: 'Administración',
                 supervisor: 'Jefe operativo', socio: 'Socio' };
@@ -149,23 +157,34 @@ async function entrar() {
 
   // El jefe operativo tiene un panel deliberadamente corto: la operación
   // del día y las novedades. Nada de horarios, sedes ni estadísticas.
-  $('nav-cierres').hidden        = !puedeVerCierres();
-  $('nav-mas').hidden            = !puedeEditar();
-  $('bloque-accesos').hidden     = !esCeo();
-  $('bloque-socios').hidden      = !esCeo();
+  //
+  // Se usa `ver()` y no `$(id).hidden` a propósito. Si por lo que sea el
+  // HTML de este navegador es de una versión y este programa de otra,
+  // uno de estos identificadores no existirá, `$()` devolverá null y la
+  // línea reventaría llevándose por delante TODO lo que viene después:
+  // las sedes, el tablero, la sesión entera. El panel se quedaría en
+  // «Cargando» para siempre por un botón que falta.
+  //
+  // Pasó de verdad. Un elemento ausente puede costar un botón invisible;
+  // nunca la aplicación.
+  ver('nav-cierres',        puedeVerCierres());
+  ver('nav-mas',            puedeEditar());
+  ver('bloque-accesos',     esCeo());
+  ver('bloque-socios',      esCeo());
   // Calcular la semana la lanza quien la revisa, no quien la consulta.
-  $('btn-calcular-semana').hidden = !puedeEditar();
-  $('btn-nueva-sede').hidden     = !esCeo();
-  $('btn-nuevo-empleado').hidden = !puedeEditar();
-  $('caja-salario').hidden       = !puedeEditar();
-  $('periodos').hidden           = !puedeEditar();
+  ver('btn-calcular-semana', puedeEditar());
+  ver('btn-nueva-sede',     esCeo());
+  ver('btn-nuevo-empleado', puedeEditar());
+  ver('caja-salario',       puedeEditar());
+  ver('periodos',           puedeEditar());
   // El socio no reporta novedades: la base tampoco se lo permitiría, y
   // ofrecer un botón que va a fallar es peor que no ofrecerlo.
-  $('btn-novedad-rapida').hidden = esSocio();
+  ver('btn-novedad-rapida', !esSocio());
 
   // Dentro de «Más», sólo dirección crea sedes y reparte accesos; la
   // auditoría la ven dirección y administración, cada una lo suyo.
-  document.querySelector('[data-ir="v-sedes"]').hidden = !puedeEditar();
+  const irSedes = document.querySelector('[data-ir="v-sedes"]');
+  if (irSedes) irSedes.hidden = !puedeEditar();
 
   await cargarSedes();
   if (esCeo()) cargarSocios();
@@ -1518,6 +1537,10 @@ async function verEvidencia(eventoId, nombre) {
 
 async function cargarSocios() {
   const caja = $('lista-socios');
+  // Si esta pantalla no está en el HTML de este navegador, no hay nada
+  // que pintar y tampoco hay por qué molestar al servidor.
+  if (!caja) return;
+
   const { data, error } = await sb.rpc('socios');
   if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
 

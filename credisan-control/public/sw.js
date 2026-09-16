@@ -9,13 +9,28 @@
    mostrador tiene que poder encenderse un lunes sin señal y funcionar.
 
    Estrategias:
-     · documentos y configuración → red primero, PERO se guarda copia,
-       que es justo lo que faltaba: sin copia, el respaldo no existe
-     · todo lo demás (estilos, tipografías, imágenes) → caché primero
+     · documentos, configuración Y EL PROGRAMA (.js, .css) → red
+       primero, con copia de respaldo para cuando no haya señal
+     · lo que no cambia (tipografías, imágenes, iconos) → caché primero
      · Supabase → nunca se toca; de eso se encarga la cola de la Fase 6
+
+   POR QUÉ EL PROGRAMA VA POR RED PRIMERO
+   --------------------------------------
+   Antes iba por caché, como las imágenes, y eso partía la aplicación en
+   dos: el HTML llegaba nuevo —porque el HTML sí iba por red— y el
+   JavaScript se quedaba en la versión vieja para siempre. Con esa
+   mezcla, una pantalla nueva no aparecía nunca (el programa viejo no
+   sabe que existe) o el panel se quedaba en «Cargando» sin avanzar (el
+   programa nuevo busca algo que el HTML viejo no tiene).
+
+   Le pasó a Max, en su PC y en su teléfono a la vez, y desde fuera
+   parecían dos fallos distintos.
+
+   El HTML y el JavaScript de una aplicación son una sola pieza: o
+   llegan los dos nuevos, o los dos viejos. Nunca mezclados.
 */
 
-const CACHE = 'credisan-v2';
+const CACHE = 'credisan-v3';
 const BASE  = new URL('./', self.location).pathname;
 
 /* El kiosco va completo y a propósito: es el único que tiene que
@@ -72,13 +87,21 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // nunca se toca Supabase
 
-  const esDocumento = req.mode === 'navigate' || url.pathname.endsWith('env.js');
+  // El programa viaja con el documento: si uno es nuevo, el otro también.
+  const esPrograma = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+  const esDocumento = req.mode === 'navigate'
+                   || url.pathname.endsWith('env.js')
+                   || esPrograma;
 
   if (esDocumento) {
     // Red primero, para que una corrección se vea el mismo día. Pero
     // guardando copia: antes no se guardaba, así que el respaldo de la
     // línea siguiente nunca tenía nada que devolver y sin internet el
     // terminal se quedaba en blanco.
+    //
+    // Sin señal se responde con la copia, así que el kiosco sigue
+    // arrancando un lunes sin router, que es la razón de que exista
+    // todo esto.
     e.respondWith(
       fetch(req)
         .then((res) => {

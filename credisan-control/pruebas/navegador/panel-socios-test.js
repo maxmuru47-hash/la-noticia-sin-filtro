@@ -21,9 +21,10 @@ const mal = (t, v) => { fallos++; console.log(`  ✖ ${t}  → ${v}`); };
 const es  = (t, a, b) => (String(a) === String(b) ? ok(t, a) : mal(t, `${a} ≠ ${b}`));
 const si  = (t, c, v) => (c ? ok(t, v) : mal(t, v));
 
-async function abrir(rol) {
+async function abrir(rol, preparar) {
   const b = await chromium.launch(NAVEGADOR ? { executablePath: NAVEGADOR } : {});
   const p = await b.newPage({ viewport: { width: 414, height: 900 }, deviceScaleFactor: 2 });
+  if (preparar) await preparar(p);
   const errs = [];
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   p.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message));
@@ -134,6 +135,33 @@ async function abrir(rol) {
 
     si('sin errores de JavaScript', errs.length === 0, errs.join(' | '));
     await p.screenshot({ path: 'socio-panel.png', fullPage: true });
+    await b.close();
+  }
+
+  // ── 4 · Un HTML desfasado NO puede colgar el panel ───────────────
+  // Esto reproduce lo que le pasó a Max: el navegador tenía guardada una
+  // versión del HTML y otra del programa. El programa buscaba un
+  // elemento que ese HTML no tenía, y el panel se quedaba en «Cargando»
+  // para siempre. El service worker ya no deja que ocurra; esto exige
+  // además que, si ocurriera, la aplicación aguante.
+  console.log('\n4 · Con el HTML de otra versión, el panel aguanta');
+  {
+    const { b, p, errs } = await abrir('ceo', async (pagina) => {
+      await pagina.addInitScript(() => {
+        // Se borra el bloque en cuanto el HTML existe, antes de que el
+        // programa lo busque: igual que si nunca hubiera estado.
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('bloque-socios')?.remove();
+        });
+      });
+    });
+
+    si('el panel carga igual', await p.locator('#pantalla-panel').isVisible());
+    const sedes = await p.$$eval('#hoy-sede option', (n) => n.length);
+    si('las sedes se cargaron: el arranque llegó al final', sedes > 0, sedes);
+    const hoy = await p.textContent('#hoy-lista');
+    si('y el tablero de hoy pintó algo', !/Cargando/.test(hoy), hoy.slice(0, 40).trim());
+    si('sin errores de JavaScript', errs.length === 0, errs.join(' | '));
     await b.close();
   }
 
