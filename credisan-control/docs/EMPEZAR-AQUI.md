@@ -158,6 +158,25 @@ Repita los pasos 4 y 5 en cada sede: Caja Seca, Maracaibo y Maracay.
 
 ---
 
+# Paso 6 · Los socios
+
+Cada socio consulta las sedes que usted le marque, desde su propio teléfono.
+Ve quién llegó, a qué hora, quién faltó y el cierre de la semana. **No ve
+salarios ni fotografías, y no puede modificar nada.**
+
+1. En Supabase: **Authentication → Users → Add user**, con su correo y una
+   clave. Mejor el correo real de cada uno: así recuperan la clave solos.
+2. En el panel: **Más → Sedes → Socios**. Escriba ese mismo correo, su
+   nombre, y marque las sedes con casillas.
+3. Entrégueles el correo y la clave.
+
+Cambiar las sedes de alguien es marcar distinto y guardar. Quitarle una sede
+le cierra ese acceso en el acto.
+
+Está explicado con detalle en `docs/FASE11_SOCIOS.md`.
+
+---
+
 # Lo que a partir de ahí pasa solo
 
 | Cuándo | Qué |

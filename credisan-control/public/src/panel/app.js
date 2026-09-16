@@ -9,7 +9,8 @@ import { crearCliente, traducir } from '../core/supabase.js';
 
 const $ = (id) => document.getElementById(id);
 const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-const ROLES = { ceo: 'Dirección general', admin: 'Administración', supervisor: 'Jefe operativo' };
+const ROLES = { ceo: 'Dirección general', admin: 'Administración',
+                supervisor: 'Jefe operativo', socio: 'Socio' };
 
 const ESTADOS_HOY = {
   presente:   'Presente',
@@ -57,6 +58,9 @@ function ocupado(boton, si, textoOriginal) {
 
 const puedeEditar = () => yo && (yo.rol === 'ceo' || yo.rol === 'admin');
 const esCeo = () => yo && yo.rol === 'ceo';
+const esSocio = () => yo && yo.rol === 'socio';
+// El socio mira el cierre; quien lo revisa y lo cierra es administración.
+const puedeVerCierres = () => puedeEditar() || esSocio();
 
 // La fotografía de una marcación es de lo más sensible que guarda el
 // sistema: la cara de una persona. La matriz de roles aprobada la deja
@@ -145,20 +149,26 @@ async function entrar() {
 
   // El jefe operativo tiene un panel deliberadamente corto: la operación
   // del día y las novedades. Nada de horarios, sedes ni estadísticas.
-  $('nav-cierres').hidden        = !puedeEditar();
+  $('nav-cierres').hidden        = !puedeVerCierres();
   $('nav-mas').hidden            = !puedeEditar();
   $('bloque-accesos').hidden     = !esCeo();
+  $('bloque-socios').hidden      = !esCeo();
+  // Calcular la semana la lanza quien la revisa, no quien la consulta.
+  $('btn-calcular-semana').hidden = !puedeEditar();
   $('btn-nueva-sede').hidden     = !esCeo();
   $('btn-nuevo-empleado').hidden = !puedeEditar();
   $('caja-salario').hidden       = !puedeEditar();
   $('periodos').hidden           = !puedeEditar();
-  $('btn-novedad-rapida').hidden = false;
+  // El socio no reporta novedades: la base tampoco se lo permitiría, y
+  // ofrecer un botón que va a fallar es peor que no ofrecerlo.
+  $('btn-novedad-rapida').hidden = esSocio();
 
   // Dentro de «Más», sólo dirección crea sedes y reparte accesos; la
   // auditoría la ven dirección y administración, cada una lo suyo.
   document.querySelector('[data-ir="v-sedes"]').hidden = !puedeEditar();
 
   await cargarSedes();
+  if (esCeo()) cargarSocios();
   await cargarHoy();
 }
 
@@ -507,6 +517,8 @@ async function cargarSedes() {
   // sedes tiene sentido; cerrar la semana de varias a la vez, no.
   const conTodas = (sedes.length > 1 ? '<option value="">Todas las sedes</option>' : '') + opciones;
   ['filtro-sede', 'rep-sede', 'audit-sede'].forEach((id) => { $(id).innerHTML = conTodas; });
+
+  pintarSedesDeSocio();
 
   $('filtro-sede-caja').hidden = sedes.length < 2;
   $('hoy-sede-caja').hidden = sedes.length < 2;
@@ -1496,4 +1508,105 @@ async function verEvidencia(eventoId, nombre) {
   // pantalla una imagen que ya no se podría volver a pedir.
   clearTimeout(cerrarVisor._t);
   cerrarVisor._t = setTimeout(cerrarVisor, 55000);
+}
+
+/* ── SOCIOS ─────────────────────────────────────────────────────────
+   Un socio consulta las sedes que dirección le marque. No edita nada:
+   eso no lo decide esta pantalla —que sólo esconde botones— sino la
+   base de datos, que a un socio le devuelve cero filas de lo que no le
+   toca y rechaza cualquier escritura. */
+
+async function cargarSocios() {
+  const caja = $('lista-socios');
+  const { data, error } = await sb.rpc('socios');
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+
+  if (!data.length) {
+    caja.innerHTML = '<p class="vacio">Todavía no hay socios con acceso.</p>';
+    return;
+  }
+
+  caja.innerHTML = data.map((s) => `
+    <div class="ficha">
+      <div class="ficha__inicial">${esc((s.nombre || '?').trim()[0].toUpperCase())}</div>
+      <div class="ficha__cuerpo">
+        <strong>${esc(s.nombre)}</strong>
+        <span>${esc(s.correo || 'sin correo')}</span>
+        <span style="margin-top:.25rem;display:block">
+          ${s.sedes.length
+            ? s.sedes.map((b) => `<span class="pastilla pastilla--activo">${esc(b.name || b.nombre)}</span>`).join(' ')
+            : '<span class="pastilla pastilla--inactivo">Sin sedes</span>'}
+          ${s.activo ? '' : '<span class="pastilla pastilla--inactivo">Acceso retirado</span>'}
+        </span>
+      </div>
+      ${s.activo
+        ? `<button class="ficha__accion" data-editar-socio="${s.id}">Cambiar</button>
+           <button class="ficha__accion" data-quitar-socio="${s.id}"
+                   data-nombre="${esc(s.nombre)}">Quitar</button>`
+        : ''}
+    </div>`).join('');
+
+  caja.querySelectorAll('[data-editar-socio]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const s = data.find((x) => x.id === b.dataset.editarSocio);
+      $('soc-correo').value = s.correo || '';
+      $('soc-nombre').value = s.nombre;
+      const suyas = s.sedes.map((x) => x.id);
+      $('soc-sedes').querySelectorAll('input[type=checkbox]')
+        .forEach((c) => { c.checked = suyas.includes(c.value); });
+      $('soc-correo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+
+  caja.querySelectorAll('[data-quitar-socio]').forEach((b) =>
+    b.addEventListener('click', () => quitarSocio(b.dataset.quitarSocio, b.dataset.nombre)));
+}
+
+// Las casillas se pintan con las sedes reales, no con una lista escrita
+// a mano: si mañana se abre una sede, aparece aquí sola.
+function pintarSedesDeSocio() {
+  const caja = $('soc-sedes');
+  if (!caja) return;
+  caja.innerHTML = sedes.map((s) => `
+    <label style="display:flex;align-items:center;gap:.6rem;font-weight:500">
+      <input type="checkbox" id="soc-sede-${esc(s.id)}" value="${esc(s.id)}"
+             style="width:1.15rem;height:1.15rem;accent-color:var(--morado)">
+      ${esc(s.name)}
+    </label>`).join('');
+}
+
+$('form-socio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  const marcadas = [...$('soc-sedes').querySelectorAll('input:checked')].map((c) => c.value);
+
+  if (!marcadas.length) {
+    avisoPanel('Marque al menos una sede: un socio sin sedes no vería nada.', 'error');
+    return;
+  }
+
+  ocupado(btn, true, 'Guardar socio');
+  const { data, error } = await sb.rpc('guardar_socio', {
+    p_email:  $('soc-correo').value.trim(),
+    p_nombre: $('soc-nombre').value.trim(),
+    p_sedes:  marcadas
+  });
+  ocupado(btn, false, 'Guardar socio');
+
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+
+  avisoPanel(data.quitadas
+    ? `Guardado. Ahora consulta ${data.sedes} sede(s); se le retiró ${data.quitadas}.`
+    : `Guardado. Ya puede entrar y consultar ${data.sedes} sede(s).`);
+  e.target.reset();
+  cargarSocios();
+});
+
+async function quitarSocio(id, nombre) {
+  if (!confirm(`Retirar el acceso de ${nombre}.\n\nDeja de ver todas las sedes al instante. `
+             + `No se borra nada de lo que hay registrado.\n\n¿Seguro?`)) return;
+
+  const { error } = await sb.rpc('quitar_socio', { p_id: id });
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+  avisoPanel('Acceso retirado.');
+  cargarSocios();
 }

@@ -757,6 +757,39 @@ una segunda pasada completa no cambió nada. La barrera antidestrucción se prob
 plantando un archivo con `drop table employees`: el flujo se detuvo antes de
 conectarse.
 
+## Fase 11 · socios
+
+Los socios de CrediSan no encajaban en «un usuario, una sede»: Eliana participa
+en Maracaibo y Maracay, Ramiro en las tres, Marilyn sólo en Caja Seca. Ahora el
+alcance es una lista, y dirección la reparte con casillas.
+
+Salió barato por una decisión de la fase 1: los 78 sitios que preguntan «¿puede
+ver esta sede?» le preguntan a **una sola función**. Se cambió ahí y los 78
+obedecen sin tocarse.
+
+Lo que de verdad había que encontrar era una puerta abierta, y estaba:
+`incidents_insert` pedía sólo la sede —a propósito, para que el jefe operativo
+reporte— así que un socio habría podido crear novedades. Se le añadió el rol, y
+la prueba comprueba las dos mitades: que el socio ya no puede y que **el jefe
+operativo sigue pudiendo**.
+
+Los salarios y las fotografías no necesitaron una línea: sus políticas ya exigen
+ceo o admin. Se comprueban igual, porque son promesas. El reporte se dejó fuera
+del alcance del socio: el panel no se lo ofrece, y un permiso que nadie usa es
+una puerta que alguien tendrá que vigilar.
+
+Dos apuntes que costaron una prueba cada uno:
+
+- **PostgreSQL no deja usar un rol recién creado en la misma transacción.** Por
+  eso la fase son dos archivos, y por eso el instalador completo —que corre en
+  UNA transacción— crea el tipo ya con los cuatro roles. Descubierto ejecutando
+  el instalador de verdad, no leyéndolo: la primera versión habría roto toda
+  instalación nueva.
+- **Una prueba puede pasar por el motivo equivocado.** La que comprobaba que el
+  socio no crea novedades nombraba dos columnas que no están en el GRANT, así
+  que fallaba por permisos de columna antes de que la regla opinara. Pasaba sin
+  comprobar nada. Ahora exige que el rechazo diga `row-level security`.
+
 ## El respaldo nocturno
 
 El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:

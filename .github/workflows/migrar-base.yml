@@ -128,6 +128,12 @@ jobs:
           # orden alfabético «FASE10» va ANTES que «FASE3», porque
           # compara el «1» con el «3». Y aun así se comprueba abajo, que
           # es lo que de verdad protege.
+          #
+          # Dos archivos de la MISMA fase sí valen, y hacen falta: la
+          # fase 11 son dos porque PostgreSQL no deja usar un rol recién
+          # creado en la misma transacción que lo crea. `sort -V` los
+          # ordena bien entre sí (FASE11-1 antes que FASE11-2), así que
+          # lo que se exige es que la fase no RETROCEDA.
           mal=0
           anterior=0
           for f in $(ls supabase/instalador/ACTUALIZAR-*.sql | sort -V); do
@@ -136,7 +142,7 @@ jobs:
               echo "::error::$(basename "$f") no dice a qué fase pertenece."
               echo "  Nómbrelo ACTUALIZAR-FASE<n>-loquesea.sql para que el orden sea el correcto."
               mal=1
-            elif [ "$n" -le "$anterior" ]; then
+            elif [ "$n" -lt "$anterior" ]; then
               echo "::error::$(basename "$f") se aplicaría fuera de orden (fase $n tras fase $anterior)."
               mal=1
             else

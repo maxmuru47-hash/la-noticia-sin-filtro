@@ -25,3 +25,4 @@ correr credisan_f6 supabase/tests/06_fase6.sql
 correr credisan_f7 supabase/tests/07_evidencia.sql
 correr credisan_f8 supabase/tests/08_ruta_evidencia.sql
 correr credisan_dia supabase/tests/09_dia_completo.sql
+correr credisan_soc supabase/tests/10_socios.sql

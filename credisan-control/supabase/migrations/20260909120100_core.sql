@@ -4,9 +4,18 @@
 -- =====================================================================
 
 -- ── Tipos ────────────────────────────────────────────────────────────
-create type app_role as enum ('ceo', 'admin', 'supervisor');
+-- El rol `socio` se añadió en la fase 11 y aparece aquí, en la creación
+-- del tipo, por una razón muy concreta: el instalador completo se aplica
+-- en UNA SOLA TRANSACCIÓN, y PostgreSQL no deja usar un valor de enum
+-- recién añadido dentro de la transacción que lo añadió. Creándolo
+-- entero desde el principio, una instalación nueva no se topa con eso.
+-- Para las bases YA instaladas está la migración de la fase 11, que lo
+-- añade aparte y no hace nada si ya está.
+create type app_role as enum ('ceo', 'admin', 'supervisor', 'socio');
 comment on type app_role is
-  'ceo = acceso nacional · admin = administradora de una sede · supervisor = jefe operativo de una sede';
+  'ceo = acceso nacional · admin = administradora de una sede · '
+  'supervisor = jefe operativo de una sede · '
+  'socio = consulta de las sedes que se le asignen, sin modificar nada';
 
 -- ── SEDES ────────────────────────────────────────────────────────────
 create table branches (

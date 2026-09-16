@@ -277,6 +277,38 @@
         <button type="submit" class="boton">Dar acceso</button>
       </form>
     </section>
+
+    <!-- ══ SOCIOS ═══════════════════════════════════════════════════ -->
+    <section id="bloque-socios" hidden>
+      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Socios</h2>
+      <div class="aviso" data-t="info">
+        Un socio <strong>consulta</strong> las sedes que usted le marque: quién
+        llegó, a qué hora y el cierre de la semana. No ve salarios ni
+        fotografías, y no puede modificar nada.
+        <br><br>
+        Créelo primero en Supabase (<strong>Authentication → Users → Add
+        user</strong>) con su correo y una clave, y escriba aquí ese mismo correo.
+      </div>
+
+      <form class="tarjeta" id="form-socio">
+        <div class="campo">
+          <label for="soc-correo">Correo</label>
+          <input type="email" id="soc-correo" required>
+        </div>
+        <div class="campo">
+          <label for="soc-nombre">Nombre y apellido</label>
+          <input type="text" id="soc-nombre" required>
+        </div>
+        <div class="campo">
+          <label id="soc-sedes-label">Sedes que podrá consultar</label>
+          <div id="soc-sedes" role="group" aria-labelledby="soc-sedes-label"
+               style="display:grid;gap:.5rem;margin-top:.35rem"></div>
+        </div>
+        <button type="submit" class="boton">Guardar socio</button>
+      </form>
+
+      <div id="lista-socios"><p class="cargando">Cargando…</p></div>
+    </section>
   </main>
 
   <!-- ══ CIERRES SEMANALES ═════════════════════════════════════════════ -->
