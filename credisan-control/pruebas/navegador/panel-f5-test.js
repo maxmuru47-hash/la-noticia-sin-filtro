@@ -92,8 +92,12 @@ async function abrir(b, rol) {
     const { p, errs } = await abrir(b, 'admin');
     await p.click('.nav button[data-vista="v-mas"]');
     await p.waitForTimeout(300);
-    ok((await p.$$eval('#menu-mas .ficha--boton:not([hidden])', (n) => n.length)) === 4,
-       'el menú Más lleva cuatro destinos');
+    // Se comprueban los destinos que esta fase necesita, no cuántos hay:
+    // contar obliga a tocar esta prueba cada vez que se añade uno.
+    for (const destino of ['v-horarios', 'v-sedes', 'v-auditoria', 'v-reportes']) {
+      ok(await p.locator(`[data-ir="${destino}"]`).isVisible(),
+         `el menú Más lleva a ${destino.replace('v-', '')}`);
+    }
     await p.screenshot({ path: 'pf5-2-mas.png', fullPage: true });
 
     await p.click('[data-ir="v-auditoria"]');

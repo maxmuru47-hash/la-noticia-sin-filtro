@@ -21,3 +21,4 @@ correr credisan_f2 supabase/tests/02_fase2.sql
 correr credisan_f3 supabase/tests/03_fase3.sql
 correr credisan_f4 supabase/tests/04_fase4.sql
 correr credisan_f5 supabase/tests/05_fase5.sql
+correr credisan_f6 supabase/tests/06_fase6.sql

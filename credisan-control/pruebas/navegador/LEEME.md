@@ -22,6 +22,8 @@ cd ../pruebas/navegador
 npm install playwright        # la primera vez
 node panel-f4-test.js
 node panel-f5-test.js
+node panel-f6-test.js
+node kiosk-f6-test.js
 ```
 
 Cada prueba termina con código 0 si todo pasa, y 1 si algo falla: sirve
@@ -38,6 +40,8 @@ para integración continua tal cual.
 | `mock-f5.js` | Servidor simulado de la Fase 5 |
 | `panel-f5-test.js` | 47 comprobaciones: cierre semanal, auditoría legible, y la **descarga real del CSV** —que se abre y se comprueba que no lleva cédulas, ni salarios, ni gente de otra sede— |
 | `kiosk-test.js` | El kiosco completo con cámara simulada, incluida la comprobación de que el PIN no vuelve a viajar al confirmar |
+| `mock-f6.js` · `panel-f6-test.js` | La pantalla de conexión de los terminales, por rol |
+| `kiosk-f6-test.js` | **El terminal sin conexión.** Corta la red de verdad, abre IndexedDB para comprobar que el PIN no quedó en claro, y descifra los sobres con una llave privada real generada en la propia prueba |
 
 ## Una advertencia sobre cómo escribirlas
 

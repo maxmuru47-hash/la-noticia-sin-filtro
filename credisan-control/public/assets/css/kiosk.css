@@ -159,3 +159,16 @@ body {
   position: fixed; bottom: calc(.6rem + env(safe-area-inset-bottom)); left: 0; right: 0;
   font-size: .7rem; color: rgba(255,255,255,.35);
 }
+
+/* ── Fase 6 · aviso de «sin conexión» ──────────────────────────────── */
+/* Discreto a propósito: el trabajador no tiene por qué saber cómo
+   funciona el sistema, sólo si su marcación quedó guardada o no. */
+.k-conexion {
+  position: absolute; top: 3.4rem; left: 50%; transform: translateX(-50%);
+  background: rgba(255, 193, 7, .95); color: #3B2600;
+  font-size: .78rem; font-weight: 600; letter-spacing: .01em;
+  padding: .3rem .85rem; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .18); z-index: 5;
+}
+.k-conexion[hidden] { display: none !important; }
+.k-conexion[data-t="enviando"] { background: rgba(255, 255, 255, .92); color: var(--morado); }

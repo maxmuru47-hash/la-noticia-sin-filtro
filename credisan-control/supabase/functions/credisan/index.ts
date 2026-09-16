@@ -24,6 +24,10 @@ const LLAVE_PUBLICA = Deno.env.get('SUPABASE_ANON_KEY')
   ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')
   ?? LLAVE_MAESTRA;
 const PEPPER = Deno.env.get('CREDISAN_PIN_PEPPER') ?? '';
+// Llave privada del modo sin conexión (PKCS8 en base64). El terminal sólo
+// tiene la pública: cifra el PIN y ni él mismo puede volver a abrirlo.
+const LLAVE_OFFLINE = Deno.env.get('CREDISAN_OFFLINE_PRIVATE_KEY') ?? '';
+const MAX_LOTE = 200;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -136,42 +140,9 @@ Deno.serve(async (peticion) => {
         // La marcación ya está registrada. A partir de aquí, un fallo con la
         // fotografía NO puede tumbarla: se anota que no hay evidencia y se
         // abre una novedad, pero la hora del trabajador queda guardada.
-        const evento = marca.id as string;
-        if (!marca.duplicado) {
-          const foto = typeof cuerpo.foto === 'string' ? cuerpo.foto : '';
-          if (foto.startsWith('data:image/jpeg;base64,')) {
-            try {
-              const bytes = aBinario(foto.split(',')[1]);
-              const f = new Date(marca.recorded_at);
-              const ruta = [
-                cuerpo.branch_id, f.getUTCFullYear(),
-                String(f.getUTCMonth() + 1).padStart(2, '0'),
-                String(f.getUTCDate()).padStart(2, '0'),
-                `${evento}.jpg`
-              ].join('/');
-
-              const { error: eSubida } = await sb.storage
-                .from('evidencia')
-                .upload(ruta, bytes, { contentType: 'image/jpeg', upsert: true });
-
-              if (eSubida) throw new Error(eSubida.message);
-
-              await sb.rpc('edge_evidencia', {
-                p_event: evento, p_path: ruta, p_bytes: bytes.length, p_captured: marca.recorded_at
-              });
-              marca.evidencia = 'almacenada';
-            } catch (_e) {
-              await sb.rpc('edge_sin_evidencia', { p_event: evento, p_motivo: 'fallo_al_guardar' });
-              marca.evidencia = 'sin_evidencia';
-            }
-          } else {
-            await sb.rpc('edge_sin_evidencia', {
-              p_event: evento,
-              p_motivo: String(cuerpo.motivo_sin_foto ?? 'camara_no_disponible').slice(0, 60)
-            });
-            marca.evidencia = 'sin_evidencia';
-          }
-        }
+        await guardarEvidencia(sb, marca, cuerpo.branch_id,
+          typeof cuerpo.foto === 'string' ? cuerpo.foto : '',
+          String(cuerpo.motivo_sin_foto ?? 'camara_no_disponible'));
 
         return responder({ ok: true, ...marca });
       }
@@ -202,6 +173,97 @@ Deno.serve(async (peticion) => {
         return responder(data);
       }
 
+
+      // ── Sincronizar lo que se marcó sin conexión ──────────────────
+      // El terminal encola con el PIN CIFRADO y lo manda cuando vuelve la
+      // señal. Aquí se abre cada sobre, se identifica a la persona y se
+      // registra con la hora que declaró el dispositivo.
+      //
+      // Cada elemento se resuelve por separado y en su propia
+      // transacción: que uno se rechace no puede tumbar a los demás. El
+      // terminal borra de su cola lo aceptado y lo rechazado por un motivo
+      // definitivo, y reintenta sólo lo que falló por red.
+      //
+      // Sobre por qué NO hay una firma HMAC por elemento, que es lo que
+      // decía el diseño inicial: el `device_token` y la clave de firma
+      // viven los dos en el almacenamiento del mismo navegador. Quien
+      // tenga uno tiene el otro, así que firmar cada elemento no añade
+      // ninguna garantía que el token no dé ya, y el tránsito lo cubre
+      // TLS. Lo que sí protege de verdad es que el PIN vaya cifrado con
+      // una llave que el dispositivo no posee, y eso sí está.
+      case 'sincronizar': {
+        const terminal = await terminalAutenticado(sb, cuerpo.terminal, cuerpo.token);
+        if (!terminal) return responder({ ok: false, motivo: 'TERMINAL_NO_AUTORIZADO' }, 401);
+
+        if (!LLAVE_OFFLINE) {
+          return responder({ ok: false, motivo: 'FALTA_LLAVE_OFFLINE',
+            detalle: 'Configure el secreto CREDISAN_OFFLINE_PRIVATE_KEY.' }, 500);
+        }
+
+        const lote = Array.isArray(cuerpo.lote) ? cuerpo.lote : [];
+        if (!lote.length) return responder({ ok: true, resultados: [] });
+        // Un tope por petición. Sin él, una tableta robada podría encolar
+        // decenas de miles de PIN al azar y soltarlos de golpe.
+        if (lote.length > MAX_LOTE) {
+          return responder({ ok: false, motivo: 'LOTE_DEMASIADO_GRANDE', maximo: MAX_LOTE }, 400);
+        }
+
+        let privada: CryptoKey;
+        try {
+          privada = await importarPrivada(LLAVE_OFFLINE);
+        } catch {
+          return responder({ ok: false, motivo: 'LLAVE_OFFLINE_ILEGIBLE' }, 500);
+        }
+
+        const resultados = [];
+        for (const item of lote) {
+          const id = String(item?.id ?? '');
+          let pin: string;
+          try {
+            pin = await abrirSobre(privada, item?.sobre);
+          } catch {
+            // Un sobre que no abre es basura o viene de otra llave. Se
+            // responde definitivo para que el terminal lo deseche: dejarlo
+            // en la cola sería reintentarlo para siempre.
+            resultados.push({ id, ok: false, reason: 'SOBRE_ILEGIBLE', definitivo: true });
+            continue;
+          }
+
+          if (!/^\d{6}$/.test(pin)) {
+            resultados.push({ id, ok: false, reason: 'PIN_INVALIDO', definitivo: true });
+            continue;
+          }
+
+          const { data, error } = await sb.rpc('edge_offline', {
+            p_terminal: terminal,
+            p_pin: pin,
+            p_pepper: PEPPER,
+            p_client_event: id,
+            p_device_ts: String(item?.ts ?? ''),
+            p_seq: Number(item?.seq ?? 0),
+            p_drift: item?.drift === null || item?.drift === undefined
+                     ? null : Math.round(Number(item.drift))
+          });
+
+          if (error) {
+            // Fallo del servidor, no del elemento: que se reintente.
+            resultados.push({ id, ok: false, reason: limpiar(error.message), definitivo: false });
+            continue;
+          }
+          // La foto se encoló junto a la marcación y sube por el mismo
+          // camino que la del flujo en línea. Si no subiera, la marcación
+          // queda igualmente registrada y sin evidencia, nunca perdida.
+          if (data?.ok) {
+            await guardarEvidencia(sb, data, data.branch_id ?? cuerpo.branch_id,
+              typeof item?.foto === 'string' ? item.foto : '',
+              'sin_camara_offline');
+          }
+          resultados.push({ ...data, id, definitivo: true });
+        }
+
+        return responder({ ok: true, resultados });
+      }
+
       default:
         return responder({ ok: false, motivo: 'ACCION_DESCONOCIDA' }, 400);
     }
@@ -222,4 +284,89 @@ function aBinario(base64: string): Uint8Array {
   const bytes = new Uint8Array(crudo.length);
   for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
   return bytes;
+}
+
+// ── Evidencia fotográfica, compartida por los dos caminos ────────────
+// La usan `confirmar` (en línea) y `sincronizar` (lo que se marcó sin
+// conexión). La regla es la misma en ambos y por eso vive en un solo
+// sitio: la marcación ya está registrada cuando se llega aquí, así que
+// nada de lo que pase con la foto puede tumbarla.
+async function guardarEvidencia(
+  sb: ReturnType<typeof admin>, marca: any, branchId: string,
+  foto: string, motivoSinFoto: string
+): Promise<void> {
+  if (!marca?.id || marca.duplicado) return;
+  const evento = marca.id as string;
+
+  if (!foto.startsWith('data:image/jpeg;base64,')) {
+    await sb.rpc('edge_sin_evidencia', {
+      p_event: evento, p_motivo: motivoSinFoto.slice(0, 60)
+    });
+    marca.evidencia = 'sin_evidencia';
+    return;
+  }
+
+  try {
+    const bytes = aBinario(foto.split(',')[1]);
+    const f = new Date(marca.recorded_at);
+    const ruta = [
+      branchId, f.getUTCFullYear(),
+      String(f.getUTCMonth() + 1).padStart(2, '0'),
+      String(f.getUTCDate()).padStart(2, '0'),
+      `${evento}.jpg`
+    ].join('/');
+
+    const { error } = await sb.storage
+      .from('evidencia')
+      .upload(ruta, bytes, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw new Error(error.message);
+
+    await sb.rpc('edge_evidencia', {
+      p_event: evento, p_path: ruta, p_bytes: bytes.length, p_captured: marca.recorded_at
+    });
+    marca.evidencia = 'almacenada';
+  } catch (_e) {
+    await sb.rpc('edge_sin_evidencia', { p_event: evento, p_motivo: 'fallo_al_guardar' });
+    marca.evidencia = 'sin_evidencia';
+  }
+}
+
+// ── Sobre cerrado para el PIN sin conexión ───────────────────────────
+// El terminal genera un par efímero, deriva un secreto compartido con la
+// llave pública del servidor (ECDH P-256), lo pasa por HKDF y cifra el PIN
+// con AES-GCM. Aquí se rehace el mismo camino con la llave privada.
+//
+// Consecuencia práctica: el PIN encolado en la tableta no lo puede leer ni
+// la tableta. Si el aparato se pierde con marcaciones sin enviar, lo que
+// se pierde son las marcaciones, nunca los PIN.
+
+async function importarPrivada(pkcs8Base64: string): Promise<CryptoKey> {
+  return await crypto.subtle.importKey(
+    'pkcs8', aBinario(pkcs8Base64),
+    { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+}
+
+async function abrirSobre(
+  privada: CryptoKey,
+  sobre: { epk?: string; iv?: string; ct?: string } | undefined
+): Promise<string> {
+  if (!sobre?.epk || !sobre?.iv || !sobre?.ct) throw new Error('SOBRE_INCOMPLETO');
+
+  const publicaEfimera = await crypto.subtle.importKey(
+    'raw', aBinario(sobre.epk),
+    { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+
+  const compartido = await crypto.subtle.deriveBits(
+    { name: 'ECDH', public: publicaEfimera }, privada, 256);
+
+  const material = await crypto.subtle.importKey('raw', compartido, 'HKDF', false, ['deriveKey']);
+  const llave = await crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0),
+      info: new TextEncoder().encode('credisan-pin-offline-v1') },
+    material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+
+  const claro = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: aBinario(sobre.iv) }, llave, aBinario(sobre.ct));
+
+  return new TextDecoder().decode(claro);
 }

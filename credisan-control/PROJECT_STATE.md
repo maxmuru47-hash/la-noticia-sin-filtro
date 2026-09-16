@@ -5,9 +5,9 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **5 — Cierres, reportes y auditoría. Sólo falta el modo sin conexión** |
+| **Fase actual** | **6 — Las seis fases entregadas. Sistema completo** |
 | **Fecha** | 2026-09-16 |
-| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE5.sql` (ya instalado) |
+| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE6.sql` (ya instalado) |
 | **Producción** | control.sinfiltroconmax.com (VPS propio, Caddy, despliegue automático desde GitHub) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
 | **Repositorio** | `credisan-control/` dentro de `la-noticia-sin-filtro`; separar según `docs/SEPARAR_REPOSITORIO.md` |
@@ -53,6 +53,11 @@
 | 25 | El disparador de auditoría deriva la sede cuando la tabla no la lleva | La RLS filtra por sede: sin esto, la administradora no veía ni sus propios cambios de horario |
 | 26 | El CSV se arma en el navegador, no en el servidor | El archivo no pasa por ningún sitio ni se queda guardado en ninguna parte |
 | 27 | El reporte exportable no lleva cédulas ni salarios | Un archivo que circula por correo y se queda en carpetas de descargas |
+| 28 | El PIN offline va en sobre cerrado (ECDH P-256 + HKDF + AES-GCM) | Una tableta robada no entrega ni un PIN: guarda algo que ni ella puede leer |
+| 29 | **Sin** firma HMAC por elemento, al contrario de lo planeado en la Fase 1 | El `device_token` y la clave de firma viven en el mismo almacenamiento: firmar no añade ninguna garantía que el token no dé ya |
+| 30 | `last_sync_at` guarda la hora más avanzada **declarada por el aparato** | Con la hora del servidor, una cola de 12 marcaciones sincronizaba 1 y perdía 11 |
+| 31 | Sin conexión no se muestra identidad ni resultado | No se puede comprobar el PIN sin servidor; decir «listo» sería mentir |
+| 32 | La foto se encola junto a la marcación | Perder la evidencia de 72 horas de marcaciones debilitaría el valor probatorio |
 
 ## Base de datos
 
@@ -89,6 +94,7 @@ vigencia), `incident_kinds` (tipos de novedad como dato, no como código).
 | `20260915100000_fase3.sql` | terminales, PIN y puente `edge_*` |
 | `20260915140000_fase4.sql` | tableros del día y del período, ranking, novedades |
 | `20260916100000_fase5.sql` | cierre semanal, reporte exportable, auditoría legible |
+| `20260916150000_fase6.sql` | puerta de la marcación sin conexión, salud de terminales |
 | `seed/seed.sql` | 3 sedes, 3 terminales, jornada estándar, 19 parámetros |
 
 ## Variables de entorno
@@ -110,11 +116,14 @@ una base limpia por batería —no se contaminan entre sí— y corre las cuatro
 | `03_fase3.sql` | PIN asignado, emparejamiento, token falso, PIN erróneo con su rastro, marcación clasificada, evidencia con fecha de purga, desvinculación, y el panel sin poder ejecutar las `edge_*` |
 | `04_fase4.sql` | tablero por rol, aislamiento entre sedes, ausencia de datos salariales por estructura, y que la fase no alteró ni un dato existente |
 | `05_fase5.sql` | que el cierre no toca dinero (leído del código fuente), recalcular respetando lo revisado, reporte sin cédulas, y la auditoría vista por cada rol |
+| `06_fase6.sql` | cola entera tras un corte largo, secuencia que no retrocede, ventana de 72 h, pimienta obligatoria, sede ajena, reloj desviado y la puerta cerrada al panel |
 
-**Las cinco en verde.** Además, cuatro pruebas de navegador real (Playwright
-con el backend simulado), en `pruebas/navegador/`: kiosco completo con cámara,
-panel de Fase 3, panel de Fase 4 (52 comprobaciones) y panel de Fase 5 (45,
-incluida la descarga del CSV de verdad).
+**Las seis en verde.** Además, seis pruebas de navegador real (Playwright con
+el backend simulado), en `pruebas/navegador/`: kiosco con cámara, panel de
+Fase 3, panel de Fase 4 (52), panel de Fase 5 (47, con descarga real del CSV),
+panel de Fase 6 (16) y **el terminal sin conexión** (24), que corta la red de
+verdad, abre IndexedDB para comprobar que el PIN no está en claro, y descifra
+los sobres con una llave privada real.
 
 ## Deuda técnica y riesgos conocidos
 
@@ -375,8 +384,68 @@ de **45 comprobaciones** sobre los tres roles, incluida la descarga del CSV
 de verdad y la comprobación de que no lleva cédulas, ni salarios, ni gente
 de otra sede.
 
-## Siguiente paso
+## Fase 6 — entregada
 
-**Fase 6 — Modo sin conexión y control de calidad**: cola local en
-IndexedDB, PIN cifrado con clave pública, sincronización con ventana de 72 h
-y la batería final de extremo a extremo.
+**Backend** (migración 0016): `app.identificar_por_pin`, `public.edge_offline`
+—cerrada a todo el mundo menos al servidor—, `sincronizacion` y
+`marcaciones_offline`.
+
+**Función del servidor**: acción `sincronizar`, que abre los sobres, resuelve
+cada elemento por separado y sube la fotografía por el mismo camino que el
+flujo en línea (esa lógica se extrajo a `guardarEvidencia`, compartida).
+
+**Terminal** (`public/src/kiosk/offline.js`): cola en IndexedDB, secuencia
+monotónica persistente, reloj monotónico anclado a la cabecera `Date` de cada
+respuesta del servidor, sobre cerrado, y sincronización automática al volver
+la señal, al arrancar y cada dos minutos.
+
+### El sobre cerrado
+
+Sin conexión el terminal **no puede** comprobar un PIN: la pimienta vive en el
+servidor. Y guardarlo en claro mientras espera entregaría el PIN de toda la
+sede con la tableta. Así que se cifra con la llave pública del servidor
+—ECDH P-256 efímero, HKDF-SHA256, AES-GCM—: el aparato guarda algo que ni él
+mismo puede volver a leer. Par nuevo por cada sobre, así que dos marcaciones
+del mismo PIN no se pueden relacionar mirando la cola.
+
+Comprobado en el navegador: la prueba abre IndexedDB y `localStorage` y exige
+que el PIN no aparezca en ninguno de los dos.
+
+### Una decisión contra el plan original
+
+La Fase 1 preveía **firmar cada elemento con HMAC**. Al implementarlo se vio
+que no protege de nada: el `device_token` y la clave de firma viven los dos en
+el almacenamiento del mismo navegador —quien tenga uno tiene el otro— y el
+tránsito ya lo cubre TLS. Se descartó, y se dejó escrito por qué en el propio
+código. Lo que sí protege de verdad —que el PIN vaya cifrado con una llave que
+el dispositivo no posee— sí está.
+
+### El fallo que sólo aparece sincronizando de verdad
+
+`register_offline_punch` guardaba `last_sync_at = now()` con cada marcación
+aceptada, y rechazaba toda marcación anterior a ese valor. Con una cola real:
+
+> Un terminal pasa tres horas sin señal y acumula doce marcaciones. La
+> primera —la de hace tres horas— entra, y al entrar pone `last_sync_at` en
+> la hora actual. **Las once siguientes se rechazan todas.**
+
+Es decir: el modo sin conexión sólo funcionaba con exactamente una marcación
+en la cola. En el escenario para el que existe, se perdía casi todo.
+
+La corrección fue entender qué debe significar el campo: no «cuándo
+sincronizamos» —para eso está `last_seen_at`— sino «la hora más avanzada que
+este aparato nos ha declarado». Hay una prueba dedicada que manda cuatro
+marcaciones de una jornada y exige que entren las cuatro.
+
+### Puesta en marcha
+
+`node supabase/functions/generar-llaves.mjs` imprime el par. La pública va en
+`config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
+las llaves el terminal funciona igual con internet y lo dice si no lo hay.
+
+## Estado: las seis fases entregadas
+
+Falta únicamente lo que depende de la cuenta de Supabase del cliente y no del
+código: publicar la Edge Function `credisan` y crear los dos secretos
+(`CREDISAN_PIN_PEPPER` y `CREDISAN_OFFLINE_PRIVATE_KEY`). Hasta entonces no
+hay PIN, ni marcaciones, ni cierres con datos.

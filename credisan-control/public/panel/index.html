@@ -337,6 +337,13 @@
           <span>Quién cambió qué, cuándo, y qué había antes.</span>
         </div>
       </button>
+      <button class="ficha ficha--boton" data-ir="v-conexion">
+        <div class="ficha__inicial">📡</div>
+        <div class="ficha__cuerpo">
+          <strong>Terminales y conexión</strong>
+          <span>Qué aparato lleva rato callado y qué llegó sin conexión.</span>
+        </div>
+      </button>
       <button class="ficha ficha--boton" data-ir="v-reportes">
         <div class="ficha__inicial">📄</div>
         <div class="ficha__cuerpo">
@@ -345,6 +352,29 @@
         </div>
       </button>
     </div>
+  </main>
+
+  <!-- ══ CONEXIÓN DE LOS TERMINALES ════════════════════════════════════ -->
+  <main class="vista" id="v-conexion" hidden>
+    <div class="encabezado-vista">
+      <h1>Terminales y conexión</h1>
+      <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
+    </div>
+
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      Cuando un terminal se queda sin internet, sigue marcando: guarda las
+      marcaciones y las envía solas al volver la señal. Aquí se ve si algún
+      aparato lleva demasiado tiempo callado.
+    </p>
+
+    <div id="lista-terminales-conexion"><p class="cargando">Cargando…</p></div>
+
+    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Llegaron sin conexión</h2>
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      La hora de estas marcaciones la puso el aparato, no el servidor. Valen
+      igual; conviene poder mirarlas aparte.
+    </p>
+    <div id="lista-offline"><p class="cargando">Cargando…</p></div>
   </main>
 
   <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->

@@ -8,6 +8,8 @@
    Su trabajo es capturar seis dígitos y una foto, y enseñar el resultado. */
 
 import { config, estaConfigurado } from '../core/config.js';
+import { cola, siguienteSeq, anclarReloj, ahoraFiable, cerrarSobre, sincronizar }
+  from './offline.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -42,7 +44,10 @@ const MOTIVOS = {
   CODIGO_REVOCADO:        'Ese código fue anulado. Pida uno nuevo.',
   TERMINAL_INEXISTENTE:   'No existe un terminal con ese código.',
   FALTA_PEPPER:           'Falta configurar el servidor. Avise a administración.',
-  SIN_CONEXION:           'Sin conexión. Intente de nuevo en un momento.'
+  SIN_CONEXION:           'Sin conexión. Intente de nuevo en un momento.',
+  SIN_LLAVE_PUBLICA:      'Este terminal no puede marcar sin conexión. Avise a administración.',
+  FALTA_LLAVE_OFFLINE:    'Falta configurar el servidor. Avise a administración.',
+  LOTE_DEMASIADO_GRANDE:  'Hay demasiadas marcaciones en espera. Avise a administración.'
 };
 
 const almacen = {
@@ -77,6 +82,12 @@ async function llamar(cuerpo, cabeceras = {}) {
     },
     body: JSON.stringify(cuerpo)
   });
+
+  // Cada respuesta del servidor trae su fecha: es la única hora de fiar
+  // que ve el terminal, y es la que ancla el reloj monotónico.
+  const fecha = r.headers.get('date');
+  if (fecha) anclarReloj(fecha);
+
   return r.json();
 }
 
@@ -197,6 +208,15 @@ async function verificarPin() {
   ocupado = true;
   aviso($('aviso-pin'), 'Un momento…');
 
+  // Si el navegador ya sabe que no hay red, no se gasta el intento: se
+  // encola directamente. Ahorra unos segundos de espera inútil delante
+  // de una persona que sólo quiere marcar e irse.
+  if (navigator.onLine === false) {
+    const guardado = await marcarSinConexion();
+    ocupado = false;
+    return guardado;
+  }
+
   try {
     const r = await llamar({
       accion: 'pin',
@@ -205,24 +225,95 @@ async function verificarPin() {
       pin
     });
 
-    pin = '';
-    pintarPuntos();
-
     if (!r.ok) {
+      pin = '';
+      pintarPuntos();
       aviso($('aviso-pin'), explicar(r.motivo), 'error');
       if (r.motivo === 'TERMINAL_NO_AUTORIZADO') olvidarDispositivo();
       return;
     }
 
+    pin = '';
+    pintarPuntos();
     sesion = r;
     mostrarIdentidad(r);
   } catch {
-    pin = '';
-    pintarPuntos();
-    aviso($('aviso-pin'), explicar('SIN_CONEXION'), 'error');
+    // La red se cayó a mitad. Se encola en vez de perder la marcación.
+    await marcarSinConexion();
   } finally {
     ocupado = false;
   }
+}
+
+/* ── Marcar sin conexión ────────────────────────────────────────────
+   Aquí NO se puede decir quién es ni si llegó a tiempo: el PIN no se
+   puede comprobar sin el servidor. Se guarda cifrado y se avisa con
+   claridad de que está guardada pero aún no confirmada. Prometer más
+   sería mentir, y el trabajador se iría creyendo que marcó cuando
+   quizá su PIN estaba mal. */
+
+async function marcarSinConexion() {
+  const elPin = pin;
+  pin = '';
+  pintarPuntos();
+
+  if (!config.offlinePublicKey) {
+    aviso($('aviso-pin'), explicar('SIN_LLAVE_PUBLICA'), 'error');
+    return;
+  }
+
+  try {
+    const reloj = ahoraFiable();
+    const foto = await fotoRapida();
+
+    await cola.guardar({
+      id: crypto.randomUUID(),
+      seq: siguienteSeq(),
+      ts: reloj.ts,
+      desfase: reloj.desfase,
+      sobre: await cerrarSobre(elPin, config.offlinePublicKey),
+      foto: foto || '',
+      creado: Date.now()
+    });
+
+    mostrarGuardadaSinConexion(reloj);
+  } catch (e) {
+    aviso($('aviso-pin'), 'No se pudo guardar la marcación. Avise a administración.', 'error');
+  }
+  await pintarConexion();
+}
+
+/* Sin conexión no hay pantalla de identidad donde encender la cámara, así
+   que se abre, se dispara y se cierra. Si no hay cámara, se encola sin
+   foto: que falte la fotografía nunca impide marcar. */
+async function fotoRapida() {
+  try {
+    await abrirCamara();
+    if (!flujo) return '';
+    await new Promise((r) => setTimeout(r, 350));   // dar tiempo al sensor
+    const foto = capturarFoto();
+    cerrarCamara();
+    return foto || '';
+  } catch {
+    cerrarCamara();
+    return '';
+  }
+}
+
+function mostrarGuardadaSinConexion(reloj) {
+  const hora = new Date(reloj.ts).toLocaleTimeString('es-VE',
+    { hour: '2-digit', minute: '2-digit' });
+
+  $('res-icono').textContent   = '⏱';
+  $('res-nombre').textContent  = 'Marcación guardada';
+  $('res-hora').textContent    = hora;
+  $('res-estado').textContent  = 'SIN CONEXIÓN';
+  $('res-detalle').textContent =
+    'Se enviará sola cuando vuelva la señal. Si su PIN no fuera correcto, no quedará registrada.';
+
+  mostrar('p-resultado', 'aviso');
+  clearTimeout(regreso);
+  regreso = setTimeout(irAlTeclado, 6000);
 }
 
 /* Si el dispositivo fue desvinculado desde el panel, el terminal vuelve a
@@ -381,3 +472,66 @@ if ('wakeLock' in navigator) {
 
 // Un roce accidental no debe abrir menús ni seleccionar texto.
 document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+/* ── Sincronización de lo que se marcó sin conexión ─────────────────
+   Se intenta al arrancar, cuando el navegador avisa de que volvió la red,
+   y cada dos minutos por si el aviso no llega —que en tabletas pasa—.
+   Nunca interrumpe a quien está marcando. */
+
+let sincronizando = false;
+
+async function pintarConexion() {
+  const caja = $('k-conexion');
+  if (!caja) return;
+
+  let n = 0;
+  try { n = await cola.contar(); } catch { n = 0; }
+
+  if (sincronizando && n) {
+    caja.dataset.t = 'enviando';
+    $('k-conexion-texto').textContent = `Enviando ${n} marcación${n === 1 ? '' : 'es'}…`;
+    caja.hidden = false;
+  } else if (n) {
+    delete caja.dataset.t;
+    $('k-conexion-texto').textContent =
+      `${n} marcación${n === 1 ? '' : 'es'} por enviar`;
+    caja.hidden = false;
+  } else if (navigator.onLine === false) {
+    delete caja.dataset.t;
+    $('k-conexion-texto').textContent = 'Sin conexión';
+    caja.hidden = false;
+  } else {
+    caja.hidden = true;
+  }
+}
+
+async function intentarSincronizar() {
+  if (sincronizando || !dispositivo.token || navigator.onLine === false) return;
+  if (!(await cola.contar())) { pintarConexion(); return; }
+
+  sincronizando = true;
+  await pintarConexion();
+
+  try {
+    // Lotes sucesivos mientras quede algo y el servidor siga aceptando:
+    // tras un corte largo puede haber más de un lote en espera.
+    for (let vuelta = 0; vuelta < 10; vuelta++) {
+      const r = await sincronizar(llamar, dispositivo);
+      if (r.motivo === 'TERMINAL_NO_AUTORIZADO') { olvidarDispositivo(); break; }
+      if (!r.quedan || (!r.aceptadas && !r.rechazadas)) break;
+    }
+  } catch {
+    // Sigue sin haber red. Se reintenta en el próximo aviso.
+  } finally {
+    sincronizando = false;
+    await pintarConexion();
+  }
+}
+
+window.addEventListener('online',  () => { pintarConexion(); intentarSincronizar(); });
+window.addEventListener('offline', pintarConexion);
+setInterval(intentarSincronizar, 120000);
+
+// Al arrancar: pintar el estado y vaciar lo que haya quedado de ayer.
+pintarConexion();
+setTimeout(intentarSincronizar, 1500);

@@ -114,6 +114,7 @@ registrados y con horario, listos para marcar en cuanto exista el terminal.
 | `docs/FASE3_TERMINAL.md` | Publicar la función del servidor y poner a marcar los terminales |
 | `docs/FASE4_TABLEROS.md` | Activar los tableros y entender qué ve cada rol |
 | `docs/FASE5_CIERRES.md` | Cierre semanal, reportes en Excel y auditoría |
+| `docs/FASE6_SIN_CONEXION.md` | Marcar cuando se va el internet |
 
 ## Si algo falla
 

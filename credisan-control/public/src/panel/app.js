@@ -158,7 +158,7 @@ async function entrar() {
 // se está en una de ellas, «Más» se queda encendido para no perder el sitio.
 const DENTRO_DE_MAS = {
   'v-horarios': 'v-mas', 'v-sedes': 'v-mas',
-  'v-auditoria': 'v-mas', 'v-reportes': 'v-mas'
+  'v-auditoria': 'v-mas', 'v-reportes': 'v-mas', 'v-conexion': 'v-mas'
 };
 
 const CARGADORES = {
@@ -168,6 +168,7 @@ const CARGADORES = {
   'v-cierres': cargarCierres,
   'v-horarios': cargarHorario,
   'v-auditoria': cargarAuditoria,
+  'v-conexion': cargarConexion,
   'v-sedes': () => { cargarSedes(); cargarTerminales(); }
 };
 
@@ -1157,5 +1158,92 @@ async function cargarAuditoria() {
           ${r.cambios.length > 6
             ? `<li>y ${r.cambios.length - 6} campo(s) más</li>` : ''}
         </ul>` : ''}
+    </div>`).join('');
+}
+
+/* ── CONEXIÓN DE LOS TERMINALES ─────────────────────────────────────
+   Lo que hay en la cola de un aparato sólo lo sabe ese aparato. Lo que sí
+   se puede decir desde aquí —y es lo que de verdad importa— es cuándo se
+   supo de él por última vez y qué llegó rechazado. */
+
+const MOTIVOS_OFFLINE = {
+  SECUENCIA_INVALIDA:                'Reenvío de algo ya recibido',
+  HORA_FUTURA:                       'Reloj del aparato adelantado',
+  FUERA_DE_VENTANA_OFFLINE:          'Más de 72 horas sin enviarse',
+  ANTERIOR_A_ULTIMA_SINCRONIZACION:  'Anterior a lo ya recibido',
+  SIN_EVENTO_PENDIENTE:              'No le tocaba marcar',
+  PIN_INVALIDO:                      'PIN incorrecto',
+  EMPLEADO_OTRA_SEDE:                'De otra sede',
+  EMPLEADO_INACTIVO:                 'Trabajador dado de baja'
+};
+
+function desdeCuando(horas) {
+  if (horas === null || horas === undefined) return 'nunca';
+  if (horas < 1)  return 'hace menos de una hora';
+  if (horas < 24) return `hace ${Math.round(horas)} h`;
+  const d = Math.round(horas / 24);
+  return `hace ${d} día${d === 1 ? '' : 's'}`;
+}
+
+async function cargarConexion() {
+  const caja = $('lista-terminales-conexion');
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+
+  const { data, error } = await sb.rpc('sincronizacion', { p_dias: 7 });
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+
+  caja.innerHTML = data.terminales.map((t) => {
+    // Un aparato emparejado que lleva más de un día callado es lo único
+    // que de verdad hay que mirar en esta pantalla.
+    const callado = t.emparejado && (t.horas_sin_senal === null || t.horas_sin_senal > 24);
+    const motivos = Object.entries(t.motivos || {});
+    return `
+    <div class="ficha" style="display:block">
+      <div style="display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap">
+        <strong style="flex:1">${esc(t.code)} · ${esc(t.sede)}</strong>
+        <span class="pastilla pastilla--${t.emparejado ? (callado ? 'inactivo' : 'activo') : 'inactivo'}">
+          ${t.emparejado ? (callado ? 'Sin señal' : 'Al día') : 'Sin vincular'}
+        </span>
+      </div>
+      <span style="font-size:.82rem;color:var(--texto-suave)">
+        ${t.aparato ? esc(t.aparato) + ' · ' : ''}Última señal ${esc(desdeCuando(t.horas_sin_senal))}
+      </span>
+      <div class="cierre-cifras">
+        <span><strong>${t.marcaciones_offline}</strong> sin conexión</span>
+        <span><strong>${t.rechazos}</strong> rechazadas</span>
+      </div>
+      ${motivos.length ? `
+        <ul class="cambios">
+          ${motivos.map(([m, n]) =>
+            `<li><b>${esc(MOTIVOS_OFFLINE[m] || m)}</b> — ${n}</li>`).join('')}
+        </ul>` : ''}
+    </div>`;
+  }).join('') || '<p class="vacio">No hay terminales visibles.</p>';
+
+  const { data: off, error: e2 } = await sb.rpc('marcaciones_offline',
+    { p_branch: esCeo() ? null : yo.branch_id, p_dias: 7 });
+  const lista = $('lista-offline');
+  if (e2) { lista.innerHTML = `<p class="vacio">${esc(traducir(e2))}</p>`; return; }
+  if (!off.filas) {
+    lista.innerHTML = '<p class="vacio">Ninguna. Todas las marcaciones llegaron en directo.</p>';
+    return;
+  }
+
+  lista.innerHTML = off.marcaciones.map((m) => `
+    <div class="ficha">
+      <span class="estado-punto" data-e="${m.estado === 'retraso' ? 'retrasado' : 'presente'}"></span>
+      <div class="ficha__cuerpo">
+        <strong>${esc(m.nombre)}</strong>
+        <span>${esc(m.sede)} · ${esc(m.terminal || '—')} · ${esc(m.evento)}</span>
+        ${Math.abs(m.desfase_seg || 0) > 600
+          ? `<span class="pastilla pastilla--pin" style="margin-top:.25rem">Reloj desviado
+             ${Math.round(m.desfase_seg / 60)} min</span>` : ''}
+      </div>
+      <div class="horas">
+        <strong>${new Date(m.registrada).toLocaleTimeString('es-VE',
+          { hour: '2-digit', minute: '2-digit' })}</strong><br>
+        ${new Date(m.fecha + 'T12:00:00').toLocaleDateString('es-VE',
+          { day: 'numeric', month: 'short' })}
+      </div>
     </div>`).join('');
 }
