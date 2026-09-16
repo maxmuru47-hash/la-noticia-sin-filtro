@@ -329,8 +329,26 @@ function olvidarDispositivo() {
 function mostrarIdentidad(r) {
   const iniciales = (r.nombre || '?').split(' ').map((p) => p[0]).slice(0, 2).join('');
   const retrato = $('retrato');
+
+  // Las iniciales primero, siempre: si la foto tarda o no carga, el
+  // trabajador ve algo en vez de un hueco. La foto las tapa cuando llega.
   retrato.textContent = iniciales.toUpperCase();
-  retrato.innerHTML = retrato.textContent;   // sin foto de ficha todavía
+  retrato.removeAttribute('data-con-foto');
+
+  if (r.foto_url) {
+    const img = new Image();
+    img.alt = '';
+    img.onload = () => {
+      // Comprobar que sigue siendo esta persona: si alguien marcó mientras
+      // la foto viajaba, pegarla ahora enseñaría la cara equivocada.
+      if ($('ident-nombre').textContent !== r.nombre) return;
+      retrato.textContent = '';
+      retrato.appendChild(img);
+      retrato.dataset.conFoto = '1';
+    };
+    img.onerror = () => { /* se quedan las iniciales */ };
+    img.src = r.foto_url;
+  }
 
   $('ident-nombre').textContent = r.nombre;
   $('ident-cargo').textContent  = r.cargo || '';

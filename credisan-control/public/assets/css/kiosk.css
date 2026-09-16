@@ -172,3 +172,12 @@ body {
 }
 .k-conexion[hidden] { display: none !important; }
 .k-conexion[data-t="enviando"] { background: rgba(255, 255, 255, .92); color: var(--morado); }
+
+/* ── Foto de ficha en la pantalla de identidad ─────────────────────── */
+/* Mientras no hay foto se ven las iniciales, que es lo que había antes.
+   Cuando llega, la tapa por completo. */
+.k-retrato[data-con-foto] { padding: 0; overflow: hidden; }
+.k-retrato img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: inherit;
+}

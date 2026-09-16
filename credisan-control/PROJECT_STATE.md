@@ -246,8 +246,13 @@ de error ahora dice lo que realmente pasó.
   si hiciera falta, se añade un límite de intentos por IP.
 - El kiosco guarda su credencial en `localStorage`. Para un aparato de mostrador
   equivale a IndexedDB; la cola offline de la Fase 6 sí necesitará IndexedDB.
-- La foto de ficha del trabajador todavía no se muestra en el terminal: se ven
-  sus iniciales. Falta el subidor de fotos en el panel.
+- ~~La foto de ficha no se muestra en el terminal.~~ **Resuelto.** En el panel,
+  cada ficha tiene «Poner foto» —en el teléfono abre la cámara directa—. Se
+  recorta en cuadrado y se encoge a 400 px **en el navegador antes de subir**:
+  una foto de teléfono son varios megas, y la pantalla de identidad del
+  terminal dura cuatro segundos. El depósito es privado, así que la función
+  del servidor emite una URL firmada de 90 s con la respuesta del PIN; la ruta
+  interna nunca viaja al terminal.
 
 ## Fase 4 — entregada
 
@@ -442,6 +447,30 @@ marcaciones de una jornada y exige que entren las cuatro.
 `node supabase/functions/generar-llaves.mjs` imprime el par. La pública va en
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
+
+## La foto de ficha
+
+Era la última deuda de la Fase 3 y cierra el requisito original: el trabajador
+marca su PIN y el terminal enseña **su nombre, su foto y su cargo**.
+
+Tres piezas, porque el depósito de fotos es privado y el terminal no tiene
+sesión de Supabase:
+
+- **Panel**: botón por trabajador; en el teléfono abre la cámara frontal
+  directamente. Recorte cuadrado centrado y escalado a 400 px en el navegador,
+  antes de subir. La ruta es `<sede>/<trabajador>.jpg`, que es lo que exige la
+  política de seguridad del depósito.
+- **Servidor**: con la respuesta del PIN emite una URL firmada de 90 segundos
+  —lo que dura la pantalla de identidad— y **borra la ruta interna** de la
+  respuesta: es un dato menos viajando a un aparato de mostrador.
+- **Terminal**: las iniciales primero siempre, y la foto las tapa cuando
+  carga. Si tarda o falla, se quedan las iniciales; nunca impide marcar. Antes
+  de pegarla comprueba que sigue siendo la misma persona en pantalla: si
+  alguien marcó mientras la imagen viajaba, enseñaría la cara equivocada.
+
+Probado en navegador con una foto apaisada de 1200×600 —como la da una cámara
+de teléfono—: sale cuadrada de 400×400, pesa 2 KB, y **el centro de la imagen
+sobrevive al recorte**, que es lo que falla cuando se recorta mal.
 
 ## El terminal funciona de verdad sin internet
 

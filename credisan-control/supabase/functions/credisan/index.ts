@@ -122,6 +122,23 @@ Deno.serve(async (peticion) => {
         const espera = Number(data?.espera_ms ?? 0);
         if (!data?.ok && espera > 0) await esperar(Math.min(espera, 5000));
 
+        // La foto de ficha vive en un depósito PRIVADO, y el terminal no
+        // tiene sesión de Supabase para leerlo. Así que se le entrega una
+        // URL firmada que vive lo que dura la pantalla de identidad: el
+        // tiempo justo para que el trabajador se vea y confirme.
+        if (data?.ok && data?.foto) {
+          try {
+            const { data: firmada } = await sb.storage
+              .from('empleados').createSignedUrl(String(data.foto), 90);
+            if (firmada?.signedUrl) data.foto_url = firmada.signedUrl;
+          } catch (_e) {
+            // Sin foto se ven las iniciales. Nunca impide marcar.
+          }
+          // La ruta interna no le hace falta al terminal, y es un dato
+          // menos viajando: se sustituye por la URL o por nada.
+          delete data.foto;
+        }
+
         delete data.espera_ms;
         return responder(data);
       }

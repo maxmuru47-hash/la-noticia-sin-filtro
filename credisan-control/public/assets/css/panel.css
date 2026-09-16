@@ -274,3 +274,9 @@
 .cambios b  { color: var(--morado); font-weight: 600; }
 .cambios s  { color: var(--texto-suave); text-decoration-color: var(--rojo); }
 .cambios i  { color: var(--negro); font-style: normal; font-weight: 600; }
+
+/* La foto de ficha dentro del círculo de iniciales */
+.ficha__inicial[data-con-foto] { padding: 0; overflow: hidden; }
+.ficha__inicial img {
+  width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit;
+}

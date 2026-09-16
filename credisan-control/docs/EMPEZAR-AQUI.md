@@ -101,13 +101,20 @@ funciona**, de punta a punta.
 ## Después ya puede usarlo de verdad
 
 1. **Personal → + Nuevo** para cada trabajador de cada sede.
-2. A cada uno, botón **PIN**: se enseña una vez, anótelo y entrégueselo.
-3. **Más → Sedes → terminal → Vincular**: da un código de 8 caracteres
+2. A cada uno, botón **Poner foto**. Desde el teléfono abre la cámara: una
+   foto de frente y ya. Es la que verá al marcar, y la que le permite a
+   usted comprobar de un vistazo que quien marcó fue quien dice el PIN.
+3. A cada uno, botón **PIN**: se enseña una vez, anótelo y entrégueselo.
+4. **Más → Sedes → terminal → Vincular**: da un código de 8 caracteres
    que vive 10 minutos.
-4. En el teléfono o tableta del mostrador, abra
+5. En el teléfono o tableta del mostrador, abra
    **control.sinfiltroconmax.com/kiosk/**, escriba el código, y ese
    aparato queda atado a esa sede para siempre.
-5. Ya se puede marcar.
+6. **Instálelo como app**: en el menú del navegador, *Añadir a pantalla de
+   inicio*. Aparece un icono llamado **Marcar** que abre directo el teclado,
+   sin barra de navegador. A partir de ahí el aparato funciona aunque se
+   caiga el internet.
+7. Ya se puede marcar.
 
 ---
 

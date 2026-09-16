@@ -582,7 +582,7 @@ async function cargarPersonal() {
   caja.innerHTML = '<p class="cargando">Cargando…</p>';
 
   let q = sb.from('employees')
-    .select('id, branch_id, internal_code, first_name, last_name, national_id, position, hired_on, is_active, pin_updated_at')
+    .select('id, branch_id, internal_code, first_name, last_name, national_id, position, hired_on, is_active, pin_updated_at, photo_path')
     .order('last_name');
   const filtro = $('filtro-sede').value;
   if (filtro) q = q.eq('branch_id', filtro);
@@ -598,7 +598,7 @@ async function cargarPersonal() {
 
   caja.innerHTML = data.map((e) => `
     <div class="ficha">
-      <div class="ficha__inicial">${esc((e.first_name[0] || '') + (e.last_name[0] || ''))}</div>
+      <div class="ficha__inicial" data-retrato="${e.id}">${esc((e.first_name[0] || '') + (e.last_name[0] || ''))}</div>
       <div class="ficha__cuerpo">
         <strong>${esc(e.first_name)} ${esc(e.last_name)}</strong>
         <span>${esc(e.position)} · ${esc(nombreSede(e.branch_id))} · ${esc(e.internal_code)}</span>
@@ -611,6 +611,7 @@ async function cargarPersonal() {
       ${puedeEditar() ? `<div style="display:grid;gap:.35rem">
         <button class="ficha__accion" data-editar="${e.id}">Editar</button>
         <button class="ficha__accion" data-pin="${e.id}">${e.pin_updated_at ? 'Nuevo PIN' : 'Dar PIN'}</button>
+        <button class="ficha__accion" data-foto="${e.id}">${e.photo_path ? 'Cambiar foto' : 'Poner foto'}</button>
       </div>` : ''}
     </div>`).join('');
 
@@ -618,6 +619,91 @@ async function cargarPersonal() {
     b.addEventListener('click', () => abrirEmpleado(data.find((x) => x.id === b.dataset.editar))));
   caja.querySelectorAll('[data-pin]').forEach((b) =>
     b.addEventListener('click', () => generarPin(data.find((x) => x.id === b.dataset.pin), b)));
+  caja.querySelectorAll('[data-foto]').forEach((b) =>
+    b.addEventListener('click', () => pedirFoto(data.find((x) => x.id === b.dataset.foto), b)));
+
+  // Las fotos que ya existen, cada una con su URL firmada. Se piden
+  // después de pintar la lista para que la lista salga ya.
+  data.filter((e) => e.photo_path).forEach((e) => pintarRetrato(e));
+}
+
+/* ── Foto de ficha ──────────────────────────────────────────────────
+   Es la que ve el trabajador en el terminal al marcar, y la que permite
+   comprobar de un vistazo que quien marcó fue quien dice el PIN. */
+
+async function pintarRetrato(e) {
+  const caja = document.querySelector(`[data-retrato="${e.id}"]`);
+  if (!caja || !e.photo_path) return;
+  // El depósito es privado: no hay URL fija, hay que firmarla cada vez.
+  const { data } = await sb.storage.from('empleados').createSignedUrl(e.photo_path, 600);
+  if (!data?.signedUrl) return;
+  const img = new Image();
+  img.alt = '';
+  img.onload = () => { caja.textContent = ''; caja.appendChild(img); caja.dataset.conFoto = '1'; };
+  img.src = data.signedUrl;
+}
+
+/* La foto se encoge AQUÍ, antes de subir. Una cámara de teléfono da 4 MB
+   por retrato; en el mostrador eso serían varios segundos de espera cada
+   vez que alguien marca, y la pantalla de identidad dura cuatro. */
+function encoger(archivo, lado = 400) {
+  return new Promise((listo, falla) => {
+    const img = new Image();
+    img.onload = () => {
+      // Recorte cuadrado centrado del original y escalado, en una sola
+      // operación: el terminal la enseña dentro de un círculo, así que
+      // una foto apaisada tiene que perder los lados, no deformarse.
+      const corte = Math.min(img.width, img.height);
+      const sx = Math.round((img.width  - corte) / 2);
+      const sy = Math.round((img.height - corte) / 2);
+
+      const lienzo = document.createElement('canvas');
+      lienzo.width = lienzo.height = Math.min(lado, corte);
+      lienzo.getContext('2d')
+        .drawImage(img, sx, sy, corte, corte, 0, 0, lienzo.width, lienzo.height);
+
+      URL.revokeObjectURL(img.src);
+      lienzo.toBlob((b) => b ? listo(b) : falla(new Error('no se pudo convertir')),
+                    'image/jpeg', 0.85);
+    };
+    img.onerror = () => falla(new Error('no es una imagen'));
+    img.src = URL.createObjectURL(archivo);
+  });
+}
+
+async function pedirFoto(emp, boton) {
+  const entrada = document.createElement('input');
+  entrada.type = 'file';
+  entrada.accept = 'image/*';
+  entrada.capture = 'user';          // en el teléfono abre la cámara directa
+  entrada.addEventListener('change', async () => {
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+
+    const texto = boton.textContent;
+    ocupado(boton, true, texto);
+    try {
+      const recortada = await encoger(archivo);
+      // La ruta manda: la política de seguridad sólo deja escribir dentro
+      // de la carpeta de la sede a la que se tiene acceso.
+      const ruta = `${emp.branch_id}/${emp.id}.jpg`;
+      const { error } = await sb.storage.from('empleados')
+        .upload(ruta, recortada, { contentType: 'image/jpeg', upsert: true });
+      if (error) throw error;
+
+      const { error: e2 } = await sb.from('employees')
+        .update({ photo_path: ruta }).eq('id', emp.id);
+      if (e2) throw e2;
+
+      avisoPanel('Foto guardada. El trabajador la verá al marcar.');
+      cargarPersonal();
+    } catch (err) {
+      avisoPanel(traducir(err), 'error');
+    } finally {
+      ocupado(boton, false, texto);
+    }
+  });
+  entrada.click();
 }
 
 $('btn-nuevo-empleado').addEventListener('click', () => abrirEmpleado(null));

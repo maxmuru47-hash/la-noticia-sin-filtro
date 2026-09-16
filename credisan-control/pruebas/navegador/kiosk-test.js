@@ -42,6 +42,9 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
       if (cuerpo.pin !== '481902') return R({ ok: false, motivo: 'PIN_INVALIDO' });
       return R({ ok: true, empleado_id: 'e1', nombre: 'Ana Pérez', cargo: 'Cajera',
                  sede: 'Maracaibo', evento: 'entrada', es_llegada: true,
+                 // URL firmada de la foto de ficha: el depósito es privado,
+                 // así que la emite la función del servidor, no el terminal.
+                 foto_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
                  ticket: 'tk-1', ticket_vence: new Date(Date.now() + 60000).toISOString() });
     }
     if (cuerpo.accion === 'confirmar') {
@@ -86,6 +89,11 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
   console.log('5 · identidad:', (await p.textContent('#ident-nombre')).trim(),
               '|', (await p.textContent('#ident-evento')).trim());
   console.log('   cámara encendida:', await p.locator('#camara').isVisible());
+  await p.waitForTimeout(400);
+  console.log('   foto de ficha visible:', await p.locator('#retrato img').isVisible(),
+              '| (antes se veían sólo las iniciales)');
+  console.log('   ninguna ruta interna viaja al terminal:',
+              !JSON.stringify(enviado).includes('photo_path'));
   await p.screenshot({ path: 'k3-identidad.png' });
 
   // Confirmar
