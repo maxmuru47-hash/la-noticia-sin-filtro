@@ -13,7 +13,7 @@ Proyecto **independiente**, no reutilizar el de La Noticia Sin Filtro.
 |---|---|
 | Nombre | `credisan-control` |
 | Región | `us-east-1` (la más cercana a Venezuela) |
-| Plan | Pro recomendado (Storage, respaldos diarios y `pg_cron`) |
+| Plan | FREE alcanza para arrancar. Ojo: el FREE **no hace respaldos**; los hace el flujo nocturno al VPS |
 
 Guarde la contraseña de la base de datos en un gestor de claves. No va al repositorio.
 
@@ -100,7 +100,11 @@ desde el panel, con auditoría.
 - **Authentication → Settings**: desactive «Enable email signups».
   Nadie se registra solo: los usuarios los crea el CEO.
 - Active MFA para las cuentas de CEO y administradoras.
-- **Database → Backups**: verifique que el respaldo diario esté activo.
+- **Database → Backups**: en el plan **FREE no hay respaldos automáticos**, y
+  la pantalla lo dice: «No backups». Por eso el proyecto trae los suyos: el
+  flujo «Respaldo diario CrediSan» deja cada noche una copia completa en el
+  VPS. Si algún día se pasa al plan Pro, se activan además los de Supabase y
+  quedan las dos redes, que no sobra ninguna.
 
 ## 9. Comprobación final
 

@@ -186,7 +186,7 @@ Se planta antes de conectarse a la base, así que no llega a tocarla.
 4. **La copia que se guarda es sólo la estructura**, sin una sola fila. Sacar
    los nombres, cédulas y horarios de su personal a un artefacto de GitHub
    sería llevárselos de donde deben estar. De los datos se encarga el respaldo
-   de Supabase.
+   nocturno que se guarda en su VPS (más abajo).
 
 ## Qué hace en cada ejecución
 
@@ -201,3 +201,76 @@ Probado contra una base que replica el estado real de producción —fases 1 a 3
 aplicadas, con personal y salarios cargados—: la llevó hasta la fase 6 con los
 doce trabajadores y sus doce salarios intactos, y una segunda pasada completa
 no cambió absolutamente nada.
+
+
+---
+
+# El respaldo de la base, cada noche
+
+El plan gratuito de Supabase **no hace respaldos automáticos**. Dicho sin
+rodeos: si mañana esa base desapareciera, desaparecería con ella el registro
+de quién entró y a qué hora desde el primer día. No hay botón de deshacer.
+
+Por eso hay un flujo, **«Respaldo diario CrediSan»**, que cada noche saca una
+copia completa y la deja en su VPS.
+
+## Cómo funciona, en una frase
+
+A la 1:10 de la madrugada (hora de Caracas), GitHub le pide a Supabase una
+copia de la base y la manda **por una tubería** directa al servidor de usted,
+a `/opt/proyectos/credisan-control/respaldos/`. Se guardan los **14 últimos
+días**; el más viejo se borra solo.
+
+## Lo que hay que hacer una vez
+
+Nada nuevo, si ya publicó el sitio: usa los mismos secretos que el despliegue
+(`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT`) más `SUPABASE_DB_URL`, que
+es el mismo del flujo de la base de datos. Si falta alguno, el flujo no
+intenta nada: lo dice y se detiene.
+
+## Por qué está hecho así
+
+Este archivo es **el más sensible de todo el proyecto**: lleva nombres,
+cédulas, salarios y el historial completo de entradas y salidas. Un respaldo
+mal guardado es una filtración con horario. De ahí cada decisión:
+
+| Decisión | Por qué |
+|---|---|
+| Se guarda **fuera** de la carpeta que publica Caddy | Si cayera dentro, las cédulas y los salarios estarían a un clic en internet |
+| Se comprueba por la ruta **antes** de escribir | Más vale detenerse que escribir en el sitio equivocado |
+| Y después **se pide por internet** para ver que no responde | La teoría se equivoca; la prueba, no |
+| Permisos `600` | Ni el usuario que sirve la web puede abrirlo |
+| El volcado **nunca toca el disco de GitHub** | El runner es una máquina prestada que se apaga; no es sitio para esto |
+| Se comprueba que el archivo esté íntegro y lleve las tablas | Un respaldo corrupto que nadie mira es peor que no tener ninguno: da falsa tranquilidad justo hasta el día que hace falta |
+
+Si cualquiera de esas comprobaciones falla, el flujo sale en rojo y usted se
+entera esa misma mañana, no el día de la desgracia.
+
+## Qué lleva dentro y qué no
+
+**Sí:** las tablas con el personal, las marcaciones, los horarios, los cierres,
+la auditoría, y los permisos que esconden el salario de quien no debe verlo.
+
+**No:** las fotos de evidencia (viven aparte, en el almacén de Supabase, y se
+borran solas a los 180 días) ni los usuarios que entran al panel (esos se
+vuelven a invitar por correo en un minuto).
+
+## Si algún día hay que usarlo
+
+Ojalá no, pero por si acaso, y en orden:
+
+1. Crear un proyecto nuevo en Supabase.
+2. Correr el flujo **«Poner en marcha CrediSan»** para dejar la base instalada.
+3. Descargar del VPS el respaldo del día que se quiera recuperar:
+   `scp usuario@servidor:/opt/proyectos/credisan-control/respaldos/credisan-AAAAMMDD-HHMM.sql.gz .`
+4. Restaurarlo:
+   `gunzip -c credisan-AAAAMMDD-HHMM.sql.gz | psql "<cadena del Session pooler>"`
+5. Volver a invitar a los usuarios del panel.
+
+El archivo trae sus propias órdenes de borrado antes de cada tabla, así que
+restaurar sobre una base ya instalada la deja exactamente como estaba la noche
+de la copia, sin restos de en medio.
+
+> Una advertencia honesta: un respaldo que nunca se ha probado es una
+> suposición. Cuando haya un rato tranquilo, vale la pena restaurar uno en un
+> proyecto de prueba y verlo funcionar. Es la única manera de saber.

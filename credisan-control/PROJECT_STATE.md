@@ -695,13 +695,16 @@ bloquean; la que sí lo prueba escribe un `env.js` de verdad y lo restaura.
 
 ## Despliegue automático
 
-Dos flujos de GitHub, ambos en `.github/workflows/`:
+Los flujos de GitHub, todos en `.github/workflows/`:
 
-| Flujo | Qué publica | Se dispara con |
+| Flujo | Qué hace | Se dispara con |
 |---|---|---|
-| `desplegar-credisan.yml` | La web al VPS por SSH | cambios en `public/**` |
-| `desplegar-funcion.yml` | La Edge Function a Supabase | cambios en `supabase/functions/**` |
-| `migrar-base.yml` | La estructura de la base | cambios en `migrations/**` o `instalador/**` |
+| `desplegar-credisan.yml` | Publica la web al VPS por SSH | cambios en `public/**` |
+| `desplegar-funcion.yml` | Publica la Edge Function a Supabase | cambios en `supabase/functions/**` |
+| `migrar-base.yml` | Aplica la estructura de la base | cambios en `migrations/**` o `instalador/**` |
+| `poner-en-marcha.yml` | Lanza los tres anteriores en orden | a mano, una vez |
+| `mantenimiento.yml` | Recalcula el día y purga evidencia vencida | cada noche, 00:40 Caracas |
+| `respaldo.yml` | Copia la base al VPS | cada noche, 01:10 Caracas |
 
 El segundo también se encarga de los secretos, con una regla que manda sobre
 todo lo demás: **un secreto que ya existe no se toca nunca**. Los crea sólo si
@@ -742,7 +745,7 @@ Y no se confía en que siga siendo así. Cuatro barreras, en este orden:
    cualquiera de los dos, el flujo falla en rojo.
 4. **La copia guardada es sólo la estructura**, sin una fila. Sacar nombres,
    cédulas y horarios a un artefacto de GitHub sería llevárselos de donde deben
-   estar; de los datos se encarga el respaldo de Supabase.
+   estar; de los datos se encarga el respaldo nocturno al VPS.
 
 No hay registro de migraciones que pueda desincronizarse: los archivos son
 idempotentes y se aplican todos en orden, así que el flujo **converge desde
@@ -753,6 +756,41 @@ con doce trabajadores y sus salarios—: la llevó a la fase 6 con todo intacto,
 una segunda pasada completa no cambió nada. La barrera antidestrucción se probó
 plantando un archivo con `drop table employees`: el flujo se detuvo antes de
 conectarse.
+
+## El respaldo nocturno
+
+El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:
+la pantalla de Backups dice literalmente «No backups». Sin nada más, una
+pérdida de esa base se lleva el registro de quién trabajó y cuándo desde el
+primer día, que es exactamente lo que este sistema existe para guardar.
+
+`respaldo.yml` saca cada noche una copia completa de los esquemas `public` y
+`app` y la deja en el VPS del cliente, en `respaldos/`, conservando catorce
+días.
+
+Ese archivo es el más sensible del proyecto —nombres, cédulas, salarios y todo
+el historial—, así que las decisiones no son de comodidad:
+
+- **El volcado nunca toca el disco del runner.** Va por una tubería
+  `pg_dump | gzip | ssh` directa al servidor. La máquina de GitHub es prestada
+  y efímera; no es sitio para la nómina de nadie.
+- **Se comprueba dos veces que no quede publicado**: por la ruta, antes de
+  escribir, y pidiendo el archivo por internet después. La primera es teoría;
+  la segunda es la que de verdad cierra el asunto.
+- **Se verifica que el respaldo sirva**: que el `gzip` esté íntegro, que pese
+  algo real y que lleve dentro las tres tablas que importan. Un respaldo
+  corrupto que nadie mira es peor que no tener ninguno, porque da tranquilidad
+  justo hasta el día que hace falta. Probado contra los cuatro casos malos
+  —archivo corrupto, archivo diminuto, tabla faltante y archivo inexistente—:
+  los cuatro salen en rojo.
+- **Se conservan los permisos por columna** (se dejó fuera `--no-privileges`):
+  son los que esconden el salario de quien no debe verlo, y un respaldo que
+  volviera sin ellos volvería con esa puerta abierta.
+
+Fuera quedan las fotos de evidencia, que viven en el almacén de Supabase y se
+borran solas a los 180 días, y los usuarios del panel, que se reinvitan por
+correo. Ambas cosas están dichas en el resumen que deja el flujo, para que
+nadie descubra la ausencia el día equivocado.
 
 ## Estado: las seis fases entregadas
 
