@@ -109,16 +109,46 @@ jobs:
           # Se quitan los comentarios antes de mirar: en este proyecto se
           # explica mucho, y la palabra «delete» aparece en más de una
           # explicación sin ser una instrucción.
+          # Qué se prohíbe y qué no, y por qué:
+          #
+          #   PROHIBIDO SIEMPRE · tirar una tabla, un esquema, una base o
+          #   una columna, y vaciar una tabla. Ahí se pierden datos y no
+          #   hay vuelta atrás.
+          #
+          #   PERMITIDO · `drop policy`, `drop constraint` y
+          #   `drop function`. Quitan una REGLA, no un dato, y cambiar
+          #   una regla es justo lo que hacen estas actualizaciones. Lo
+          #   que no se permite es `drop column`, que sí se lleva datos
+          #   por delante aunque vaya dentro de un `alter table`.
+          #
+          #   BORRAR FILAS · sólo de las tablas de esta lista, que
+          #   guardan PERMISOS, no historia. Borrar una fila de
+          #   socio_branches es lo que pasa cuando usted desmarca una
+          #   sede: tiene que poder. Borrar una de `employees` o de
+          #   `attendance_events` no, jamás, por ningún motivo.
+          BORRABLES='socio_branches'
+
           sospechoso=0
           for f in supabase/instalador/ACTUALIZAR-*.sql; do
             sin_comentarios=$(sed 's/--.*//' "$f")
-            if echo "$sin_comentarios" | grep -qiE 'drop +(table|schema|column|database)|truncate|delete +from|alter +table[^;]*drop'; then
-              echo "::error::$f contiene una instrucción destructiva. No se aplica nada."
+
+            if echo "$sin_comentarios" | grep -qiE 'drop +(table|schema|database|column)|truncate|alter +table[^;]*drop +column'; then
+              echo "::error::$f tira una tabla, una columna o vacía datos. No se aplica nada."
               sospechoso=1
             fi
+
+            # Cada `delete from` se mira por separado, con su tabla.
+            for tabla in $(echo "$sin_comentarios" \
+                           | grep -oiE 'delete +from +[a-z_][a-z0-9_.]*' \
+                           | awk '{print tolower($NF)}' | sed 's/^public\.//' | sort -u); do
+              if ! echo " $BORRABLES " | grep -q " $tabla "; then
+                echo "::error::$f borra filas de «$tabla», que no es una tabla de permisos. No se aplica nada."
+                sospechoso=1
+              fi
+            done
           done
           [ "$sospechoso" = 0 ] || exit 1
-          echo "Los archivos sólo crean o reemplazan funciones. Nada que destruir."
+          echo "Los archivos no tiran nada ni borran historia. Se puede aplicar."
 
           # El orden de aplicación TIENE que coincidir con el orden de
           # las fases: cada archivo se planta si falta la fase anterior,
