@@ -535,3 +535,18 @@ setInterval(intentarSincronizar, 120000);
 // Al arrancar: pintar el estado y vaciar lo que haya quedado de ayer.
 pintarConexion();
 setTimeout(intentarSincronizar, 1500);
+
+/* ── El terminal se guarda a sí mismo ───────────────────────────────
+   Esto faltaba, y sin ello la Fase 6 no servía de nada: el service
+   worker sólo se registraba desde la portada, así que un aparato de
+   mostrador —que siempre abre esta página y ninguna otra— nunca llegaba
+   a guardar nada. Sin internet no cargaba ni el teclado.
+
+   El archivo vive en la raíz para poder cubrir todo el sitio; desde
+   aquí se registra subiendo un nivel y fijando ese alcance. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('../sw.js', { scope: '/' })
+      .catch(() => { /* sin service worker se marca igual, pero sólo con red */ });
+  });
+}

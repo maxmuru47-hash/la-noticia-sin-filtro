@@ -134,7 +134,7 @@ los sobres con una llave privada real.
 | 3 | Offline no puede confirmar identidad en pantalla | Por diseño: cachear credenciales en el dispositivo sería peor |
 | 4 | `pg_cron` puede no estar disponible según el plan | La migración avisa; alternativa documentada |
 | 5 | `next_expected` sólo mira el día local en curso | Suficiente con jornadas que no cruzan medianoche. Revisar si alguna sede lo hace |
-| 6 | Sin fuentes autohospedadas todavía | **Sigue pendiente.** Panel y kiosco cargan Poppins desde Google Fonts; el kiosco debería funcionar sin salir a internet |
+| 6 | ~~Sin fuentes autohospedadas~~ | **Resuelto.** Poppins se sirve desde el propio servidor (52 KB, sólo subconjuntos latinos). El sistema no pide nada a Google |
 | 7 | Edge Function escrita pero **no desplegada** | `supabase/functions/credisan/index.ts` está lista; falta publicarla y crear el secreto `CREDISAN_PIN_PEPPER`. Hasta entonces no hay PIN, ni emparejamiento, ni marcación |
 | 8 | El tablero del período depende de `attendance_daily` para las ausencias | Mitigado: si no se ha calculado, el panel lo dice en vez de enseñar un cero falso. Con `pg_cron` activo se resuelve solo |
 
@@ -442,6 +442,46 @@ marcaciones de una jornada y exige que entren las cuatro.
 `node supabase/functions/generar-llaves.mjs` imprime el par. La pública va en
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
+
+## El terminal funciona de verdad sin internet
+
+Al cerrar la Fase 6 quedó un fallo de los que sólo se ven al juntar las
+piezas: **el service worker nunca se actualizó**. Su propio comentario decía
+«nada relacionado con marcaciones se cachea: eso llega en la fase 6», y la
+Fase 6 llegó sin volver aquí.
+
+Consecuencia: el terminal no guardaba su propia página ni sus módulos, y
+—peor— **ni siquiera registraba el service worker**, porque eso sólo lo hacía
+la portada y un aparato de mostrador nunca abre la portada. Sin internet no
+cargaba nada. La cola que se había construido para guardar marcaciones no
+llegaba a existir.
+
+Corregido en tres frentes:
+
+- El kiosco **se registra a sí mismo** y precachea su concha entera: HTML, los
+  tres módulos, estilos, tipografías y `config/env.js`. Uno a uno y no con
+  `addAll`, porque con `addAll` un solo archivo que falte tira la instalación
+  completa y el terminal se queda sin nada.
+- Los documentos pasaron a **guardar copia**. Antes eran «red primero con
+  respaldo en caché», pero nadie guardaba nada en esa caché: el respaldo nunca
+  tenía qué devolver.
+- **Poppins se sirve desde el propio servidor.** Un terminal pensado para
+  funcionar sin red no puede depender de Google para su tipografía.
+
+Y el kiosco tiene **manifiesto propio**: instalado en la tableta se llama
+«Marcar» y el icono abre directo el teclado, no la portada.
+
+Probado con `kiosk-sinred-test.js`, que carga el terminal, **apaga la red del
+todo**, recarga y exige que arranque con su teclado completo, su tipografía y
+su configuración intacta —incluida la llave pública, sin la cual no podría
+cifrar el PIN—.
+
+Esa corrección destapó otra: `kiosk-test.js` empezó a decir que el terminal
+perdía su vinculación al recargar. No era eso. El service worker hace sus
+**propias** peticiones, que no pasan por los simuladores de Playwright, así
+que cacheaba el `env.js` real del repositorio —vacío— en vez del simulado.
+Las pruebas que simulan configuración y no prueban el service worker ahora lo
+bloquean; la que sí lo prueba escribe un `env.js` de verdad y lo restaura.
 
 ## Despliegue automático
 

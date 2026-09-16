@@ -37,6 +37,7 @@ on:
       - 'credisan-control/supabase/instalador/**'
       - '.github/workflows/migrar-base.yml'
   workflow_dispatch:
+  workflow_call:      # lo llama «Poner en marcha CrediSan»
 
 concurrency:
   group: migraciones-credisan     # jamás dos a la vez sobre la misma base

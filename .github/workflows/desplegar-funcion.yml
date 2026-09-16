@@ -32,6 +32,7 @@ on:
       - 'credisan-control/supabase/functions/**'
       - '.github/workflows/desplegar-funcion.yml'
   workflow_dispatch:
+  workflow_call:      # lo llama «Poner en marcha CrediSan»
 
 concurrency:
   group: funcion-credisan

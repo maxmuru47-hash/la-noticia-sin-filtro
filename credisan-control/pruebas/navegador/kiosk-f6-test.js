@@ -43,7 +43,14 @@ const ok = (c, t, extra = '') => {
   });
   const ctx = await b.newContext({
     viewport: { width: 414, height: 820 }, deviceScaleFactor: 2,
-    permissions: ['camera'], baseURL: 'http://localhost:8099'
+    permissions: ['camera'], baseURL: 'http://localhost:8099',
+    // El service worker hace sus PROPIAS peticiones, que no pasan por el
+    // simulador de abajo: cachearía el env.js real del repositorio —vacío—
+    // en vez del simulado, y esta prueba diría que el terminal perdió su
+    // vinculación cuando en realidad perdió su configuración de mentira.
+    // Aquí se prueba la cola sin conexión; del service worker se encarga
+    // kiosk-sinred-test.js, que sí lo enciende a propósito.
+    serviceWorkers: 'block'
   });
   const p = await ctx.newPage();
   const errs = []; const enviado = [];

@@ -11,7 +11,14 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
   });
   const ctx = await b.newContext({
     viewport: { width: 414, height: 820 }, deviceScaleFactor: 2,
-    permissions: ['camera'], baseURL: 'http://localhost:8099'
+    permissions: ['camera'], baseURL: 'http://localhost:8099',
+    // El service worker hace sus PROPIAS peticiones, que no pasan por el
+    // simulador de abajo: cachearía el env.js real del repositorio —vacío—
+    // en vez del simulado, y esta prueba diría que el terminal perdió su
+    // vinculación cuando en realidad perdió su configuración de mentira.
+    // Aquí se prueba el flujo en línea; del service worker se encarga
+    // kiosk-sinred-test.js, que sí lo enciende a propósito.
+    serviceWorkers: 'block'
   });
   const p = await ctx.newPage();
   const errs = []; const enviado = [];
@@ -99,9 +106,25 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
   console.log('8 · volvió al teclado solo:', await p.locator('#p-pin').isVisible());
 
   // Al recargar recuerda el dispositivo
-  await p.reload({ waitUntil: 'domcontentloaded' });
-  await p.waitForTimeout(500);
+  await p.reload({ waitUntil: 'load' });
+  await p.waitForTimeout(1200);
   console.log('9 · tras recargar sigue vinculado:', await p.locator('#p-pin').isVisible());
+  console.log('   almacenamiento:', await p.evaluate(() => JSON.stringify({
+    terminal: localStorage.getItem('credisan.terminal'),
+    token: localStorage.getItem('credisan.token') ? '(presente)' : null,
+    sede: localStorage.getItem('credisan.sede')
+  })));
+  console.log('   config que ve la página:', await p.evaluate(() =>
+    JSON.stringify(window.CREDISAN_ENV)));
+  console.log('   env.js en el caché del SW:', await p.evaluate(async () => {
+    try {
+      const c = await caches.open('credisan-v2');
+      const r = await c.match('/config/env.js');
+      return r ? (await r.text()).slice(0, 60) : '(no está)';
+    } catch (e) { return 'error: ' + e.message; }
+  }));
+  console.log('   pantalla visible:', await p.evaluate(() =>
+    [...document.querySelectorAll('.pantalla')].filter((x) => !x.hidden).map((x) => x.id).join(',') || 'ninguna'));
 
   console.log('errores JS:', errs.length ? errs : 'ninguno');
   await b.close();

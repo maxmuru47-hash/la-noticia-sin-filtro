@@ -1,0 +1,78 @@
+# =====================================================================
+# CrediSan Control · poner el sistema en marcha
+# =====================================================================
+# Un solo botón que hace, en el orden correcto, lo que de otro modo son
+# dos: poner la base al día y publicar la función del servidor.
+#
+# Existe por una razón práctica: quien lo va a pulsar no tiene por qué
+# saber que la base va antes que la función. Que el orden lo sepa el
+# sistema, no la persona.
+#
+# No repite nada: llama a los otros dos flujos, que siguen existiendo
+# por separado para cuando haga falta lanzar sólo uno.
+# =====================================================================
+
+name: Poner en marcha CrediSan
+
+on:
+  workflow_dispatch:
+
+jobs:
+  base:
+    name: 1 · Poner la base al día
+    uses: ./.github/workflows/migrar-base.yml
+    secrets: inherit
+
+  funcion:
+    name: 2 · Publicar la función del servidor
+    needs: base        # la función necesita la base ya migrada
+    uses: ./.github/workflows/desplegar-funcion.yml
+    secrets: inherit
+
+  listo:
+    name: 3 · Resumen
+    needs: [base, funcion]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decir cómo quedó
+        run: |
+          base="${{ needs.base.result }}"
+          fun="${{ needs.funcion.result }}"
+
+          if [ "$base" = "success" ] && [ "$fun" = "success" ]; then
+            {
+              echo "## El sistema está en marcha"
+              echo ""
+              echo "Base de datos al día y función del servidor publicada."
+              echo ""
+              echo "### Compruébelo usted mismo"
+              echo ""
+              echo "Entre a [el panel](https://control.sinfiltroconmax.com/panel/) y:"
+              echo ""
+              echo "1. Vaya a **Personal** y pulse el botón **PIN** de cualquier trabajador."
+              echo "2. Si sale un PIN de seis dígitos, **todo el circuito funciona**."
+              echo ""
+              echo "Ese es el paso que lo prueba todo de una vez: el panel habla con la"
+              echo "base, la base con la función del servidor, y la función tiene sus llaves."
+              echo ""
+              echo "Siguiente: dar de alta al personal y vincular los terminales."
+              echo "Está explicado en \`docs/EMPEZAR-AQUI.md\`."
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            {
+              echo "## Faltó algo"
+              echo ""
+              echo "| Paso | Cómo quedó |"
+              echo "|---|---|"
+              echo "| Base de datos | \`$base\` |"
+              echo "| Función del servidor | \`$fun\` |"
+              echo ""
+              echo "Abra el paso que no quedó en verde: ahí está escrito en castellano"
+              echo "qué pasó y qué revisar."
+              echo ""
+              echo "Si el fallo fue en la base, **no quedó nada a medias**: cada archivo"
+              echo "se aplica en una sola transacción."
+            } >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
