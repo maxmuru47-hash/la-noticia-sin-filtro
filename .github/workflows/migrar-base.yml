@@ -33,6 +33,9 @@
 # fallo de configuración ni de permisos; es cómo funciona GitHub. Hasta
 # que estos flujos lleguen a la rama principal, la manera de dispararlos
 # es empujar un cambio.
+#
+# (Primera migración real lanzada así el 16 de septiembre de 2026, una vez
+# puesta la conexión a la base.)
 # =====================================================================
 
 name: Migrar base CrediSan
