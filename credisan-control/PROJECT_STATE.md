@@ -132,11 +132,11 @@ los sobres con una llave privada real.
 | 1 | Un trabajador puede marcar por otro si conoce su PIN | Asumido. La foto es la prueba. Biometría sería otra decisión |
 | 2 | Revocar un rol no invalida el JWT vivo (30 min) | Mitigado con `is_active` bloqueando la renovación |
 | 3 | Offline no puede confirmar identidad en pantalla | Por diseño: cachear credenciales en el dispositivo sería peor |
-| 4 | `pg_cron` puede no estar disponible según el plan | La migración avisa; alternativa documentada |
+| 4 | ~~`pg_cron` puede no estar disponible~~ | **Resuelto.** El flujo `mantenimiento.yml` corre los cuatro trabajos cada noche desde GitHub. Si `pg_cron` está activo es una red de seguridad; si no, es lo único que los corre |
 | 5 | `next_expected` sólo mira el día local en curso | Suficiente con jornadas que no cruzan medianoche. Revisar si alguna sede lo hace |
 | 6 | ~~Sin fuentes autohospedadas~~ | **Resuelto.** Poppins se sirve desde el propio servidor (52 KB, sólo subconjuntos latinos). El sistema no pide nada a Google |
 | 7 | Edge Function escrita pero **no desplegada** | `supabase/functions/credisan/index.ts` está lista; falta publicarla y crear el secreto `CREDISAN_PIN_PEPPER`. Hasta entonces no hay PIN, ni emparejamiento, ni marcación |
-| 8 | El tablero del período depende de `attendance_daily` para las ausencias | Mitigado: si no se ha calculado, el panel lo dice en vez de enseñar un cero falso. Con `pg_cron` activo se resuelve solo |
+| 8 | El tablero del período depende de `attendance_daily` para las ausencias | **Resuelto.** El mantenimiento nocturno lo materializa. Y si una noche fallara, el panel sigue diciendo que no está calculado en vez de enseñar un cero falso |
 
 ## Pendiente antes de producción
 
@@ -447,6 +447,54 @@ marcaciones de una jornada y exige que entren las cuatro.
 `node supabase/functions/generar-llaves.mjs` imprime el par. La pública va en
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
+
+## El sistema se mantiene solo
+
+Cuatro trabajos tenían que correr cada noche para que los números del día
+siguiente fueran ciertos —materializar el día, cerrar el anterior, los lunes
+la semana, e higiene—. Estaban escritos desde la Fase 1 **para `pg_cron`**, una
+extensión que depende del plan de Supabase. Si no está disponible, nada de eso
+ocurre nunca: las ausencias no se calculan solas.
+
+`mantenimiento.yml` los corre desde GitHub a las 00:40 de Caracas. Si `pg_cron`
+está activo es una red de seguridad —los trabajos son idempotentes— y si no lo
+está, es lo único que los mantiene al día. El resumen dice cuál de los dos
+casos es, para no dejarlo a la imaginación.
+
+Comprobado contra una base real: los cuatro corren, repetirlos no cambia nada,
+y —lo que importaba— **el recálculo nocturno no pisa un cierre que alguien ya
+revisó**. Al escribir esa prueba salió otra confirmación: no se puede marcar
+una semana como revisada sin decir quién la revisó, porque la restricción de
+la tabla lo impide.
+
+### La purga de fotografías
+
+La retención de 180 días era un compromiso con los trabajadores. El motor
+existía desde la Fase 1 —`evidence_due_for_purge`, `confirm_evidence_purged`—
+pero vive en el esquema `app`, que PostgREST no publica, así que la función del
+servidor **no podía llamarlo**. La promesa no se cumplía sola y las fotografías
+se acumulaban indefinidamente.
+
+Añadidos los dos puentes y la acción `purgar`, que sólo se puede invocar con la
+llave de servicio. Se confirma **únicamente lo que de verdad se borró**: si
+Storage falla con un archivo, ese registro queda pendiente y se reintenta.
+Decir que se purgó algo que sigue ahí sería peor que no purgarlo.
+
+Se borra el archivo. La marcación, su hora, su clasificación y su auditoría
+permanecen: lo que caduca es la imagen de la cara de una persona, no el
+registro de que trabajó.
+
+## La función del servidor se verifica antes de publicarse
+
+Nunca la había compilado. Al hacerlo aparecieron tres errores de tipos en el
+criptosistema —`Uint8Array<ArrayBufferLike>` donde WebCrypto espera un
+`BufferSource`—. En ejecución funcionaba, y está probado que sí, pero el código
+debe ser correcto también para quien lo compile.
+
+Corregido reservando el buffer explícitamente, y el despliegue ahora **compila
+la función antes de publicarla**: `supabase functions deploy` empaqueta sin
+comprobar tipos, así que un error se habría descubierto en producción, con el
+terminal delante de un trabajador.
 
 ## La evidencia fotográfica ya se puede consultar
 

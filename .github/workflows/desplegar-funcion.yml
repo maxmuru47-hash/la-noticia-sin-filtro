@@ -83,6 +83,28 @@ jobs:
             echo "vps=no" >> $GITHUB_OUTPUT
           fi
 
+      # Antes de publicar nada: ¿compila? `supabase functions deploy`
+      # empaqueta sin comprobar tipos, así que un error se descubriría en
+      # producción, con el terminal delante de un trabajador.
+      - name: Comprobar que la función compila
+        if: steps.credenciales.outputs.listas == 'si'
+        run: |
+          cat > /tmp/shims.d.ts <<'TS'
+          declare const Deno: {
+            env: { get(k: string): string | undefined },
+            serve(h: (r: Request) => Response | Promise<Response>): void
+          };
+          declare module 'https://esm.sh/@supabase/supabase-js@2.45.4' {
+            export function createClient(...a: any[]): any;
+          }
+          TS
+          cp supabase/functions/credisan/index.ts /tmp/fn.ts
+          npx --yes typescript@5 tsc --noEmit --strict false \
+            --target ES2022 --lib ES2022,DOM --module ESNext \
+            --moduleResolution bundler --skipLibCheck \
+            /tmp/fn.ts /tmp/shims.d.ts
+          echo "La función compila sin errores."
+
       - name: Instalar la herramienta de Supabase
         if: steps.credenciales.outputs.listas == 'si'
         uses: supabase/setup-cli@v1

@@ -320,6 +320,45 @@ Deno.serve(async (peticion) => {
         });
       }
 
+
+      // ── Purga de evidencia vencida ────────────────────────────────
+      // La retención es un compromiso con los trabajadores: su fotografía
+      // no se guarda para siempre. PostgreSQL sabe cuáles caducaron pero
+      // no puede borrar archivos, así que lo hace esta función.
+      //
+      // Se borra EL ARCHIVO. La marcación, su hora, su clasificación y su
+      // auditoría permanecen: lo que caduca es la imagen de la cara de
+      // una persona, no el registro de que trabajó ese día.
+      //
+      // La llama el mantenimiento nocturno con la llave de servicio. No
+      // hay forma de dispararla desde el panel ni desde el terminal.
+      case 'purgar': {
+        if (String(cuerpo.llave ?? '') !== LLAVE_MAESTRA) {
+          return responder({ ok: false, motivo: 'NO_AUTORIZADO' }, 401);
+        }
+
+        const { data: pendientes, error } = await sb.rpc('edge_evidencia_por_purgar', {
+          p_limite: Math.min(Number(cuerpo.limite ?? 200), 500)
+        });
+        if (error) return responder({ ok: false, motivo: limpiar(error.message) }, 400);
+        if (!pendientes?.length) return responder({ ok: true, purgadas: 0, quedan: 0 });
+
+        // Se confirma SÓLO lo que de verdad se borró. Si Storage falla con
+        // un archivo, ese registro se queda pendiente y se reintenta la
+        // próxima vez: decir que se purgó algo que sigue ahí sería peor
+        // que no purgarlo.
+        const rutas = pendientes.map((p: any) => String(p.ruta));
+        const { error: eBorrado } = await sb.storage.from('evidencia').remove(rutas);
+        if (eBorrado) return responder({ ok: false, motivo: 'NO_SE_PUDO_BORRAR',
+                                         detalle: eBorrado.message.slice(0, 120) }, 500);
+
+        const ids = pendientes.map((p: any) => String(p.id));
+        const { error: eConfirmar } = await sb.rpc('edge_confirmar_purga', { p_ids: ids });
+        if (eConfirmar) return responder({ ok: false, motivo: limpiar(eConfirmar.message) }, 500);
+
+        return responder({ ok: true, purgadas: ids.length, quedan: pendientes.length === 500 ? 'mas' : 0 });
+      }
+
       default:
         return responder({ ok: false, motivo: 'ACCION_DESCONOCIDA' }, 400);
     }
@@ -335,9 +374,14 @@ function limpiar(mensaje: string): string {
   return m ? m[0] : mensaje.slice(0, 120);
 }
 
-function aBinario(base64: string): Uint8Array {
+// El buffer se reserva explícitamente para que el tipo resultante sea
+// `Uint8Array<ArrayBuffer>` y no `Uint8Array<ArrayBufferLike>`. Con el
+// segundo, WebCrypto no lo acepta como `BufferSource` al comprobar tipos:
+// en ejecución funciona igual, pero el código debe ser correcto también
+// para quien lo compile, no sólo para quien lo ejecute.
+function aBinario(base64: string): Uint8Array<ArrayBuffer> {
   const crudo = atob(base64);
-  const bytes = new Uint8Array(crudo.length);
+  const bytes = new Uint8Array(new ArrayBuffer(crudo.length));
   for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
   return bytes;
 }
@@ -417,7 +461,7 @@ async function abrirSobre(
 
   const material = await crypto.subtle.importKey('raw', compartido, 'HKDF', false, ['deriveKey']);
   const llave = await crypto.subtle.deriveKey(
-    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0),
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(new ArrayBuffer(0)),
       info: new TextEncoder().encode('credisan-pin-offline-v1') },
     material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
 
