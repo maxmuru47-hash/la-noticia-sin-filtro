@@ -5,10 +5,10 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **3 — Terminal de marcación completo. Listo para instalar** |
-| **Fecha** | 2026-09-09 |
-| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE3.sql` (ya instalado) |
-| **Producción** | control.sinfiltroconmax.com (Hostinger, plan Business, sitio PHP/HTML) |
+| **Fase actual** | **4 — Tableros entregados. Panel completo de punta a punta** |
+| **Fecha** | 2026-09-15 |
+| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE4.sql` (ya instalado) |
+| **Producción** | control.sinfiltroconmax.com (VPS propio, Caddy, despliegue automático desde GitHub) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
 | **Repositorio** | `credisan-control/` dentro de `la-noticia-sin-filtro`; separar según `docs/SEPARAR_REPOSITORIO.md` |
 
@@ -78,6 +78,10 @@ vigencia), `incident_kinds` (tipos de novedad como dato, no como código).
 | `20260909120700_rls.sql` | permisos, RLS, políticas, RPC del panel |
 | `20260909120800_storage.sql` | tres depósitos privados y sus políticas |
 | `20260909120900_jobs.sql` | trabajos programados y retención de evidencia |
+| `20260909121000_bootstrap.sql` | `reclamar_ceo`, `mi_perfil` |
+| `20260909121100_fase2.sql` | sedes, accesos y horarios desde el panel |
+| `20260915100000_fase3.sql` | terminales, PIN y puente `edge_*` |
+| `20260915140000_fase4.sql` | tableros del día y del período, ranking, novedades |
 | `seed/seed.sql` | 3 sedes, 3 terminales, jornada estándar, 19 parámetros |
 
 ## Variables de entorno
@@ -89,13 +93,19 @@ vigencia), `incident_kinds` (tipos de novedad como dato, no como código).
 
 ## Validación ejecutada
 
-`PGPORT=54329 ./supabase/tests/run_local.sh` sobre PostgreSQL 16 local: **15
-bloques, todos en verde**. Cubre PIN (débil, repetido, sin pimienta),
-emparejamiento (un solo uso, token falso, sede inmutable), marcación
-(clasificación, idempotencia, doble marcación, ticket usado, sede ajena),
-evidencia ausente, offline (futuro, ventana, secuencia, sede, rastro de
-rechazos), resumen diario, sábado inactivo, RLS de los cuatro roles, Storage,
-auditoría sin secretos y superficie de ejecución.
+`PGPORT=54329 ./supabase/tests/run_local.sh` sobre PostgreSQL 16 local levanta
+una base limpia por batería —no se contaminan entre sí— y corre las cuatro:
+
+| Batería | Cubre |
+|---|---|
+| `01_suite.sql` | PIN (débil, repetido, sin pimienta), emparejamiento (un solo uso, token falso, sede inmutable), marcación (clasificación, idempotencia, doble marcación, ticket usado, sede ajena), evidencia ausente, offline (futuro, ventana, secuencia, sede, rastro de rechazos), resumen diario, sábado inactivo, RLS de los cuatro roles, Storage, auditoría sin secretos y superficie de ejecución |
+| `02_fase2.sql` | bootstrap y su cierre, sede completa, activación del sábado, horas en desorden, alta de accesos, límites de la administradora |
+| `03_fase3.sql` | PIN asignado, emparejamiento, token falso, PIN erróneo con su rastro, marcación clasificada, evidencia con fecha de purga, desvinculación, y el panel sin poder ejecutar las `edge_*` |
+| `04_fase4.sql` | tablero por rol, aislamiento entre sedes, ausencia de datos salariales por estructura, y que la fase no alteró ni un dato existente |
+
+**Las cuatro en verde.** Además, tres pruebas de navegador real (Playwright con
+el backend simulado): kiosco completo con cámara, panel de Fase 3, y panel de
+Fase 4 con sus 51 comprobaciones sobre los tres roles.
 
 ## Deuda técnica y riesgos conocidos
 
@@ -106,8 +116,9 @@ auditoría sin secretos y superficie de ejecución.
 | 3 | Offline no puede confirmar identidad en pantalla | Por diseño: cachear credenciales en el dispositivo sería peor |
 | 4 | `pg_cron` puede no estar disponible según el plan | La migración avisa; alternativa documentada |
 | 5 | `next_expected` sólo mira el día local en curso | Suficiente con jornadas que no cruzan medianoche. Revisar si alguna sede lo hace |
-| 6 | Sin fuentes autohospedadas todavía | Se añaden en la Fase 3 con el kiosco |
-| 7 | Edge Functions sin implementar | Contratos fijados en `supabase/functions/README.md`; fases 2 y 3 |
+| 6 | Sin fuentes autohospedadas todavía | **Sigue pendiente.** Panel y kiosco cargan Poppins desde Google Fonts; el kiosco debería funcionar sin salir a internet |
+| 7 | Edge Function escrita pero **no desplegada** | `supabase/functions/credisan/index.ts` está lista; falta publicarla y crear el secreto `CREDISAN_PIN_PEPPER`. Hasta entonces no hay PIN, ni emparejamiento, ni marcación |
+| 8 | El tablero del período depende de `attendance_daily` para las ausencias | Mitigado: si no se ha calculado, el panel lo dice en vez de enseñar un cero falso. Con `pg_cron` activo se resuelve solo |
 
 ## Pendiente antes de producción
 
@@ -220,8 +231,78 @@ de error ahora dice lo que realmente pasó.
 - La foto de ficha del trabajador todavía no se muestra en el terminal: se ven
   sus iniciales. Falta el subidor de fotos en el panel.
 
+## Fase 4 — entregada
+
+**Backend** (migración 0014). Siete funciones, **todas de lectura salvo dos**, y
+ni una sola tabla tocada: `tablero_hoy`, `tablero_periodo`, `ranking_puntualidad`,
+`novedades`, `registrar_novedad`, `resolver_novedad`, `recalcular_rango`.
+
+Tres decisiones que conviene recordar:
+
+- **`tablero_hoy` se calcula en vivo** contra el calendario y las marcaciones.
+  No depende de que `pg_cron` haya corrido: lo que se ve en pantalla es lo que
+  hay en ese instante, no lo que un trabajo nocturno dejó escrito.
+- **`tablero_periodo` confiesa lo que no sabe.** Las ausencias salen de
+  `attendance_daily`, que hay que materializar. Si el período no se ha
+  calculado, devuelve `resumen_diario_calculado: false` y el panel escribe, con
+  todas sus letras, que ese cero no es un dato sino que nadie lo ha mirado.
+  Un cero de ausencias falso es peor que no enseñar nada.
+- **`registrar_novedad` y `resolver_novedad` son `security invoker`**, al revés
+  que el resto. Son las dos únicas que escriben, y se quiso que decidiera la
+  RLS y no la función: así el jefe operativo puede reportar pero no aprobar
+  porque se lo impide la política, no un `if` que alguien podría cambiar.
+
+**Panel**: cinco pestañas —Hoy, Personal, Novedades, Horarios, Sedes— filtradas
+por rol, con selector de período (Hoy / Semana / Mes) para dirección y
+administración. El jefe operativo ve tres pestañas y ningún dato de nómina.
+
+### Cuidado de los datos de los trabajadores
+
+Requisito explícito de esta fase. Lo que se hizo, y cómo está comprobado:
+
+1. **Nada existente se modificó.** La migración son siete
+   `create or replace function` y nada más: ni `alter`, ni `insert`, ni
+   `update`, ni `delete`. La batería cuenta trabajadores, salarios y
+   marcaciones antes y después, y comprueba que un salario concreto sigue
+   valiendo lo mismo.
+2. **El salario no viaja.** En vez de buscar palabras sospechosas en la
+   respuesta —que es lo que se hizo primero y falla—, la batería exige que la
+   ficha de cada trabajador tenga **exactamente** los campos previstos. Si
+   alguien añadiera un campo de más, aunque fuera inocente, la prueba se cae.
+3. **Una sede no ve a la otra.** Se comprueba en la base (el jefe operativo
+   recibe 2 de 3 trabajadores y `NO_AUTORIZADO` si pregunta por la sede ajena)
+   y también en el navegador: se lee el texto completo de la página y se exige
+   que el apellido de la trabajadora de la otra sede no aparezca en ningún sitio.
+
+Validado con `04_fase4.sql` y con una prueba de navegador real de **51
+comprobaciones** sobre los tres roles. Dos hallazgos de esa ronda:
+
+- `registrar_novedad` filtraba por `deleted_at`, columna que no está en el
+  permiso de lectura de `employees`: fallaba con «permission denied» para quien
+  sí tenía derecho. La RLS ya oculta las filas borradas, así que sobraba.
+- La batería tenía un **falso positivo** propio: buscaba el número `150` como
+  texto y lo encontraba dentro de un UUID aleatorio (`…f860-4150-8e02…`).
+  Pasaba o fallaba según la suerte del sorteo. Sustituido por la comprobación
+  estructural del punto 2, que es determinista y además más estricta. Se
+  verificó con cinco corridas consecutivas en verde.
+
+## Instalador
+
+`supabase/instalador/construir.sh` rehace `INSTALAR.sql` a partir de las piezas
+reales —cabecera, las 14 migraciones, la semilla y la comprobación final—. Se
+escribió porque el instalador se armaba copiando y pegando, y eso se queda atrás
+en cuanto se añade una migración. Comprobado instalando en una base limpia: 21
+tablas, 46 políticas, 3 sedes, 3 terminales, 19 parámetros y las 7 funciones de
+tablero.
+
+`ACTUALIZAR-FASE4.sql` es para quien ya tiene el sistema con datos dentro. No
+crea tablas ni toca filas. Comprobado sobre una base con personal ya cargado:
+ejecutado dos veces seguidas deja el mismo resultado y el mismo número de
+trabajadores, y sobre una base vacía se detiene con un mensaje claro en vez de
+aplicarse a medias.
+
 ## Siguiente paso
 
-**Fase 4 — Dashboards**: pantalla del jefe operativo (presentes, faltantes,
-retrasados, novedades del día), tablero de administración por sede y tablero
-ejecutivo nacional con comparativo entre sedes y ranking.
+**Fase 5 — Cierres, reportes y auditoría visible**: cierre semanal que mide e
+informa pero **nunca descuenta dinero solo**, exportación de reportes y
+consulta de la auditoría desde el panel.

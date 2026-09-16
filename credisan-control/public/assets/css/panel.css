@@ -161,3 +161,86 @@
 .encabezado-vista { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
 .encabezado-vista h1 { margin: 0; flex: 1; }
 .encabezado-vista .boton { width: auto; min-height: 40px; padding: .5rem .9rem; font-size: .85rem; }
+
+/* ── Tableros ────────────────────────────────────────────────────────── */
+
+/* Selector de período: Hoy · Semana · Mes */
+.periodos {
+  display: flex; gap: .4rem; margin-bottom: 1rem;
+  background: rgba(102,45,145,.07); padding: .3rem; border-radius: 12px;
+}
+.periodos button {
+  flex: 1; min-height: 40px; border: 0; border-radius: 9px;
+  background: none; color: var(--texto-suave);
+  font-family: inherit; font-size: .88rem; font-weight: 600; cursor: pointer;
+}
+.periodos button[aria-current="true"] {
+  background: var(--blanco); color: var(--morado);
+  box-shadow: 0 1px 4px rgba(74,31,107,.12);
+}
+
+/* Cifras grandes: se leen de un vistazo, que es para lo que están */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+@media (min-width: 560px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+
+.kpi {
+  background: var(--blanco); border-radius: 12px;
+  box-shadow: var(--sombra); padding: .9rem;
+  text-align: center;
+  border-top: 3px solid var(--linea);
+}
+.kpi strong {
+  display: block; font-size: 1.9rem; font-weight: 700; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.kpi span { display: block; font-size: .76rem; color: var(--texto-suave); margin-top: .15rem; }
+.kpi[data-t="bien"]  { border-top-color: var(--verde); }
+.kpi[data-t="bien"] strong  { color: var(--verde); }
+.kpi[data-t="aviso"] { border-top-color: var(--ambar); }
+.kpi[data-t="aviso"] strong { color: var(--ambar); }
+.kpi[data-t="mal"]   { border-top-color: var(--rojo); }
+.kpi[data-t="mal"] strong   { color: var(--rojo); }
+.kpi[data-t="info"]  { border-top-color: var(--morado); }
+.kpi[data-t="info"] strong  { color: var(--morado); }
+
+/* Estado de cada trabajador en la lista de hoy */
+.estado-punto {
+  flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--texto-suave); margin-top: .45rem;
+}
+.estado-punto[data-e="presente"]   { background: var(--verde); }
+.estado-punto[data-e="completo"]   { background: var(--verde); }
+.estado-punto[data-e="anticipado"] { background: var(--verde); }
+.estado-punto[data-e="retrasado"]  { background: var(--ambar); }
+.estado-punto[data-e="faltante"]   { background: var(--rojo); }
+.estado-punto[data-e="esperado"]   { background: #CFC7D8; }
+.estado-punto[data-e="descanso"]   { background: #E3DEE9; }
+
+.horas {
+  font-variant-numeric: tabular-nums;
+  font-size: .82rem; color: var(--texto-suave); white-space: nowrap;
+}
+.horas strong { color: var(--texto); font-weight: 600; }
+
+/* Barra de comparación entre sedes */
+.barra {
+  height: 6px; border-radius: 999px; background: rgba(102,45,145,.12);
+  margin-top: .45rem; overflow: hidden;
+}
+.barra i { display: block; height: 100%; background: var(--morado); border-radius: 999px; }
+
+/* Novedades */
+.novedad { background: var(--blanco); border-radius: 12px; box-shadow: var(--sombra);
+  padding: .9rem 1rem; margin-bottom: .65rem; border-left: 4px solid var(--linea); }
+.novedad[data-e="pendiente"] { border-left-color: var(--ambar); }
+.novedad[data-e="aprobada"]  { border-left-color: var(--verde); }
+.novedad[data-e="rechazada"] { border-left-color: var(--rojo); }
+.novedad h3 { margin: 0 0 .15rem; font-size: .95rem; }
+.novedad p  { margin: 0 0 .35rem; font-size: .88rem; color: var(--texto-suave); }
+.novedad__pie { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+  font-size: .76rem; color: var(--texto-suave); }
+.novedad__acciones { display: flex; gap: .5rem; margin-top: .7rem; }
+.novedad__acciones button { flex: 1; min-height: 40px; border-radius: 9px;
+  font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; border: 1.5px solid; }
+.btn-aprobar { background: var(--blanco); color: var(--verde); border-color: var(--verde); }
+.btn-rechazar { background: var(--blanco); color: var(--rojo); border-color: var(--rojo); }

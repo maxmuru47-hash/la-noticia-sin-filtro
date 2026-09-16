@@ -21,7 +21,6 @@
   <div class="acceso__caja">
     <img class="acceso__logo" src="../assets/brand/credisan-logo-morado.png"
          alt="CrediSan — Pensamos en Ti" width="792" height="204">
-
     <div class="aviso" id="acceso-aviso" data-t="error" hidden></div>
 
     <form id="form-acceso">
@@ -36,7 +35,6 @@
       <button class="boton" type="submit" id="btn-entrar">Entrar</button>
     </form>
 
-    <!-- Primer arranque: no hay nadie todavía -->
     <form id="form-ceo" hidden>
       <div class="aviso" data-t="info">
         Es el primer acceso al sistema. Escriba su nombre y quedará
@@ -67,38 +65,44 @@
 
   <div class="aviso" id="panel-aviso" data-t="ok" hidden style="margin:1rem"></div>
 
-  <!-- Sedes -->
-  <main class="vista" id="v-sedes">
-    <div class="encabezado-vista">
-      <h1>Sedes</h1>
-      <button class="boton" id="btn-nueva-sede" hidden>+ Nueva</button>
+  <!-- ══ HOY ═══════════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-hoy">
+    <div class="campo" id="hoy-sede-caja" hidden>
+      <label for="hoy-sede">Sede</label>
+      <select id="hoy-sede"></select>
     </div>
-    <div id="lista-sedes"><p class="cargando">Cargando…</p></div>
 
-    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Terminales de marcación</h2>
-    <div id="lista-terminales"><p class="cargando">Cargando…</p></div>
+    <div class="periodos" id="periodos" hidden>
+      <button data-periodo="hoy" aria-current="true">Hoy</button>
+      <button data-periodo="semana">Semana</button>
+      <button data-periodo="mes">Mes</button>
+    </div>
 
-    <form class="tarjeta" id="form-sede" hidden>
-      <h2>Nueva sede</h2>
-      <div class="campo">
-        <label for="sede-codigo">Código</label>
-        <input type="text" id="sede-codigo" maxlength="6" placeholder="VAL" required>
-        <p class="ayuda">De 2 a 6 letras. Se usa para los terminales: VAL-01.</p>
+    <!-- Operación del día -->
+    <section id="bloque-hoy">
+      <div class="kpis" id="hoy-kpis"></div>
+      <div class="encabezado-vista" style="margin:1.25rem 0 .75rem">
+        <h1 style="font-size:1.05rem" id="hoy-titulo">Personal de hoy</h1>
+        <button class="boton" id="btn-novedad-rapida" hidden>+ Novedad</button>
       </div>
-      <div class="campo">
-        <label for="sede-nombre">Nombre</label>
-        <input type="text" id="sede-nombre" placeholder="Valencia" required>
-      </div>
-      <p class="ayuda">Se creará también su horario estándar (lunes a viernes,
-         8:00–12:00 y 14:00–18:00) y su primer terminal.</p>
-      <div class="fila-botones">
-        <button type="button" class="boton boton--secundario" data-cerrar="form-sede">Cancelar</button>
-        <button type="submit" class="boton">Crear sede</button>
-      </div>
-    </form>
+      <div id="hoy-lista"><p class="cargando">Cargando…</p></div>
+    </section>
+
+    <!-- Comparativo del período -->
+    <section id="bloque-periodo" hidden>
+      <div class="kpis" id="periodo-kpis"></div>
+      <h2 style="font-size:1.05rem;margin:1.5rem 0 .75rem">Comparativo por sede</h2>
+      <div id="periodo-sedes"></div>
+      <h2 style="font-size:1.05rem;margin:1.5rem 0 .75rem">Mejor puntualidad</h2>
+      <div id="periodo-ranking"></div>
+      <p class="aviso" data-t="info" id="aviso-recalculo" hidden style="margin-top:1rem"></p>
+      <button class="boton boton--secundario" id="btn-recalcular" hidden style="margin-top:.5rem">
+        Calcular ausencias del período
+      </button>
+    </section>
   </main>
 
-  <!-- Personal -->
+  <!-- ══ PERSONAL ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-personal" hidden>
     <div class="encabezado-vista">
       <h1>Personal</h1>
@@ -144,9 +148,6 @@
         <p class="ayuda">Dato restringido: sólo lo ven dirección y administración.
            El sistema nunca descuenta nada de forma automática.</p>
       </div>
-      <div class="aviso" data-t="info">
-        El PIN de marcación se genera en la Fase 3, junto con el terminal.
-      </div>
       <div class="fila-botones">
         <button type="button" class="boton boton--secundario" data-cerrar="form-empleado">Cancelar</button>
         <button type="submit" class="boton">Guardar</button>
@@ -154,7 +155,50 @@
     </form>
   </main>
 
-  <!-- Horarios -->
+  <!-- ══ NOVEDADES ═════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-novedades" hidden>
+    <div class="encabezado-vista">
+      <h1>Novedades</h1>
+      <button class="boton" id="btn-nueva-novedad">+ Nueva</button>
+    </div>
+
+    <div class="periodos" id="filtro-novedades">
+      <button data-estado="pendiente" aria-current="true">Pendientes</button>
+      <button data-estado="">Todas</button>
+    </div>
+
+    <div id="lista-novedades"><p class="cargando">Cargando…</p></div>
+
+    <form class="tarjeta" id="form-novedad" hidden>
+      <h2>Registrar novedad</h2>
+      <div class="campo">
+        <label for="nov-empleado">Trabajador</label>
+        <select id="nov-empleado" required></select>
+      </div>
+      <div class="campo">
+        <label for="nov-tipo">Tipo</label>
+        <select id="nov-tipo" required></select>
+      </div>
+      <div class="campo">
+        <label for="nov-descripcion">Qué pasó</label>
+        <input type="text" id="nov-descripcion" placeholder="Permiso médico de la mañana" required>
+      </div>
+      <div class="campo">
+        <label for="nov-cuando">Cuándo</label>
+        <input type="datetime-local" id="nov-cuando">
+        <p class="ayuda">Si lo deja vacío, se registra con la hora actual.</p>
+      </div>
+      <div class="aviso" data-t="info" id="aviso-novedad">
+        Queda <strong>pendiente</strong> hasta que administración la revise.
+      </div>
+      <div class="fila-botones">
+        <button type="button" class="boton boton--secundario" data-cerrar="form-novedad">Cancelar</button>
+        <button type="submit" class="boton">Registrar</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- ══ HORARIOS ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-horarios" hidden>
     <h1>Horarios</h1>
     <div class="campo">
@@ -168,39 +212,68 @@
     <div id="lista-horario"><p class="cargando">Cargando…</p></div>
   </main>
 
-  <!-- Usuarios -->
-  <main class="vista" id="v-usuarios" hidden>
-    <h1>Accesos al panel</h1>
-    <div class="aviso" data-t="info">
-      Primero cree la persona en Supabase: <strong>Authentication → Users →
-      Add user</strong>, con su correo y una contraseña. Después escriba aquí
-      ese mismo correo para darle rol y sede.
+  <!-- ══ SEDES ═════════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-sedes" hidden>
+    <div class="encabezado-vista">
+      <h1>Sedes</h1>
+      <button class="boton" id="btn-nueva-sede" hidden>+ Nueva</button>
     </div>
-    <form class="tarjeta" id="form-usuario">
+    <div id="lista-sedes"><p class="cargando">Cargando…</p></div>
+
+    <form class="tarjeta" id="form-sede" hidden>
+      <h2>Nueva sede</h2>
       <div class="campo">
-        <label for="usr-correo">Correo</label>
-        <input type="email" id="usr-correo" required>
+        <label for="sede-codigo">Código</label>
+        <input type="text" id="sede-codigo" maxlength="6" placeholder="VAL" required>
+        <p class="ayuda">De 2 a 6 letras. Se usa para los terminales: VAL-01.</p>
       </div>
       <div class="campo">
-        <label for="usr-nombre">Nombre completo</label>
-        <input type="text" id="usr-nombre" required>
+        <label for="sede-nombre">Nombre</label>
+        <input type="text" id="sede-nombre" placeholder="Valencia" required>
       </div>
-      <div class="campo">
-        <label for="usr-rol">Rol</label>
-        <select id="usr-rol">
-          <option value="admin">Administradora — su sede completa</option>
-          <option value="supervisor">Jefe operativo — operación de su sede</option>
-          <option value="ceo">Dirección — todas las sedes</option>
-        </select>
+      <p class="ayuda">Se creará también su horario estándar y su primer terminal.</p>
+      <div class="fila-botones">
+        <button type="button" class="boton boton--secundario" data-cerrar="form-sede">Cancelar</button>
+        <button type="submit" class="boton">Crear sede</button>
       </div>
-      <div class="campo" id="caja-usr-sede">
-        <label for="usr-sede">Sede</label>
-        <select id="usr-sede"></select>
-      </div>
-      <button type="submit" class="boton">Dar acceso</button>
     </form>
+
+    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Terminales de marcación</h2>
+    <div id="lista-terminales"><p class="cargando">Cargando…</p></div>
+
+    <section id="bloque-accesos" hidden>
+      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Accesos al panel</h2>
+      <div class="aviso" data-t="info">
+        Primero cree la persona en Supabase: <strong>Authentication → Users →
+        Add user</strong>. Después escriba aquí ese mismo correo para darle rol y sede.
+      </div>
+      <form class="tarjeta" id="form-usuario">
+        <div class="campo">
+          <label for="usr-correo">Correo</label>
+          <input type="email" id="usr-correo" required>
+        </div>
+        <div class="campo">
+          <label for="usr-nombre">Nombre completo</label>
+          <input type="text" id="usr-nombre" required>
+        </div>
+        <div class="campo">
+          <label for="usr-rol">Rol</label>
+          <select id="usr-rol">
+            <option value="admin">Administradora — su sede completa</option>
+            <option value="supervisor">Jefe operativo — operación de su sede</option>
+            <option value="ceo">Dirección — todas las sedes</option>
+          </select>
+        </div>
+        <div class="campo" id="caja-usr-sede">
+          <label for="usr-sede">Sede</label>
+          <select id="usr-sede"></select>
+        </div>
+        <button type="submit" class="boton">Dar acceso</button>
+      </form>
+    </section>
   </main>
 
+  <!-- Tarjeta de un solo uso: enseña algo que no se puede volver a consultar -->
   <div class="tarjeta" id="revelacion" hidden
        style="position:fixed;inset:auto 1rem 5rem;max-width:520px;margin:0 auto;z-index:30;
               border:2px solid var(--morado);box-shadow:0 8px 40px rgba(74,31,107,.3)">
@@ -213,10 +286,11 @@
   </div>
 
   <nav class="nav">
-    <button data-vista="v-sedes"    aria-current="true"><span>🏢</span>Sedes</button>
+    <button data-vista="v-hoy" aria-current="true"><span>📋</span>Hoy</button>
     <button data-vista="v-personal"><span>👥</span>Personal</button>
-    <button data-vista="v-horarios"><span>🕒</span>Horarios</button>
-    <button data-vista="v-usuarios" id="nav-usuarios" hidden><span>🔑</span>Accesos</button>
+    <button data-vista="v-novedades"><span>⚠️</span>Novedades</button>
+    <button data-vista="v-horarios" id="nav-horarios" hidden><span>🕒</span>Horarios</button>
+    <button data-vista="v-sedes"    id="nav-sedes"    hidden><span>🏢</span>Sedes</button>
   </nav>
 </div>
 

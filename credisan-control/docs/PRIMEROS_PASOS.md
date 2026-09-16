@@ -87,13 +87,31 @@ interruptor: sin desplegar nada, sin tocar código.
 **Accesos** *(sólo dirección)* — dar entrada al panel a la administradora o al
 jefe operativo de cada sede.
 
+**Hoy** — la operación del día en vivo: quién llegó, quién no ha llegado, quién
+llegó tarde y con cuántos minutos. Dirección y administración tienen además
+**Semana** y **Mes**, con comparativo entre sedes y ranking de puntualidad.
+
+**Novedades** — permisos, reposos y las que el sistema abre solo (por ejemplo,
+una marcación que se registró sin foto). Cualquiera las reporta; sólo
+administración las aprueba.
+
 ---
 
 ## Lo que todavía no está
 
-El **PIN de marcación** y el **terminal** son la Fase 3. Por eso los
-trabajadores aparecen con la etiqueta «PIN pendiente»: están registrados y con
-horario, listos para marcar en cuanto exista el terminal.
+El **PIN de marcación** y el **terminal** necesitan publicar la Edge Function
+de la Fase 3 (`docs/FASE3_TERMINAL.md`). Mientras no esté, los trabajadores
+aparecen con la etiqueta «PIN pendiente» y los tableros salen vacíos: están
+registrados y con horario, listos para marcar en cuanto exista el terminal.
+
+El **cierre semanal** y los **reportes exportables** son la Fase 5.
+
+## Guías por fase
+
+| Guía | Para qué |
+|---|---|
+| `docs/FASE3_TERMINAL.md` | Publicar la función del servidor y poner a marcar los terminales |
+| `docs/FASE4_TABLEROS.md` | Activar los tableros y entender qué ve cada rol |
 
 ## Si algo falla
 
