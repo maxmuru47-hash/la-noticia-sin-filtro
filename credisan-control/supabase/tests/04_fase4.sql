@@ -82,9 +82,12 @@ begin;
     -- una falla falsa. Se comprueba algo más fuerte: que la ficha de cada
     -- trabajador tenga EXACTAMENTE los campos previstos. Así no se cuela
     -- ni el salario ni ningún otro dato que no debería viajar.
+    -- `evento_id` se añadió al habilitar la consulta de la fotografía: sin
+    -- él el panel sabe que hay foto pero no puede pedir cuál. Es el
+    -- identificador de la marcación, no un dato del trabajador.
     assert (select bool_and(campos = array['cargo','entrada','esperada','estado',
-                                           'evidencia','id','minutos','nombre',
-                                           'origen','salida'])
+                                           'evento_id','evidencia','id','minutos',
+                                           'nombre','origen','salida'])
               from (select array(select jsonb_object_keys(e) order by 1) campos
                       from jsonb_array_elements(t->'empleados') e) k),
            'FALLA GRAVE: el tablero devuelve campos no previstos: ' ||

@@ -427,6 +427,21 @@
     <p class="ayuda" id="rep-aviso" style="margin-top:.75rem"></p>
   </main>
 
+  <!-- Visor de evidencia. Se cierra solo: el enlace vive 60 segundos y
+       no tiene sentido dejar la cara de alguien en pantalla más tiempo. -->
+  <div id="visor" hidden
+       style="position:fixed;inset:0;background:rgba(26,12,38,.9);z-index:40;
+              display:grid;place-items:center;padding:1.5rem">
+    <div class="tarjeta" style="max-width:420px;width:100%;text-align:center">
+      <h2 id="visor-nombre" style="margin-bottom:.25rem">—</h2>
+      <p class="ayuda" id="visor-cuando" style="margin-bottom:.75rem"></p>
+      <div id="visor-cuerpo" style="min-height:200px;display:grid;place-items:center">
+        <p class="cargando">Cargando…</p>
+      </div>
+      <button class="boton" id="visor-cerrar" style="margin-top:.75rem">Cerrar</button>
+    </div>
+  </div>
+
   <!-- Tarjeta de un solo uso: enseña algo que no se puede volver a consultar -->
   <div class="tarjeta" id="revelacion" hidden
        style="position:fixed;inset:auto 1rem 5rem;max-width:520px;margin:0 auto;z-index:30;

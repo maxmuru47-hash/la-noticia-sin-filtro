@@ -281,6 +281,45 @@ Deno.serve(async (peticion) => {
         return responder({ ok: true, resultados });
       }
 
+
+      // ── Ver la fotografía de una marcación ────────────────────────
+      // El depósito de evidencia NO tiene políticas para usuarios: ni el
+      // CEO lo lee directamente. Se pasa por aquí a propósito, para que
+      // toda consulta quede registrada.
+      //
+      // El permiso lo decide la base de datos con el token de la persona
+      // —`evidencia_de` comprueba rol y sede, y escribe el rastro—. Esta
+      // función sólo firma la URL, que es lo único que la base no puede
+      // hacer por sí misma.
+      case 'evidencia': {
+        const cabecera = peticion.headers.get('Authorization') ?? '';
+        const jwt = cabecera.replace(/^Bearer\s+/i, '');
+        if (!jwt) return responder({ ok: false, motivo: 'SIN_SESION' }, 401);
+
+        const usuario = comoUsuario(jwt);
+        const { data: quien, error: eSesion } = await usuario.auth.getUser();
+        if (eSesion || !quien?.user) return responder({ ok: false, motivo: 'SIN_SESION' }, 401);
+
+        const evento = String(cuerpo.evento ?? '');
+        const { data: permiso, error: ePermiso } =
+          await usuario.rpc('evidencia_de', { p_event: evento });
+        if (ePermiso) return responder({ ok: false, motivo: limpiar(ePermiso.message) }, 403);
+        if (!permiso?.ok) return responder(permiso ?? { ok: false, motivo: 'NO_AUTORIZADO' });
+
+        // Sesenta segundos: el tiempo de mirarla, no de repartirla.
+        const { data: firmada, error: eFirma } = await sb.storage
+          .from('evidencia').createSignedUrl(String(permiso.ruta), 60);
+        if (eFirma || !firmada?.signedUrl) {
+          return responder({ ok: false, motivo: 'NO_SE_PUDO_FIRMAR' }, 500);
+        }
+
+        return responder({
+          ok: true, url: firmada.signedUrl,
+          nombre: permiso.nombre, cuando: permiso.cuando,
+          evento: permiso.evento, fecha: permiso.fecha
+        });
+      }
+
       default:
         return responder({ ok: false, motivo: 'ACCION_DESCONOCIDA' }, 400);
     }

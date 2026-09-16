@@ -448,6 +448,34 @@ marcaciones de una jornada y exige que entren las cuatro.
 `config/env.js`; la privada, en el secreto `CREDISAN_OFFLINE_PRIVATE_KEY`. Sin
 las llaves el terminal funciona igual con internet y lo dice si no lo hay.
 
+## La evidencia fotográfica ya se puede consultar
+
+Un hueco de fondo que llevaba desde la Fase 3 sin verse. Cada marcación
+guarda una fotografía del momento —la prueba de que quien marcó es la persona
+del PIN— y se conserva 180 días. **Nadie podía mirarla.** El depósito no tiene
+políticas para usuarios, deliberadamente, y la función que debía emitir el
+enlace, que las propias políticas mencionan por su nombre, nunca se escribió.
+
+Una prueba que no se puede consultar no prueba nada: un trabajador podía
+reclamar «yo no marqué eso» y no había forma de resolverlo.
+
+**Quién la ve:** dirección, administración **y el jefe operativo**, cada uno en
+su sede. Se incluye al jefe a propósito: es quien está en el mostrador y quien
+va a notar que la cara no corresponde. Dejarlo fuera haría la prueba inútil
+justo donde hace falta.
+
+**Y mirar deja rastro.** Cada consulta escribe quién miró la fotografía de
+quién y cuándo. Eso es lo que separa revisar de fisgonear, y era parte del
+diseño original. Los intentos denegados **no** figuran como consulta, y los
+casos en que no hay nada que enseñar —sin foto, purgada, pendiente— se
+distinguen entre sí y tampoco cuentan.
+
+El enlace vive 60 segundos y el visor se cierra solo antes de que caduque.
+
+Al escribir la prueba salió otra confirmación: para montar el escenario hubo
+que salirse del rol de usuario, porque `attendance_events` es inmutable y ni
+el CEO puede tocarla. Esa puerta sigue cerrada.
+
 ## La foto de ficha
 
 Era la última deuda de la Fase 3 y cierra el requisito original: el trabajador

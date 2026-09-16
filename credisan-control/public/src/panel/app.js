@@ -248,7 +248,8 @@ async function cargarHoy() {
   }
 
   $('hoy-lista').innerHTML = data.empleados.map((e) => `
-    <div class="ficha">
+    <div class="ficha"${e.evento_id && e.evidencia === 'almacenada'
+      ? ` data-ver-foto="${e.evento_id}" data-nombre="${esc(e.nombre)}" style="cursor:pointer"` : ''}>
       <span class="estado-punto" data-e="${e.estado}"></span>
       <div class="ficha__cuerpo">
         <strong>${esc(e.nombre)}</strong>
@@ -262,8 +263,12 @@ async function cargarHoy() {
         ${e.entrada ? `<strong>${e.entrada}</strong>` : (e.esperada ? e.esperada : '—')}
         ${e.entrada && e.minutos ? `<br>${e.minutos > 0 ? '+' : ''}${e.minutos} min` : ''}
         ${e.salida ? `<br>↩ ${e.salida}` : ''}
+        ${e.evento_id && e.evidencia === 'almacenada' ? '<br><span class="ver-foto">📷 ver</span>' : ''}
       </div>
     </div>`).join('');
+
+  $('hoy-lista').querySelectorAll('[data-ver-foto]').forEach((f) =>
+    f.addEventListener('click', () => verEvidencia(f.dataset.verFoto, f.dataset.nombre)));
 }
 
 /* ── Comparativo del período ────────────────────────────────────────── */
@@ -1316,7 +1321,8 @@ async function cargarConexion() {
   }
 
   lista.innerHTML = off.marcaciones.map((m) => `
-    <div class="ficha">
+    <div class="ficha"${m.evidencia === 'almacenada'
+      ? ` data-ver-foto="${m.id}" data-nombre="${esc(m.nombre)}" style="cursor:pointer"` : ''}>
       <span class="estado-punto" data-e="${m.estado === 'retraso' ? 'retrasado' : 'presente'}"></span>
       <div class="ficha__cuerpo">
         <strong>${esc(m.nombre)}</strong>
@@ -1332,4 +1338,75 @@ async function cargarConexion() {
           { day: 'numeric', month: 'short' })}
       </div>
     </div>`).join('');
+
+  lista.querySelectorAll('[data-ver-foto]').forEach((f) =>
+    f.addEventListener('click', () => verEvidencia(f.dataset.verFoto, f.dataset.nombre)));
+}
+
+/* ── VER LA EVIDENCIA ───────────────────────────────────────────────
+   La fotografía del momento de marcar es lo que convierte una hora en
+   una prueba. Hasta ahora se guardaba y nadie podía mirarla.
+
+   El depósito no tiene políticas para usuarios —ni dirección lo lee
+   directamente—: se pasa por la función del servidor, que firma un
+   enlace de 60 segundos. Y la base de datos deja escrito quién miró la
+   foto de quién. Eso es lo que separa revisar de fisgonear. */
+
+const MOTIVOS_EVIDENCIA = {
+  SIN_EVIDENCIA: 'Esta marcación se registró sin fotografía. Hay una novedad abierta.',
+  PURGADA:       'La fotografía ya se borró: se conservan 180 días.',
+  PENDIENTE:     'La fotografía todavía se está guardando.',
+  NO_AUTORIZADO: 'No tiene permiso para ver esta fotografía.'
+};
+
+$('visor-cerrar').addEventListener('click', cerrarVisor);
+$('visor').addEventListener('click', (e) => { if (e.target.id === 'visor') cerrarVisor(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarVisor(); });
+
+function cerrarVisor() {
+  $('visor').hidden = true;
+  $('visor-cuerpo').innerHTML = '';   // la imagen no se queda en memoria
+  clearTimeout(cerrarVisor._t);
+}
+
+async function verEvidencia(eventoId, nombre) {
+  $('visor-nombre').textContent = nombre || 'Marcación';
+  $('visor-cuando').textContent = '';
+  $('visor-cuerpo').innerHTML = '<p class="cargando">Cargando…</p>';
+  $('visor').hidden = false;
+
+  const { data: sesion } = await sb.auth.getSession();
+  const r = await fetch(config.supabaseUrl + '/functions/v1/credisan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: config.supabaseAnonKey,
+      Authorization: 'Bearer ' + sesion.session.access_token
+    },
+    body: JSON.stringify({ accion: 'evidencia', evento: eventoId })
+  }).then((x) => x.json()).catch(() => ({ ok: false, motivo: 'SIN_CONEXION' }));
+
+  if (!r.ok) {
+    $('visor-cuerpo').innerHTML =
+      `<p class="vacio">${esc(MOTIVOS_EVIDENCIA[r.reason || r.motivo] || traducir(new Error(r.motivo || r.reason)))}</p>`;
+    return;
+  }
+
+  $('visor-nombre').textContent = r.nombre;
+  $('visor-cuando').textContent = new Date(r.cuando).toLocaleString('es-VE',
+    { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+  const img = new Image();
+  img.alt = '';
+  img.style.cssText = 'width:100%;border-radius:12px;display:block';
+  img.onload = () => { $('visor-cuerpo').innerHTML = ''; $('visor-cuerpo').appendChild(img); };
+  img.onerror = () => {
+    $('visor-cuerpo').innerHTML = '<p class="vacio">No se pudo cargar la fotografía.</p>';
+  };
+  img.src = r.url;
+
+  // El enlace caduca a los 60 s. Se cierra antes para no dejar en
+  // pantalla una imagen que ya no se podría volver a pedir.
+  clearTimeout(cerrarVisor._t);
+  cerrarVisor._t = setTimeout(cerrarVisor, 55000);
 }

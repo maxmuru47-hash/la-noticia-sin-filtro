@@ -280,3 +280,9 @@
 .ficha__inicial img {
   width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit;
 }
+
+/* El «ver foto» de una marcación: discreto, pero visible */
+.ver-foto {
+  font-size: .72rem; color: var(--morado); font-weight: 600;
+  white-space: nowrap;
+}
