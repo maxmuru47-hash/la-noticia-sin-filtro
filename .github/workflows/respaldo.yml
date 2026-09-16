@@ -176,10 +176,23 @@ jobs:
             --no-owner --clean --if-exists \
             | gzip -9 \
             | ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-                "umask 077 && cat > '$RESPALDOS/$archivo'"
+                "umask 077 && cat > '$RESPALDOS/$archivo.parcial'"
 
+          # El archivo sólo toma su nombre definitivo si TODO salió bien.
+          #
+          # Escribe primero como «.parcial» y se renombra al final. Si el
+          # volcado falla a mitad, lo que queda es un .parcial —que se ve
+          # a la legua que está incompleto— y no un archivo con nombre de
+          # respaldo que en realidad está vacío.
+          #
+          # Pasó en la primera ejecución real: pg_dump se negó por
+          # versión, pero la tubería ya había creado el archivo al otro
+          # lado. Quedó un «respaldo» de cero bytes con nombre y fecha
+          # perfectos. Un archivo así es peor que ninguno: el día que
+          # haga falta, alguien lo va a abrir creyendo que tiene algo.
           ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "chmod 600 '$RESPALDOS/$archivo'"
+            "chmod 600 '$RESPALDOS/$archivo.parcial' &&
+             mv '$RESPALDOS/$archivo.parcial' '$RESPALDOS/$archivo'"
 
           echo "Copia guardada: $archivo"
 
@@ -239,8 +252,12 @@ jobs:
       - name: Conservar sólo los últimos días
         if: steps.cred.outputs.listas == 'si'
         run: |
+          # Se barren también los .parcial que haya dejado un intento
+          # fallido: son archivos de este flujo, a medio escribir, y no
+          # sirven para nada. Nunca se toca un respaldo con nombre bueno.
           quedan=$(ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "cd '$RESPALDOS' && ls -1t credisan-*.sql.gz 2>/dev/null | tail -n +\$(( $CONSERVAR + 1 )) | xargs -r rm -f;
+            "cd '$RESPALDOS' && rm -f ./*.parcial;
+             ls -1t credisan-*.sql.gz 2>/dev/null | tail -n +\$(( $CONSERVAR + 1 )) | xargs -r rm -f;
              ls -1 credisan-*.sql.gz 2>/dev/null | wc -l")
           echo "Respaldos guardados: $quedan (se conservan los $CONSERVAR últimos)"
           echo "QUEDAN=$quedan" >> $GITHUB_ENV
