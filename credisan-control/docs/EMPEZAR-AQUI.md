@@ -76,12 +76,19 @@ subió el sitio a mano, estos son los mismos datos que usó entonces.
 
 ---
 
-# Paso 3 · Un botón
+# Paso 3 · Arrancar
 
-En GitHub, pestaña **Actions** → **Poner en marcha CrediSan** → *Run
-workflow*.
+Los flujos **se lanzan solos cuando cambia el código**. Así han estado
+funcionando desde el principio, y así se dispara todo la primera vez.
 
-Hace las tres cosas en el orden correcto:
+> **Sobre el botón «Run workflow»:** GitHub sólo lo ofrece para los flujos
+> que viven en la **rama principal** del repositorio. Mientras estos estén
+> en la rama de trabajo, ese botón no aparece en su pantalla — no es un
+> fallo suyo ni de permisos. Cuando el proyecto se pase a la rama
+> principal, el botón aparece solo y entonces sí: **Actions → Poner en
+> marcha CrediSan → Run workflow**.
+
+«Poner en marcha» hace las tres cosas en el orden correcto:
 
 1. Pone la **base de datos** al día.
 2. Publica la **función del servidor** y crea sus llaves.

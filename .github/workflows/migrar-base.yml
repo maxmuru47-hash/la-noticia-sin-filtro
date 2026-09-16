@@ -23,6 +23,16 @@
 #     respaldo de Supabase.
 #
 # Necesita un secreto más en GitHub. Ver DESPLIEGUE_AUTOMATICO.md
+#
+# CÓMO SE LANZA ESTE FLUJO
+# ------------------------
+# Se lanza solo cuando cambia algo de lo que le incumbe (ver `paths` más
+# abajo). El botón «Run workflow» de la pestaña Actions **sólo aparece
+# para los flujos que están en la rama principal del repositorio**, y
+# éste vive en la rama de trabajo: ahí ese botón no existe. No es un
+# fallo de configuración ni de permisos; es cómo funciona GitHub. Hasta
+# que estos flujos lleguen a la rama principal, la manera de dispararlos
+# es empujar un cambio.
 # =====================================================================
 
 name: Migrar base CrediSan
