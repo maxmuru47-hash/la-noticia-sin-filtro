@@ -1,0 +1,178 @@
+# =====================================================================
+# CrediSan Control · mantenimiento nocturno
+# =====================================================================
+# Lo que el sistema tiene que hacer solo, todas las noches, para que los
+# números del día siguiente sean ciertos:
+#
+#   · materializar el día — una AUSENCIA es la falta de una marcación, y
+#     hay que ir a buscarla: nadie la registra al no venir
+#   · cerrar el día anterior, cuando las faltas quedan firmes
+#   · los lunes, calcular la semana que terminó
+#   · higiene: tickets vencidos, códigos caducados, intentos viejos
+#   · purgar las fotografías que cumplieron 180 días
+#
+# POR QUÉ EXISTE ESTE ARCHIVO
+# ---------------------------
+# Todo esto ya estaba escrito para `pg_cron` desde la Fase 1, pero esa
+# extensión depende del plan de Supabase. Si no está disponible, nada de
+# lo de arriba ocurre nunca: las ausencias no se calculan solas y las
+# fotografías se acumulan indefinidamente, incumpliendo la retención que
+# se prometió.
+#
+# Con esto da igual. Si `pg_cron` está activo, volver a ejecutar estos
+# trabajos no hace daño —son idempotentes y respetan lo ya revisado—; y
+# si no lo está, aquí se cubren.
+# =====================================================================
+
+name: Mantenimiento nocturno CrediSan
+
+on:
+  schedule:
+    # 04:40 UTC = 00:40 en Caracas. Después de medianoche, con el día
+    # anterior ya terminado en las tres sedes.
+    - cron: '40 4 * * *'
+  workflow_dispatch:
+
+  # Y a la orden, empujando este archivo desde la rama de trabajo.
+  #
+  # Hace falta por una razón que no es un capricho: GitHub SÓLO ejecuta
+  # tareas programadas desde la rama principal del repositorio, y estos
+  # flujos viven en la rama de trabajo. Mientras no estén allí, el
+  # `schedule` de arriba no se dispara nunca —comprobado: cero
+  # ejecuciones programadas desde que existe el repositorio— y sin esto
+  # no habría forma de correrlo.
+  push:
+    branches: [claude/practical-maxwell-2ihoma]
+    paths:
+      - '.github/workflows/mantenimiento.yml'
+
+concurrency:
+  group: mantenimiento-credisan
+  cancel-in-progress: false
+
+jobs:
+  mantener:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Sin `checkout` y sin `working-directory`, a propósito: este flujo no
+    # lee un solo archivo del repositorio. Todo su SQL va escrito aquí
+    # dentro y lo demás son llamadas a Supabase.
+    #
+    # Importa porque las tareas programadas de GitHub se ejecutan desde
+    # la RAMA PRINCIPAL, y allí no existe la carpeta credisan-control. Con
+    # el `working-directory` puesto, cada paso habría fallado con «no
+    # existe el directorio» —y de noche, sin nadie mirando—.
+
+    steps:
+      - name: ¿Está la conexión a la base?
+        id: cred
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "listas=no" >> $GITHUB_OUTPUT
+            echo "Sin conexión a la base: no hay nada que mantener todavía."
+            echo "### Falta el secreto \`SUPABASE_DB_URL\`" >> $GITHUB_STEP_SUMMARY
+            echo "Vea \`docs/EMPEZAR-AQUI.md\`." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "listas=si" >> $GITHUB_OUTPUT
+          fi
+          # El contexto `secrets` no se puede consultar en un `if` de paso.
+          if [ -n "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "proyecto=si" >> $GITHUB_OUTPUT
+          else
+            echo "proyecto=no" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Instalar el cliente de PostgreSQL
+        if: steps.cred.outputs.listas == 'si'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Poner el día al día
+        if: steps.cred.outputs.listas == 'si'
+        id: trabajos
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          q() { psql "$PGURL" -v ON_ERROR_STOP=1 -tAc "$1"; }
+
+          # ¿Hace falta? Si pg_cron ya los corre, esto es una red de
+          # seguridad; si no, es lo único que los corre. Conviene saberlo.
+          cron=$(psql "$PGURL" -tAc "select count(*) from pg_extension where extname='pg_cron'" 2>/dev/null || echo 0)
+          echo "pg_cron activo en el proyecto: $([ "$cron" = "1" ] && echo sí || echo no)"
+          echo "cron=$cron" >> $GITHUB_OUTPUT
+
+          hoy=$(q "select app.job_recompute_today()")
+          echo "Días recalculados (hoy): $hoy"
+          ayer=$(q "select app.job_close_yesterday()")
+          echo "Días cerrados (ayer): $ayer"
+
+          # El cierre semanal sólo los lunes, y de la semana que terminó.
+          # Se mira el día en Caracas, no el del servidor de GitHub.
+          dia=$(q "select extract(isodow from (now() at time zone 'America/Caracas')::date)::int")
+          if [ "$dia" = "1" ]; then
+            sem=$(q "select app.job_weekly_closures()")
+            echo "Cierres semanales calculados: $sem"
+            echo "semanales=$sem" >> $GITHUB_OUTPUT
+          else
+            echo "No es lunes: el cierre semanal no toca hoy."
+            echo "semanales=-" >> $GITHUB_OUTPUT
+          fi
+
+          q "select app.job_cleanup()" > /dev/null
+          echo "Higiene hecha: tickets vencidos, códigos caducados, intentos viejos."
+
+          echo "hoy=$hoy"   >> $GITHUB_OUTPUT
+          echo "ayer=$ayer" >> $GITHUB_OUTPUT
+
+      # La purga borra archivos, y eso PostgreSQL no puede hacerlo: hace
+      # falta la función del servidor. Si todavía no está publicada, se
+      # salta sin ruido —las fotografías esperan, no se pierde nada—.
+      - name: Purgar las fotografías vencidas
+        if: steps.cred.outputs.listas == 'si' && steps.cred.outputs.proyecto == 'si'
+        continue-on-error: true
+        env:
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LLAVE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$LLAVE" ]; then
+            echo "Sin SUPABASE_SERVICE_ROLE_KEY no se puede purgar. Las fotografías esperan."
+            exit 0
+          fi
+          total=0
+          for i in 1 2 3 4 5; do
+            r=$(curl -s -m 60 -X POST "https://$REF.supabase.co/functions/v1/credisan" \
+              -H 'Content-Type: application/json' \
+              -H "Authorization: Bearer $LLAVE" \
+              -d '{"accion":"purgar","limite":500}' || echo '')
+            n=$(echo "$r" | grep -oE '"purgadas":[0-9]+' | grep -oE '[0-9]+' || echo 0)
+            total=$((total + n))
+            echo "  vuelta $i: $n fotografías"
+            [ "$n" -gt 0 ] || break
+          done
+          echo "Fotografías purgadas: $total"
+          echo "PURGADAS=$total" >> $GITHUB_ENV
+
+      - name: Resumen
+        if: always() && steps.cred.outputs.listas == 'si'
+        run: |
+          {
+            echo "### Mantenimiento nocturno"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Días recalculados (hoy) | ${{ steps.trabajos.outputs.hoy }} |"
+            echo "| Días cerrados (ayer) | ${{ steps.trabajos.outputs.ayer }} |"
+            echo "| Cierres semanales | ${{ steps.trabajos.outputs.semanales }} |"
+            echo "| Fotografías purgadas | ${PURGADAS:-0} |"
+            echo ""
+            if [ "${{ steps.trabajos.outputs.cron }}" = "1" ]; then
+              echo "\`pg_cron\` está activo en el proyecto, así que esto es una red"
+              echo "de seguridad. Volver a ejecutar los trabajos no hace daño: son"
+              echo "idempotentes y respetan los cierres que alguien ya revisó."
+            else
+              echo "\`pg_cron\` **no** está activo en el proyecto, así que esto es lo"
+              echo "único que mantiene los números al día. Si un día falla, las"
+              echo "ausencias de esa jornada no se calcularán solas —se pueden"
+              echo "calcular a mano desde **Cierres**—."
+            fi
+          } >> $GITHUB_STEP_SUMMARY

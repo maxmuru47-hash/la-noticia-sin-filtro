@@ -1,0 +1,301 @@
+# =====================================================================
+# CrediSan Control · respaldo diario de la base de datos
+# =====================================================================
+# El plan gratuito de Supabase NO hace respaldos automáticos. Sin esto,
+# los datos del personal y todas sus marcaciones no tienen ninguna red:
+# si algo le pasa a esa base, se pierde el registro de quién trabajó y
+# cuándo, que es precisamente lo que este sistema existe para guardar.
+#
+# Cada noche se saca una copia completa y se deja en el VPS de Max, en
+# /opt/proyectos/credisan-control/respaldos/. En infraestructura suya,
+# no en GitHub.
+#
+# LO QUE ESTE ARCHIVO CONTIENE, Y POR QUÉ IMPORTA
+# -----------------------------------------------
+# Un respaldo completo lleva NOMBRES, CÉDULAS, SALARIOS y el historial
+# de entradas y salidas de cada trabajador. Es el archivo más sensible
+# de todo el proyecto. Por eso:
+#
+#   · Va FUERA de lo que Caddy publica. Se comprueba de dos maneras: por
+#     la ruta, antes de escribir, y pidiéndolo por internet después para
+#     confirmar que no responde.
+#   · El volcado NUNCA se escribe en el disco de GitHub: va por una
+#     tubería directa hasta el servidor. El runner es prestado y
+#     efímero; no es sitio para esto.
+#   · Permisos 600 y dueño root: ni siquiera el usuario de la web lo lee.
+#   · Se verifica que el archivo esté íntegro y tenga contenido real
+#     antes de dar el respaldo por bueno. Un respaldo corrupto que nadie
+#     comprueba es peor que no tener ninguno: da falsa tranquilidad.
+# =====================================================================
+
+name: Respaldo diario CrediSan
+
+on:
+  schedule:
+    # 05:10 UTC = 01:10 en Caracas, después del mantenimiento nocturno
+    # (que corre a las 00:40) para copiar el día ya cerrado.
+    - cron: '10 5 * * *'
+  workflow_dispatch:
+
+  # Y a la orden, empujando este archivo desde la rama de trabajo.
+  #
+  # Hace falta por una razón que no es un capricho: GitHub SÓLO ejecuta
+  # tareas programadas desde la rama principal del repositorio, y estos
+  # flujos viven en la rama de trabajo. Mientras no estén allí, el
+  # `schedule` de arriba no se dispara nunca —comprobado: cero
+  # ejecuciones programadas desde que existe el repositorio— y sin esto
+  # no habría forma de correrlo.
+  push:
+    branches: [claude/practical-maxwell-2ihoma]
+    paths:
+      - '.github/workflows/respaldo.yml'
+
+concurrency:
+  group: respaldo-credisan
+  cancel-in-progress: false
+
+env:
+  PUBLICADO:  /opt/proyectos/credisan-control/public
+  RESPALDOS:  /opt/proyectos/credisan-control/respaldos
+  CONSERVAR:  14        # días de historial
+
+jobs:
+  respaldar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: ¿Están las credenciales?
+        id: cred
+        run: |
+          faltan=""
+          [ -n "${{ secrets.SUPABASE_DB_URL }}" ] || faltan="$faltan SUPABASE_DB_URL"
+          [ -n "${{ secrets.VPS_HOST }}" ]        || faltan="$faltan VPS_HOST"
+          [ -n "${{ secrets.VPS_USER }}" ]        || faltan="$faltan VPS_USER"
+          [ -n "${{ secrets.VPS_SSH_KEY }}" ]     || faltan="$faltan VPS_SSH_KEY"
+
+          if [ -n "$faltan" ]; then
+            echo "listas=no" >> $GITHUB_OUTPUT
+            {
+              echo "### No se puede respaldar todavía"
+              echo ""
+              echo "Faltan estos secretos:\`$faltan\`"
+              echo ""
+              echo "Vea \`credisan-control/docs/EMPEZAR-AQUI.md\`."
+            } >> $GITHUB_STEP_SUMMARY
+            echo "Faltan:$faltan"
+          else
+            echo "listas=si" >> $GITHUB_OUTPUT
+          fi
+
+      # ── La comprobación que no puede fallar ──────────────────────────
+      # Si la carpeta de respaldos quedara dentro de lo que Caddy
+      # publica, las cédulas y los salarios de la gente estarían a un
+      # clic en internet. Se comprueba ANTES de escribir nada.
+      - name: Comprobar que los respaldos no quedan publicados
+        if: steps.cred.outputs.listas == 'si'
+        run: |
+          case "$RESPALDOS/" in
+            "$PUBLICADO"/*)
+              echo "::error::La carpeta de respaldos está DENTRO de la carpeta publicada."
+              echo "::error::Eso dejaría los datos del personal accesibles desde internet."
+              exit 1 ;;
+          esac
+          echo "La carpeta de respaldos queda fuera de lo que se publica."
+
+      # pg_dump tiene que ser igual o más nuevo que el servidor, o se
+      # niega a trabajar. Se instala el cliente 17, que sabe hablar con
+      # los servidores de Supabase actuales y con los anteriores.
+      - name: Instalar pg_dump
+        if: steps.cred.outputs.listas == 'si'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl ca-certificates gnupg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+          # Y AHORA SE COMPRUEBA CUÁL SE VA A USAR, que no es lo mismo.
+          #
+          # El runner ya trae un pg_dump 16, y `pg_dump` a secas siguió
+          # resolviendo a ése aunque el 17 estuviera instalado. La copia
+          # falló con «server version mismatch»: la base de Supabase es
+          # 17.6 y una herramienta vieja se niega a copiarla, con razón.
+          #
+          # Así que se llama al binario por su ruta exacta, y si no está
+          # el flujo se detiene aquí en vez de fallar más adelante con un
+          # mensaje que no dice nada.
+          PGDUMP=/usr/lib/postgresql/17/bin/pg_dump
+          if [ ! -x "$PGDUMP" ]; then
+            echo "::error::No se instaló el cliente 17 de PostgreSQL. Sin él no se puede copiar una base 17."
+            exit 1
+          fi
+          echo "PGDUMP=$PGDUMP" >> $GITHUB_ENV
+          "$PGDUMP" --version
+
+      - name: Preparar el acceso al servidor
+        if: steps.cred.outputs.listas == 'si'
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/k
+          [ -n "$(tail -c1 ~/.ssh/k)" ] && echo >> ~/.ssh/k || true
+          chmod 600 ~/.ssh/k
+          if ! ssh-keygen -y -f ~/.ssh/k > /dev/null 2>&1; then
+            echo "::error::La llave VPS_SSH_KEY no se puede leer. Vea DESPLIEGUE_AUTOMATICO.md."
+            exit 1
+          fi
+          echo "SSH=-i $HOME/.ssh/k -p ${{ secrets.VPS_PORT || 22 }} -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
+
+      - name: Sacar la copia y guardarla en el servidor
+        if: steps.cred.outputs.listas == 'si'
+        id: copia
+        env:
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -o pipefail
+          archivo="credisan-$(date -u +%Y%m%d-%H%M).sql.gz"
+          echo "archivo=$archivo" >> $GITHUB_OUTPUT
+
+          ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "mkdir -p '$RESPALDOS' && chmod 700 '$RESPALDOS'"
+
+          # El volcado va por una TUBERÍA hasta el servidor: no se escribe
+          # en el disco de GitHub en ningún momento. Lo único que queda en
+          # el runner es lo que pasa por memoria mientras viaja.
+          # Se copian las dos partes que son nuestras: `public` (las tablas
+          # con la gente y sus marcaciones) y `app` (las reglas y los
+          # permisos). Lo demás de Supabase lo rehace el instalador.
+          # Se conservan los permisos por columna, que son los que esconden
+          # el salario de quien no debe verlo: sin ellos, el respaldo
+          # volvería con esa puerta abierta.
+          "$PGDUMP" "$PGURL" \
+            --schema=public --schema=app \
+            --no-owner --clean --if-exists \
+            | gzip -9 \
+            | ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+                "umask 077 && cat > '$RESPALDOS/$archivo.parcial'"
+
+          # El archivo sólo toma su nombre definitivo si TODO salió bien.
+          #
+          # Escribe primero como «.parcial» y se renombra al final. Si el
+          # volcado falla a mitad, lo que queda es un .parcial —que se ve
+          # a la legua que está incompleto— y no un archivo con nombre de
+          # respaldo que en realidad está vacío.
+          #
+          # Pasó en la primera ejecución real: pg_dump se negó por
+          # versión, pero la tubería ya había creado el archivo al otro
+          # lado. Quedó un «respaldo» de cero bytes con nombre y fecha
+          # perfectos. Un archivo así es peor que ninguno: el día que
+          # haga falta, alguien lo va a abrir creyendo que tiene algo.
+          ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "chmod 600 '$RESPALDOS/$archivo.parcial' &&
+             mv '$RESPALDOS/$archivo.parcial' '$RESPALDOS/$archivo'"
+
+          echo "Copia guardada: $archivo"
+
+      # ── ¿Sirve de algo lo que acabamos de guardar? ───────────────────
+      # Un respaldo corrupto que nadie comprueba es peor que no tener
+      # ninguno: da falsa tranquilidad justo hasta el día que hace falta.
+      - name: Comprobar que el respaldo sirve
+        if: steps.cred.outputs.listas == 'si'
+        env:
+          ARCHIVO: ${{ steps.copia.outputs.archivo }}
+        run: |
+          # La ruta se le pasa al servidor como parte de la orden, no
+          # dentro de un texto fijo: así el aparato de allá recibe el
+          # nombre real del archivo que acabamos de dejarle.
+          salida=$(ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "f='$RESPALDOS/$ARCHIVO';
+             # 1 · ¿El archivo comprimido está entero?
+             gzip -t \"\$f\" || { echo CORRUPTO; exit 1; };
+             # 2 · ¿Tiene contenido de verdad, o son cuatro bytes?
+             b=\$(stat -c%s \"\$f\");
+             [ \"\$b\" -gt 10240 ] || { echo DEMASIADO_PEQUENO:\$b; exit 1; };
+             # 3 · ¿Lleva lo que tiene que llevar? Las tres tablas que
+             #     guardan a la gente, sus horas y las sucursales.
+             for t in employees attendance_events branches; do
+               zcat \"\$f\" | grep -q \"CREATE TABLE public.\$t\" || { echo FALTA:\$t; exit 1; };
+             done;
+             # 4 · Y de paso, quién puede leerlo.
+             echo \"OK bytes=\$b permisos=\$(stat -c%a \"\$f\")\"")
+
+          echo "$salida"
+          echo "$salida" | grep -q '^OK ' || {
+            echo "::error::El respaldo no pasó la comprobación: $salida"
+            exit 1
+          }
+          echo "TAMANO=$(echo "$salida" | grep -oE 'bytes=[0-9]+' | cut -d= -f2)" >> $GITHUB_ENV
+
+      # ── Y lo más importante: que NO esté en internet ─────────────────
+      - name: Comprobar que no se puede descargar desde internet
+        if: steps.cred.outputs.listas == 'si'
+        env:
+          ARCHIVO: ${{ steps.copia.outputs.archivo }}
+        run: |
+          malo=0
+          for ruta in "/respaldos/$ARCHIVO" "/$ARCHIVO" "/respaldos/"; do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' -m 20 \
+              "https://control.sinfiltroconmax.com$ruta" || echo 000)
+            echo "  $ruta → HTTP $codigo"
+            case "$codigo" in
+              200|206)
+                echo "::error::¡El respaldo SE PUEDE DESCARGAR desde internet en $ruta!"
+                malo=1 ;;
+            esac
+          done
+          [ "$malo" = 0 ] || exit 1
+          echo "Confirmado: los respaldos no son alcanzables desde la web."
+
+      - name: Conservar sólo los últimos días
+        if: steps.cred.outputs.listas == 'si'
+        run: |
+          # Se barren también los .parcial que haya dejado un intento
+          # fallido: son archivos de este flujo, a medio escribir, y no
+          # sirven para nada. Nunca se toca un respaldo con nombre bueno.
+          quedan=$(ssh $SSH "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "cd '$RESPALDOS' && rm -f ./*.parcial;
+             ls -1t credisan-*.sql.gz 2>/dev/null | tail -n +\$(( $CONSERVAR + 1 )) | xargs -r rm -f;
+             ls -1 credisan-*.sql.gz 2>/dev/null | wc -l")
+          echo "Respaldos guardados: $quedan (se conservan los $CONSERVAR últimos)"
+          echo "QUEDAN=$quedan" >> $GITHUB_ENV
+
+      - name: Recoger la llave
+        if: always()
+        run: rm -f ~/.ssh/k
+
+      - name: Resumen
+        if: always() && steps.cred.outputs.listas == 'si'
+        run: |
+          {
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "### Respaldo guardado"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| Archivo | \`${{ steps.copia.outputs.archivo }}\` |"
+              echo "| Tamaño | ${TAMANO:-?} bytes |"
+              echo "| Copias guardadas | ${QUEDAN:-?} de $CONSERVAR |"
+              echo "| Dónde | \`$RESPALDOS\` en su VPS |"
+              echo ""
+              echo "Comprobado: el archivo está íntegro, lleva las tablas del personal"
+              echo "y de las marcaciones, y **no se puede descargar desde internet**."
+              echo ""
+              echo "> Este archivo lleva nombres, cédulas, salarios y el historial de"
+              echo "> entradas y salidas. Trátelo como trata la nómina."
+              echo ""
+              echo "Lo que **no** va dentro: las fotos de evidencia (viven aparte, en"
+              echo "el almacén de Supabase, y se borran solas a los 180 días) y los"
+              echo "usuarios del panel (esos se vuelven a invitar por correo)."
+            else
+              echo "### El respaldo de hoy no se completó"
+              echo ""
+              echo "Mire arriba qué paso salió en rojo. Los respaldos de días"
+              echo "anteriores siguen en su sitio, intactos."
+              echo ""
+              echo "Causas más frecuentes: el VPS no contestó, o la cadena de"
+              echo "conexión a la base no es la del **Session pooler**."
+            fi
+          } >> $GITHUB_STEP_SUMMARY
