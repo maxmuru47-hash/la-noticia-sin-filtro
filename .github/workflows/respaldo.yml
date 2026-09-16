@@ -117,7 +117,24 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+
+          # Y AHORA SE COMPRUEBA CUÁL SE VA A USAR, que no es lo mismo.
+          #
+          # El runner ya trae un pg_dump 16, y `pg_dump` a secas siguió
+          # resolviendo a ése aunque el 17 estuviera instalado. La copia
+          # falló con «server version mismatch»: la base de Supabase es
+          # 17.6 y una herramienta vieja se niega a copiarla, con razón.
+          #
+          # Así que se llama al binario por su ruta exacta, y si no está
+          # el flujo se detiene aquí en vez de fallar más adelante con un
+          # mensaje que no dice nada.
+          PGDUMP=/usr/lib/postgresql/17/bin/pg_dump
+          if [ ! -x "$PGDUMP" ]; then
+            echo "::error::No se instaló el cliente 17 de PostgreSQL. Sin él no se puede copiar una base 17."
+            exit 1
+          fi
+          echo "PGDUMP=$PGDUMP" >> $GITHUB_ENV
+          "$PGDUMP" --version
 
       - name: Preparar el acceso al servidor
         if: steps.cred.outputs.listas == 'si'
@@ -154,7 +171,7 @@ jobs:
           # Se conservan los permisos por columna, que son los que esconden
           # el salario de quien no debe verlo: sin ellos, el respaldo
           # volvería con esa puerta abierta.
-          pg_dump "$PGURL" \
+          "$PGDUMP" "$PGURL" \
             --schema=public --schema=app \
             --no-owner --clean --if-exists \
             | gzip -9 \
