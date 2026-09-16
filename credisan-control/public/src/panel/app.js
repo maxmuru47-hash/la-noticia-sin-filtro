@@ -135,8 +135,8 @@ async function entrar() {
 
   // El jefe operativo tiene un panel deliberadamente corto: la operación
   // del día y las novedades. Nada de horarios, sedes ni estadísticas.
-  $('nav-horarios').hidden       = !puedeEditar();
-  $('nav-sedes').hidden          = !puedeEditar();
+  $('nav-cierres').hidden        = !puedeEditar();
+  $('nav-mas').hidden            = !puedeEditar();
   $('bloque-accesos').hidden     = !esCeo();
   $('btn-nueva-sede').hidden     = !esCeo();
   $('btn-nuevo-empleado').hidden = !puedeEditar();
@@ -144,24 +144,53 @@ async function entrar() {
   $('periodos').hidden           = !puedeEditar();
   $('btn-novedad-rapida').hidden = false;
 
+  // Dentro de «Más», sólo dirección crea sedes y reparte accesos; la
+  // auditoría la ven dirección y administración, cada una lo suyo.
+  document.querySelector('[data-ir="v-sedes"]').hidden = !puedeEditar();
+
   await cargarSedes();
   await cargarHoy();
 }
 
 /* ── Navegación ─────────────────────────────────────────────────────── */
 
+// Las vistas que no tienen botón propio abajo cuelgan de «Más»; mientras
+// se está en una de ellas, «Más» se queda encendido para no perder el sitio.
+const DENTRO_DE_MAS = {
+  'v-horarios': 'v-mas', 'v-sedes': 'v-mas',
+  'v-auditoria': 'v-mas', 'v-reportes': 'v-mas'
+};
+
+const CARGADORES = {
+  'v-hoy': cargarHoy,
+  'v-personal': cargarPersonal,
+  'v-novedades': cargarNovedades,
+  'v-cierres': cargarCierres,
+  'v-horarios': cargarHorario,
+  'v-auditoria': cargarAuditoria,
+  'v-sedes': () => { cargarSedes(); cargarTerminales(); }
+};
+
+function mostrar(vista) {
+  document.querySelectorAll('.vista').forEach((v) => { v.hidden = true; });
+  $(vista).hidden = false;
+
+  const encendido = DENTRO_DE_MAS[vista] || vista;
+  document.querySelectorAll('.nav button').forEach((o) =>
+    o.setAttribute('aria-current', o.dataset.vista === encendido ? 'true' : 'false'));
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (CARGADORES[vista]) CARGADORES[vista]();
+}
+
 document.querySelectorAll('.nav button').forEach((b) => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('.vista').forEach((v) => { v.hidden = true; });
-    document.querySelectorAll('.nav button').forEach((o) => o.setAttribute('aria-current', 'false'));
-    $(b.dataset.vista).hidden = false;
-    b.setAttribute('aria-current', 'true');
-    if (b.dataset.vista === 'v-hoy')       cargarHoy();
-    if (b.dataset.vista === 'v-personal')  cargarPersonal();
-    if (b.dataset.vista === 'v-novedades') cargarNovedades();
-    if (b.dataset.vista === 'v-horarios')  cargarHorario();
-    if (b.dataset.vista === 'v-sedes')     { cargarSedes(); cargarTerminales(); }
-  });
+  b.addEventListener('click', () => mostrar(b.dataset.vista));
+});
+document.querySelectorAll('[data-ir]').forEach((b) => {
+  b.addEventListener('click', () => mostrar(b.dataset.ir));
+});
+document.querySelectorAll('[data-volver]').forEach((b) => {
+  b.addEventListener('click', () => mostrar(b.dataset.volver));
 });
 
 document.querySelectorAll('[data-cerrar]').forEach((b) => {
@@ -447,13 +476,20 @@ async function cargarSedes() {
     </div>`).join('') : '<p class="vacio">No hay sedes visibles.</p>';
 
   const opciones = sedes.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
-  ['emp-sede', 'horario-sede', 'usr-sede', 'hoy-sede'].forEach((id) => { $(id).innerHTML = opciones; });
-  $('filtro-sede').innerHTML = (sedes.length > 1 ? '<option value="">Todas las sedes</option>' : '') + opciones;
+  ['emp-sede', 'horario-sede', 'usr-sede', 'hoy-sede', 'cierre-sede']
+    .forEach((id) => { $(id).innerHTML = opciones; });
+
+  // Estos dos sí admiten «todas»: un reporte o una auditoría de varias
+  // sedes tiene sentido; cerrar la semana de varias a la vez, no.
+  const conTodas = (sedes.length > 1 ? '<option value="">Todas las sedes</option>' : '') + opciones;
+  ['filtro-sede', 'rep-sede', 'audit-sede'].forEach((id) => { $(id).innerHTML = conTodas; });
+
   $('filtro-sede-caja').hidden = sedes.length < 2;
   $('hoy-sede-caja').hidden = sedes.length < 2;
 
   if (yo.branch_id) {
-    ['emp-sede', 'horario-sede', 'hoy-sede'].forEach((id) => { $(id).value = yo.branch_id; });
+    ['emp-sede', 'horario-sede', 'hoy-sede', 'cierre-sede']
+      .forEach((id) => { $(id).value = yo.branch_id; });
     $('emp-sede').disabled = !esCeo();          // nadie da de alta fuera de su sede
   }
 }
@@ -807,3 +843,319 @@ $('form-usuario').addEventListener('submit', async (e) => {
   e.target.reset();
   $('caja-usr-sede').hidden = false;
 });
+
+/* ── CIERRE SEMANAL ─────────────────────────────────────────────────
+   El sistema mide e informa. No calcula descuentos: ninguna de estas
+   funciones pide ni recibe una cifra de dinero, y la de la base de datos
+   tampoco la consulta. La decisión la toma una persona, fuera de aquí. */
+
+const ESTADOS_CIERRE = {
+  pendiente:       'Sin revisar',
+  aprobado:        'Aprobado',
+  justificado:     'Justificado',
+  con_observacion: 'Con observación'
+};
+
+// El lunes de la semana a la que pertenece una fecha
+function lunesDe(fecha) {
+  const d = new Date(fecha);
+  const dow = (d.getDay() + 6) % 7;        // 0 = lunes
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+function horas(minutos) {
+  const m = Math.max(0, Math.round(minutos || 0));
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
+
+function semanaEnLetra(lunes) {
+  const a = new Date(lunes + 'T12:00:00');
+  const b = new Date(a); b.setDate(a.getDate() + 6);
+  const f = (d) => d.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' });
+  return `${f(a)} — ${f(b)}`;
+}
+
+function moverSemana(dias) {
+  const d = new Date($('cierre-semana').value + 'T12:00:00');
+  d.setDate(d.getDate() + dias);
+  const lunes = lunesDe(d);
+  if (lunes > lunesDe(new Date())) { avisoPanel('Esa semana todavía no ha pasado.', 'error'); return; }
+  $('cierre-semana').value = lunes;
+  cargarCierres();
+}
+
+$('btn-semana-anterior').addEventListener('click', () => moverSemana(-7));
+$('btn-semana-siguiente').addEventListener('click', () => moverSemana(7));
+$('cierre-semana').addEventListener('change', () => {
+  $('cierre-semana').value = lunesDe($('cierre-semana').value);
+  cargarCierres();
+});
+$('cierre-sede').addEventListener('change', cargarCierres);
+
+async function cargarCierres() {
+  const caja = $('lista-cierres');
+  if (!$('cierre-semana').value) {
+    // Por defecto, la semana pasada: la actual todavía está ocurriendo.
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    $('cierre-semana').value = lunesDe(d);
+  }
+  const sede = $('cierre-sede').value || yo.branch_id || sedes[0]?.id;
+  if (!sede) { caja.innerHTML = '<p class="vacio">No hay sedes visibles.</p>'; return; }
+
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+  const { data, error } = await sb.rpc('cierres',
+    { p_branch: sede, p_lunes: $('cierre-semana').value });
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+
+  const t = data.total || {};
+  $('cierre-kpis').innerHTML = data.calculado
+    ? kpi(t.trabajadores, 'Trabajadores', 'info')
+      + kpi(t.asistencia === null ? '—' : t.asistencia + '%', 'Asistencia',
+            t.asistencia >= 95 ? 'bien' : t.asistencia >= 80 ? 'aviso' : 'mal')
+      + kpi(horas(t.minutos_retraso), 'Retraso acumulado', t.minutos_retraso > 0 ? 'aviso' : 'bien')
+      + kpi(t.pendientes, 'Sin revisar', t.pendientes > 0 ? 'aviso' : 'bien')
+    : '';
+
+  if (!data.calculado) {
+    caja.innerHTML = `<p class="vacio">La semana del ${esc(semanaEnLetra(data.semana))}
+      todavía no se ha calculado. Pulse «Calcular la semana».</p>`;
+    return;
+  }
+
+  caja.innerHTML = data.cierres.map((c) => `
+    <div class="novedad" data-e="${c.estado === 'pendiente' ? 'pendiente' : 'aprobada'}">
+      <h3>${esc(c.nombre)}</h3>
+      <p>${esc(c.cargo)}</p>
+      <div class="cierre-cifras">
+        <span><strong>${c.asistencia}%</strong> asistencia</span>
+        <span><strong>${c.puntualidad}%</strong> puntualidad</span>
+        <span><strong>${horas(c.minutos_trabajados)}</strong> de ${horas(c.minutos_esperados)}</span>
+      </div>
+      <div class="novedad__pie">
+        ${c.ausencias  ? `<span>${c.ausencias} ausencia${c.ausencias === 1 ? '' : 's'}</span>` : ''}
+        ${c.incompletos ? `<span>${c.incompletos} día(s) incompleto(s)</span>` : ''}
+        ${c.retrasos   ? `<span>${c.retrasos} retraso(s) · ${horas(c.minutos_retraso)}</span>` : ''}
+        ${c.sin_evidencia ? `<span>${c.sin_evidencia} sin foto</span>` : ''}
+        ${c.novedades  ? `<span>${c.novedades} novedad(es)</span>` : ''}
+        <span class="pastilla pastilla--${c.estado === 'pendiente' ? 'inactivo' : 'activo'}"
+              style="margin-left:auto">${ESTADOS_CIERRE[c.estado] || c.estado}</span>
+      </div>
+      ${c.nota ? `<p style="margin-top:.5rem;font-size:.82rem">«${esc(c.nota)}»</p>` : ''}
+      ${c.cerrado_por
+        ? `<p class="ayuda" style="margin-top:.35rem">Revisado por ${esc(c.cerrado_por)}</p>` : ''}
+      ${puedeEditar() ? `
+        <div class="novedad__acciones">
+          ${c.estado === 'pendiente' ? `
+            <button class="btn-rechazar" data-observar="${c.id}">Observar</button>
+            <button class="btn-aprobar"  data-aprobar-cierre="${c.id}">Aprobar</button>`
+          : `<button class="btn-rechazar" data-reabrir="${c.id}">Reabrir</button>`}
+        </div>` : ''}
+    </div>`).join('');
+
+  caja.querySelectorAll('[data-aprobar-cierre]').forEach((b) =>
+    b.addEventListener('click', () => revisar(b.dataset.aprobarCierre, 'aprobado')));
+  caja.querySelectorAll('[data-observar]').forEach((b) =>
+    b.addEventListener('click', () => revisar(b.dataset.observar, 'con_observacion')));
+  caja.querySelectorAll('[data-reabrir]').forEach((b) =>
+    b.addEventListener('click', () => revisar(b.dataset.reabrir, 'pendiente')));
+}
+
+async function revisar(id, estado) {
+  let nota = null;
+  if (estado === 'con_observacion') {
+    nota = prompt('¿Qué hay que observar de esta semana?');
+    if (nota === null) return;
+    if (!nota.trim()) { avisoPanel('Una observación sin explicación no sirve de nada.', 'error'); return; }
+  } else if (estado === 'aprobado') {
+    nota = prompt('Nota (opcional):');
+    if (nota === null) return;
+  } else if (!confirm('Reabrir borra la revisión y la semana vuelve a quedar sin revisar. ¿Seguro?')) {
+    return;
+  }
+
+  const { data, error } = await sb.rpc('revisar_cierre',
+    { p_cierre: id, p_estado: estado, p_nota: nota || null });
+  if (error)    { avisoPanel(traducir(error), 'error'); return; }
+  if (!data.ok) { avisoPanel('No se pudo revisar.', 'error'); return; }
+
+  avisoPanel(estado === 'pendiente' ? 'Cierre reabierto.' : 'Cierre revisado.');
+  cargarCierres();
+}
+
+$('btn-calcular-semana').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  ocupado(btn, true, 'Calcular la semana');
+  const sede = $('cierre-sede').value || yo.branch_id || sedes[0]?.id;
+  const { data, error } = await sb.rpc('calcular_cierre_semana',
+    { p_branch: sede, p_lunes: $('cierre-semana').value });
+  ocupado(btn, false, 'Calcular la semana');
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+
+  avisoPanel(data.ya_revisados
+    ? `Semana calculada. ${data.ya_revisados} cierre(s) ya revisado(s) se dejaron como estaban.`
+    : 'Semana calculada.');
+  cargarCierres();
+});
+
+/* ── EXPORTAR ───────────────────────────────────────────────────────
+   El CSV se arma y se descarga en el propio navegador: el archivo no
+   pasa por ningún servidor intermedio ni se queda guardado en ninguna
+   parte. Se abre en Excel y se acabó. */
+
+function aCSV(filas, columnas) {
+  const escapar = (v) => {
+    const t = v === null || v === undefined ? '' : String(v);
+    return /[",;\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  // Punto y coma: es lo que espera un Excel configurado en español.
+  const lineas = [columnas.map((c) => escapar(c.titulo)).join(';')];
+  filas.forEach((f) => lineas.push(columnas.map((c) => escapar(c.valor(f))).join(';')));
+  // El BOM es lo que hace que Excel respete los acentos.
+  return '﻿' + lineas.join('\r\n');
+}
+
+function descargar(nombre, texto) {
+  const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const SI_NO = (v) => (v ? 'sí' : 'no');
+
+$('btn-exportar-cierre').addEventListener('click', async () => {
+  const sede = $('cierre-sede').value || yo.branch_id || sedes[0]?.id;
+  const { data, error } = await sb.rpc('cierres',
+    { p_branch: sede, p_lunes: $('cierre-semana').value });
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+  if (!data.calculado) { avisoPanel('Primero calcule la semana.', 'error'); return; }
+
+  descargar(`cierre-${data.sede}-${data.semana}.csv`, aCSV(data.cierres, [
+    { titulo: 'Trabajador',          valor: (c) => c.nombre },
+    { titulo: 'Cargo',               valor: (c) => c.cargo },
+    { titulo: 'Asistencia %',        valor: (c) => c.asistencia },
+    { titulo: 'Puntualidad %',       valor: (c) => c.puntualidad },
+    { titulo: 'Minutos esperados',   valor: (c) => c.minutos_esperados },
+    { titulo: 'Minutos trabajados',  valor: (c) => c.minutos_trabajados },
+    { titulo: 'Retrasos',            valor: (c) => c.retrasos },
+    { titulo: 'Minutos de retraso',  valor: (c) => c.minutos_retraso },
+    { titulo: 'Ausencias',           valor: (c) => c.ausencias },
+    { titulo: 'Días incompletos',    valor: (c) => c.incompletos },
+    { titulo: 'Novedades',           valor: (c) => c.novedades },
+    { titulo: 'Sin evidencia',       valor: (c) => c.sin_evidencia },
+    { titulo: 'Estado',              valor: (c) => ESTADOS_CIERRE[c.estado] || c.estado },
+    { titulo: 'Observación',         valor: (c) => c.nota },
+    { titulo: 'Revisado por',        valor: (c) => c.cerrado_por }
+  ]));
+  avisoPanel('Archivo descargado.');
+});
+
+$('btn-exportar-reporte').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const desde = $('rep-desde').value, hasta = $('rep-hasta').value;
+  if (!desde || !hasta) { avisoPanel('Indique desde y hasta.', 'error'); return; }
+  if (hasta < desde)    { avisoPanel('La fecha final va después de la inicial.', 'error'); return; }
+
+  ocupado(btn, true, 'Descargar CSV');
+  const { data, error } = await sb.rpc('reporte_asistencia',
+    { p_branch: $('rep-sede').value || null, p_desde: desde, p_hasta: hasta });
+  ocupado(btn, false, 'Descargar CSV');
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+
+  if (!data.filas) {
+    aviso($('rep-aviso'),
+      'No hay nada que exportar en ese rango. Puede que la asistencia de esos días aún no se haya calculado: ábralos en Cierres y púlselo allí.',
+      'info');
+    return;
+  }
+
+  descargar(`asistencia-${desde}-a-${hasta}.csv`, aCSV(data.datos, [
+    { titulo: 'Fecha',              valor: (f) => f.fecha },
+    { titulo: 'Sede',               valor: (f) => f.sede },
+    { titulo: 'Código',             valor: (f) => f.codigo },
+    { titulo: 'Trabajador',         valor: (f) => f.nombre },
+    { titulo: 'Cargo',              valor: (f) => f.cargo },
+    { titulo: 'Día laborable',      valor: (f) => SI_NO(f.dia_laborable) },
+    { titulo: 'Estado',             valor: (f) => f.estado },
+    { titulo: 'Marcaciones',        valor: (f) => f.marcaciones },
+    { titulo: 'Esperadas',          valor: (f) => f.esperadas },
+    { titulo: 'Minutos esperados',  valor: (f) => f.minutos_esperados },
+    { titulo: 'Minutos trabajados', valor: (f) => f.minutos_trabajados },
+    { titulo: 'Minutos de retraso', valor: (f) => f.minutos_retraso },
+    { titulo: 'Retrasos',           valor: (f) => f.retrasos },
+    { titulo: 'Anticipados',        valor: (f) => f.anticipados },
+    { titulo: 'Sin evidencia',      valor: (f) => f.sin_evidencia },
+    { titulo: 'Justificado',        valor: (f) => SI_NO(f.justificado) }
+  ]));
+  aviso($('rep-aviso'), `${data.filas} fila(s) descargadas.`, 'ok');
+});
+
+/* ── AUDITORÍA ──────────────────────────────────────────────────────
+   Sólo lee. El registro es de sólo añadir: no hay forma de editarlo ni
+   de borrarlo, tampoco desde aquí, y eso es lo que le da valor. */
+
+// Los nombres de las columnas son ingleses y técnicos. Quien mira esta
+// pantalla no tiene por qué saber qué es `is_working`.
+const CAMPOS = {
+  status:'estado', note:'observación', is_active:'activo', is_working:'trabaja ese día',
+  is_continuous:'jornada corrida', entry_time:'hora de entrada', exit_time:'hora de salida',
+  lunch_out_time:'salida a almorzar', lunch_in_time:'regreso de almorzar',
+  first_name:'nombres', last_name:'apellidos', national_id:'cédula', position:'cargo',
+  branch_id:'sede', hired_on:'fecha de ingreso', phone:'teléfono', email:'correo',
+  full_name:'nombre', role:'rol', weekly_base:'salario semanal base',
+  closed_by:'revisado por', closed_at:'revisado el', label:'nombre',
+  device_label:'aparato', name:'nombre', code:'código', value:'valor',
+  deleted_at:'fecha de baja', resolved_by:'resuelto por', description:'descripción'
+};
+
+// Y los valores: sin comillas de JSON, y con palabras en vez de true/false.
+function valorLegible(v) {
+  if (v === null || v === undefined) return '(vacío)';
+  if (v === true)  return 'sí';
+  if (v === false) return 'no';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+$('audit-sede').addEventListener('change', cargarAuditoria);
+$('audit-desde').addEventListener('change', cargarAuditoria);
+
+async function cargarAuditoria() {
+  const caja = $('lista-auditoria');
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+
+  const { data, error } = await sb.rpc('auditoria', {
+    p_branch: $('audit-sede').value || null,
+    p_desde:  $('audit-desde').value || null,
+    p_accion: null,
+    p_limite: 200
+  });
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+  if (!data.filas) {
+    caja.innerHTML = '<p class="vacio">No hay movimientos registrados en ese filtro.</p>';
+    return;
+  }
+
+  caja.innerHTML = data.registros.map((r) => `
+    <div class="ficha" style="display:block">
+      <div style="display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap">
+        <strong style="flex:1">${esc(r.etiqueta)}</strong>
+        <span class="horas">${new Date(r.cuando).toLocaleString('es-VE',
+          { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+      <span style="font-size:.82rem;color:var(--texto-suave)">
+        ${esc(r.quien)}${r.sede ? ' · ' + esc(r.sede) : ''}
+      </span>
+      ${(r.cambios && r.cambios.length) ? `
+        <ul class="cambios">
+          ${r.cambios.slice(0, 6).map((c) => `
+            <li><b>${esc(CAMPOS[c.campo] || c.campo)}</b>
+              <s>${esc(valorLegible(c.antes))}</s> →
+              <i>${esc(valorLegible(c.despues))}</i></li>`).join('')}
+          ${r.cambios.length > 6
+            ? `<li>y ${r.cambios.length - 6} campo(s) más</li>` : ''}
+        </ul>` : ''}
+    </div>`).join('');
+}

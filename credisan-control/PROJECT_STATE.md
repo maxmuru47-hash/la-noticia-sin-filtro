@@ -5,9 +5,9 @@
 | | |
 |---|---|
 | **Versión** | 1.0.0 |
-| **Fase actual** | **4 — Tableros entregados. Panel completo de punta a punta** |
-| **Fecha** | 2026-09-15 |
-| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE4.sql` (ya instalado) |
+| **Fase actual** | **5 — Cierres, reportes y auditoría. Sólo falta el modo sin conexión** |
+| **Fecha** | 2026-09-16 |
+| **Instalación** | `supabase/instalador/INSTALAR.sql` (nuevo) · `ACTUALIZAR-FASE5.sql` (ya instalado) |
 | **Producción** | control.sinfiltroconmax.com (VPS propio, Caddy, despliegue automático desde GitHub) |
 | **Backend** | Supabase, proyecto independiente (aún por crear) |
 | **Repositorio** | `credisan-control/` dentro de `la-noticia-sin-filtro`; separar según `docs/SEPARAR_REPOSITORIO.md` |
@@ -47,6 +47,12 @@
 | 19 | Sin `force row level security` | Las funciones `SECURITY DEFINER` del motor necesitan el paso del propietario; a la API se le niega por política |
 | 20 | Tipografía Poppins en vez de Code Next | El manual especifica una fuente comercial en versión de prueba; Poppins es equivalente y con licencia libre |
 | 21 | `America/Caracas` por sede, guardado en `timestamptz` | Venezuela es UTC−4 sin horario de verano; la zona vive en `branches` por si una sede futura difiere |
+| 22 | El cierre semanal no tiene ni una columna ni una consulta de dinero | Requisito explícito. Un sistema que calcula solo cuánto descontar acaba descontando solo |
+| 23 | Recalcular una semana nunca pisa un cierre ya revisado | La decisión de una persona no la puede borrar un trabajo automático |
+| 24 | `computed_at` fuera de la comparación del disparador de auditoría | Si no, cada recálculo escribiría una fila por trabajador diciendo sólo «se calculó a otra hora» |
+| 25 | El disparador de auditoría deriva la sede cuando la tabla no la lleva | La RLS filtra por sede: sin esto, la administradora no veía ni sus propios cambios de horario |
+| 26 | El CSV se arma en el navegador, no en el servidor | El archivo no pasa por ningún sitio ni se queda guardado en ninguna parte |
+| 27 | El reporte exportable no lleva cédulas ni salarios | Un archivo que circula por correo y se queda en carpetas de descargas |
 
 ## Base de datos
 
@@ -82,6 +88,7 @@ vigencia), `incident_kinds` (tipos de novedad como dato, no como código).
 | `20260909121100_fase2.sql` | sedes, accesos y horarios desde el panel |
 | `20260915100000_fase3.sql` | terminales, PIN y puente `edge_*` |
 | `20260915140000_fase4.sql` | tableros del día y del período, ranking, novedades |
+| `20260916100000_fase5.sql` | cierre semanal, reporte exportable, auditoría legible |
 | `seed/seed.sql` | 3 sedes, 3 terminales, jornada estándar, 19 parámetros |
 
 ## Variables de entorno
@@ -102,10 +109,12 @@ una base limpia por batería —no se contaminan entre sí— y corre las cuatro
 | `02_fase2.sql` | bootstrap y su cierre, sede completa, activación del sábado, horas en desorden, alta de accesos, límites de la administradora |
 | `03_fase3.sql` | PIN asignado, emparejamiento, token falso, PIN erróneo con su rastro, marcación clasificada, evidencia con fecha de purga, desvinculación, y el panel sin poder ejecutar las `edge_*` |
 | `04_fase4.sql` | tablero por rol, aislamiento entre sedes, ausencia de datos salariales por estructura, y que la fase no alteró ni un dato existente |
+| `05_fase5.sql` | que el cierre no toca dinero (leído del código fuente), recalcular respetando lo revisado, reporte sin cédulas, y la auditoría vista por cada rol |
 
-**Las cuatro en verde.** Además, tres pruebas de navegador real (Playwright con
-el backend simulado): kiosco completo con cámara, panel de Fase 3, y panel de
-Fase 4 con sus 51 comprobaciones sobre los tres roles.
+**Las cinco en verde.** Además, cuatro pruebas de navegador real (Playwright
+con el backend simulado), en `pruebas/navegador/`: kiosco completo con cámara,
+panel de Fase 3, panel de Fase 4 (52 comprobaciones) y panel de Fase 5 (45,
+incluida la descarga del CSV de verdad).
 
 ## Deuda técnica y riesgos conocidos
 
@@ -301,8 +310,73 @@ ejecutado dos veces seguidas deja el mismo resultado y el mismo número de
 trabajadores, y sobre una base vacía se detiene con un mensaje claro en vez de
 aplicarse a medias.
 
+## Fase 5 — entregada
+
+**Backend** (migración 0015): `calcular_cierre_semana`, `cierres`,
+`revisar_cierre`, `reporte_asistencia`, `auditoria`, `acciones_auditadas`.
+
+### La promesa, y cómo está construida
+
+El cierre **mide e informa, nunca descuenta dinero**. No es una nota en un
+manual:
+
+- `weekly_closures` no tiene ni una columna monetaria.
+- Ninguna función del cierre consulta `employee_compensation`.
+- La batería lo comprueba **leyendo el código fuente de las funciones** en
+  el catálogo de PostgreSQL, así que sigue siendo cierto aunque alguien las
+  edite mañana.
+- `ACTUALIZAR-FASE5.sql` repite esa comprobación al terminar y **se niega a
+  darse por instalado** si dejara de cumplirse.
+
+### Tres decisiones del cierre
+
+- **Recalcular no pisa lo revisado.** Si una semana ya se aprobó u observó,
+  se deja como está y se informa de cuántas se respetaron. Un trabajo
+  automático no puede borrar la decisión de una persona.
+- **Observar exige explicar.** `con_observacion` sin nota se rechaza en la
+  base de datos, no en el navegador.
+- **Reabrir borra la firma**, porque lo exige la restricción de la tabla y
+  porque ya no sería cierto que esté cerrado.
+
+### Dos huecos reales que aparecieron al construir la auditoría
+
+1. **`revisar_cierre` no podía escribir su propia auditoría.** Es
+   `security invoker` —para que decida la RLS y no un `if`— y
+   `authenticated` no tiene INSERT sobre `audit_logs`, que es append-only a
+   propósito. La salida no fue abrir esa puerta: `weekly_closures` ya tiene
+   disparador desde la Fase 1, y deja mejor rastro —con el antes y el
+   después de la fila entera—. Se quitó la escritura manual.
+2. **La auditoría era medio ciega para la administradora.** La RLS filtra
+   por sede, y varias tablas se auditaban sin sede: los días de horario, la
+   compensación, las excepciones. Resultado: ella cambiaba el horario de su
+   sede y no podía consultar ni su propio rastro. Ahora el disparador
+   deriva la sede donde el vínculo es directo. Lo que es de verdad global
+   —sedes, configuración sin sede— sigue sin sede, y por tanto sólo a la
+   vista de dirección.
+
+### Panel
+
+La barra inferior se reorganizó: **cinco huecos como mucho**, porque en un
+teléfono seis ya no se leen. Quedó **Hoy · Personal · Novedades · Cierres ·
+Más**, y Horarios, Sedes, Auditoría y Reportes viven dentro de «Más», que
+se queda encendido mientras se está en una de ellas.
+
+La auditoría traduce lo que enseña: `weekly_closures.update` se lee «Se
+revisó un cierre semanal», `status` se lee «estado», y los valores salen
+sin comillas de JSON y con «sí/no» en vez de `true/false`. La traducción
+vive en un solo sitio.
+
+El CSV se arma en el navegador —el archivo no pasa por ningún servidor—,
+con BOM para que Excel respete los acentos y punto y coma como separador,
+que es lo que espera un Excel configurado en español.
+
+Validado con `05_fase5.sql` (8 bloques) y con una prueba de navegador real
+de **45 comprobaciones** sobre los tres roles, incluida la descarga del CSV
+de verdad y la comprobación de que no lleva cédulas, ni salarios, ni gente
+de otra sede.
+
 ## Siguiente paso
 
-**Fase 5 — Cierres, reportes y auditoría visible**: cierre semanal que mide e
-informa pero **nunca descuenta dinero solo**, exportación de reportes y
-consulta de la auditoría desde el panel.
+**Fase 6 — Modo sin conexión y control de calidad**: cola local en
+IndexedDB, PIN cifrado con clave pública, sincronización con ventana de 72 h
+y la batería final de extremo a extremo.

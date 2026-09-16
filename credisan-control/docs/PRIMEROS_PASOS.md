@@ -104,7 +104,8 @@ de la Fase 3 (`docs/FASE3_TERMINAL.md`). Mientras no esté, los trabajadores
 aparecen con la etiqueta «PIN pendiente» y los tableros salen vacíos: están
 registrados y con horario, listos para marcar en cuanto exista el terminal.
 
-El **cierre semanal** y los **reportes exportables** son la Fase 5.
+**Hoy** — la operación del día. **Cierres** — la semana medida y revisada.
+**Más** — horarios, sedes, reportes en Excel y auditoría.
 
 ## Guías por fase
 
@@ -112,6 +113,7 @@ El **cierre semanal** y los **reportes exportables** son la Fase 5.
 |---|---|
 | `docs/FASE3_TERMINAL.md` | Publicar la función del servidor y poner a marcar los terminales |
 | `docs/FASE4_TABLEROS.md` | Activar los tableros y entender qué ve cada rol |
+| `docs/FASE5_CIERRES.md` | Cierre semanal, reportes en Excel y auditoría |
 
 ## Si algo falla
 

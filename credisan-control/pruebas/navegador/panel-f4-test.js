@@ -105,8 +105,8 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
     const { p, errs } = await abrir(b, 'supervisor');
     ok((await textoDe(p, '#mi-rol')) === 'Jefe operativo · Maracaibo', 'se identifica su sede',
        await textoDe(p, '#mi-rol'));
-    ok(await p.locator('#nav-horarios').isHidden(), 'no ve Horarios');
-    ok(await p.locator('#nav-sedes').isHidden(), 'no ve Sedes');
+    ok(await p.locator('#nav-mas').isHidden(), 'no ve el menú Más (horarios, sedes, auditoría)');
+    ok(await p.locator('#nav-cierres').isHidden(), 'no ve Cierres');
     ok(await p.locator('#periodos').isHidden(), 'no ve estadísticas de período');
     ok(await p.locator('#hoy-sede-caja').isHidden(), 'no puede elegir otra sede');
     ok(await p.locator('#btn-nuevo-empleado').isHidden(), 'no da de alta personal');
@@ -150,8 +150,16 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
   console.log('\n3 · Administradora (su sede, con datos autorizados)');
   {
     const { p, errs } = await abrir(b, 'admin');
-    ok(await p.locator('#nav-horarios').isVisible(), 'sí ve Horarios');
-    ok(await p.locator('#nav-sedes').isVisible(), 'sí ve Sedes');
+    // Desde la Fase 5 la barra tiene cinco huecos y Horarios y Sedes
+    // cuelgan de «Más». Lo que importa no es dónde está el botón, sino
+    // que ella pueda llegar y el jefe operativo no.
+    ok(await p.locator('#nav-mas').isVisible(), 'sí ve el menú Más');
+    await p.click('.nav button[data-vista="v-mas"]');
+    await p.waitForTimeout(250);
+    ok(await p.locator('[data-ir="v-horarios"]').isVisible(), 'y desde ahí llega a Horarios');
+    ok(await p.locator('[data-ir="v-sedes"]').isVisible(), 'y a Sedes');
+    await p.click('.nav button[data-vista="v-hoy"]');
+    await p.waitForTimeout(250);
     ok(await p.locator('#periodos').isVisible(), 'sí ve el período');
     ok(await p.locator('#bloque-accesos').isHidden(), 'pero NO reparte accesos al panel');
     ok(await p.locator('#btn-nueva-sede').isHidden(), 'ni crea sedes');

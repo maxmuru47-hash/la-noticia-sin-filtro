@@ -244,3 +244,33 @@
   font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; border: 1.5px solid; }
 .btn-aprobar { background: var(--blanco); color: var(--verde); border-color: var(--verde); }
 .btn-rechazar { background: var(--blanco); color: var(--rojo); border-color: var(--rojo); }
+
+/* ── Fase 5 · cierres, auditoría y el menú «Más» ───────────────────── */
+
+/* Una ficha que además es botón: mismo aspecto, pero pulsable */
+.ficha--boton {
+  width: 100%; text-align: left; border: none; cursor: pointer;
+  font: inherit; color: inherit;
+}
+.ficha--boton:hover  { border-color: var(--morado); }
+.ficha--boton:active { transform: scale(.995); }
+.ficha--boton .ficha__inicial { font-size: 1.15rem; }
+
+/* Las tres cifras gruesas de cada cierre semanal */
+.cierre-cifras {
+  display: flex; flex-wrap: wrap; gap: .25rem 1.1rem;
+  margin: .5rem 0 .35rem; font-size: .84rem; color: var(--texto-suave);
+}
+.cierre-cifras strong {
+  color: var(--negro); font-variant-numeric: tabular-nums; font-size: .98rem;
+}
+
+/* El antes y el después de cada cambio auditado */
+.cambios {
+  list-style: none; margin: .6rem 0 0; padding: .6rem 0 0;
+  border-top: 1px solid var(--linea); font-size: .8rem;
+}
+.cambios li { margin-bottom: .25rem; word-break: break-word; }
+.cambios b  { color: var(--morado); font-weight: 600; }
+.cambios s  { color: var(--texto-suave); text-decoration-color: var(--rojo); }
+.cambios i  { color: var(--negro); font-style: normal; font-weight: 600; }

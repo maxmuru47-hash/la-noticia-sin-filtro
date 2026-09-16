@@ -200,7 +200,10 @@
 
   <!-- ══ HORARIOS ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-horarios" hidden>
-    <h1>Horarios</h1>
+    <div class="encabezado-vista">
+      <h1>Horarios</h1>
+      <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
+    </div>
     <div class="campo">
       <label for="horario-sede">Sede</label>
       <select id="horario-sede"></select>
@@ -216,6 +219,7 @@
   <main class="vista" id="v-sedes" hidden>
     <div class="encabezado-vista">
       <h1>Sedes</h1>
+      <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
       <button class="boton" id="btn-nueva-sede" hidden>+ Nueva</button>
     </div>
     <div id="lista-sedes"><p class="cargando">Cargando…</p></div>
@@ -273,6 +277,128 @@
     </section>
   </main>
 
+  <!-- ══ CIERRES SEMANALES ═════════════════════════════════════════════ -->
+  <main class="vista" id="v-cierres" hidden>
+    <h1>Cierre semanal</h1>
+
+    <div class="aviso" data-t="info">
+      El sistema <strong>mide e informa</strong>. No calcula descuentos ni
+      toca la nómina: eso lo decide una persona, fuera de aquí.
+    </div>
+
+    <div class="campo campo--mitad">
+      <div>
+        <label for="cierre-sede">Sede</label>
+        <select id="cierre-sede"></select>
+      </div>
+      <div>
+        <label for="cierre-semana">Semana (lunes)</label>
+        <input type="date" id="cierre-semana">
+      </div>
+    </div>
+
+    <div class="fila-botones" style="margin-bottom:1rem">
+      <button class="boton boton--secundario" id="btn-semana-anterior">← Anterior</button>
+      <button class="boton boton--secundario" id="btn-semana-siguiente">Siguiente →</button>
+    </div>
+
+    <div class="kpis" id="cierre-kpis"></div>
+
+    <div class="fila-botones" style="margin:1rem 0">
+      <button class="boton" id="btn-calcular-semana">Calcular la semana</button>
+      <button class="boton boton--secundario" id="btn-exportar-cierre">Descargar CSV</button>
+    </div>
+
+    <div id="lista-cierres"><p class="cargando">Cargando…</p></div>
+  </main>
+
+  <!-- ══ MÁS ═══════════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-mas" hidden>
+    <h1>Más</h1>
+    <div id="menu-mas">
+      <button class="ficha ficha--boton" data-ir="v-horarios">
+        <div class="ficha__inicial">🕒</div>
+        <div class="ficha__cuerpo">
+          <strong>Horarios</strong>
+          <span>Los siete días de cada sede. Activar el sábado se hace aquí.</span>
+        </div>
+      </button>
+      <button class="ficha ficha--boton" data-ir="v-sedes">
+        <div class="ficha__inicial">🏢</div>
+        <div class="ficha__cuerpo">
+          <strong>Sedes y terminales</strong>
+          <span>Vincular un terminal, crear una sede, repartir accesos.</span>
+        </div>
+      </button>
+      <button class="ficha ficha--boton" data-ir="v-auditoria">
+        <div class="ficha__inicial">🔎</div>
+        <div class="ficha__cuerpo">
+          <strong>Auditoría</strong>
+          <span>Quién cambió qué, cuándo, y qué había antes.</span>
+        </div>
+      </button>
+      <button class="ficha ficha--boton" data-ir="v-reportes">
+        <div class="ficha__inicial">📄</div>
+        <div class="ficha__cuerpo">
+          <strong>Reportes</strong>
+          <span>Descargar la asistencia de un período en CSV.</span>
+        </div>
+      </button>
+    </div>
+  </main>
+
+  <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-auditoria" hidden>
+    <div class="encabezado-vista">
+      <h1>Auditoría</h1>
+      <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
+    </div>
+
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      Todo lo que se cambia queda registrado solo, sin que nadie tenga que
+      acordarse. Esta pantalla sólo lee: el registro no se puede editar ni
+      borrar, tampoco desde aquí.
+    </p>
+
+    <div class="campo campo--mitad">
+      <div>
+        <label for="audit-sede">Sede</label>
+        <select id="audit-sede"></select>
+      </div>
+      <div>
+        <label for="audit-desde">Desde</label>
+        <input type="date" id="audit-desde">
+      </div>
+    </div>
+
+    <div id="lista-auditoria"><p class="cargando">Cargando…</p></div>
+  </main>
+
+  <!-- ══ REPORTES ══════════════════════════════════════════════════════ -->
+  <main class="vista" id="v-reportes" hidden>
+    <div class="encabezado-vista">
+      <h1>Reportes</h1>
+      <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
+    </div>
+
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      Se descarga un archivo CSV, que se abre en Excel. Lleva la asistencia
+      día por día. <strong>No lleva cédulas ni salarios</strong>: un archivo
+      que va a circular por correo no tiene por qué llevarlos.
+    </p>
+
+    <div class="campo">
+      <label for="rep-sede">Sede</label>
+      <select id="rep-sede"></select>
+    </div>
+    <div class="campo campo--mitad">
+      <div><label for="rep-desde">Desde</label><input type="date" id="rep-desde"></div>
+      <div><label for="rep-hasta">Hasta</label><input type="date" id="rep-hasta"></div>
+    </div>
+    <button class="boton" id="btn-exportar-reporte">Descargar CSV</button>
+    <p class="ayuda" id="rep-aviso" style="margin-top:.75rem"></p>
+  </main>
+
   <!-- Tarjeta de un solo uso: enseña algo que no se puede volver a consultar -->
   <div class="tarjeta" id="revelacion" hidden
        style="position:fixed;inset:auto 1rem 5rem;max-width:520px;margin:0 auto;z-index:30;
@@ -285,12 +411,14 @@
     <button class="boton" id="rev-cerrar" style="margin-top:.75rem">Ya lo anoté</button>
   </div>
 
+  <!-- Cinco huecos como mucho: en un teléfono, seis ya no se leen.
+       Horarios, Sedes, Auditoría y Reportes viven dentro de «Más». -->
   <nav class="nav">
     <button data-vista="v-hoy" aria-current="true"><span>📋</span>Hoy</button>
     <button data-vista="v-personal"><span>👥</span>Personal</button>
     <button data-vista="v-novedades"><span>⚠️</span>Novedades</button>
-    <button data-vista="v-horarios" id="nav-horarios" hidden><span>🕒</span>Horarios</button>
-    <button data-vista="v-sedes"    id="nav-sedes"    hidden><span>🏢</span>Sedes</button>
+    <button data-vista="v-cierres" id="nav-cierres" hidden><span>📅</span>Cierres</button>
+    <button data-vista="v-mas"     id="nav-mas"     hidden><span>⚙️</span>Más</button>
   </nav>
 </div>
 

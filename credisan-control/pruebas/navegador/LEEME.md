@@ -21,9 +21,10 @@ cd credisan-control/public && python3 -m http.server 8099 &
 cd ../pruebas/navegador
 npm install playwright        # la primera vez
 node panel-f4-test.js
+node panel-f5-test.js
 ```
 
-`panel-f4-test.js` termina con código 0 si todo pasa, y 1 si algo falla: sirve
+Cada prueba termina con código 0 si todo pasa, y 1 si algo falla: sirve
 para integración continua tal cual.
 
 ## Qué hay aquí
@@ -34,6 +35,8 @@ para integración continua tal cual.
 | `mock-f4.js` | Servidor simulado de la Fase 4. Imita la respuesta **con las políticas ya aplicadas**: si el usuario es jefe de Maracaibo, Caja Seca sencillamente no existe en los datos que llegan |
 | `panel-f3-test.js` | Terminales, código de vinculación y revelación del PIN |
 | `panel-f4-test.js` | 52 comprobaciones sobre los tres roles: tablero del día, período, ranking, novedades y **aislamiento de datos entre sedes** |
+| `mock-f5.js` | Servidor simulado de la Fase 5 |
+| `panel-f5-test.js` | 47 comprobaciones: cierre semanal, auditoría legible, y la **descarga real del CSV** —que se abre y se comprueba que no lleva cédulas, ni salarios, ni gente de otra sede— |
 | `kiosk-test.js` | El kiosco completo con cámara simulada, incluida la comprobación de que el PIN no vuelve a viajar al confirmar |
 
 ## Una advertencia sobre cómo escribirlas
