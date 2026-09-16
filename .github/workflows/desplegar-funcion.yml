@@ -109,7 +109,7 @@ jobs:
           }
           TS
           cp supabase/functions/credisan/index.ts /tmp/fn.ts
-          npx --yes typescript@5 tsc --noEmit --strict false \
+          npx --yes --package=typescript@5 -- tsc --noEmit --strict false \
             --target ES2022 --lib ES2022,DOM --module ESNext \
             --moduleResolution bundler --skipLibCheck \
             /tmp/fn.ts /tmp/shims.d.ts
