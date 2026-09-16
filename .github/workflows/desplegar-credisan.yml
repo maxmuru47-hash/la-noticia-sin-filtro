@@ -23,6 +23,7 @@ on:
       - 'credisan-control/public/**'
       - '.github/workflows/desplegar-credisan.yml'
   workflow_dispatch:
+  workflow_call:      # lo llama «Poner en marcha CrediSan»
 
 concurrency:
   group: despliegue-credisan

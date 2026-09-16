@@ -1,24 +1,28 @@
 # Empezar aquí · lo único que falta
 
-Todo el sistema está construido, probado y publicado. Lo que queda son
-**tres secretos** que sólo puede pegar usted, porque son las llaves de su
-cuenta y no deben pasar por un chat.
+El sistema está construido y probado entero. Lo que queda son **unas llaves
+que sólo puede pegar usted**, porque son de su cuenta y no deben pasar por un
+chat, y **un botón**.
 
-**Tiempo: unos 10 minutos.** Después, todo lo demás va solo.
+**Tiempo: unos 15 minutos.** Después, todo lo demás va solo.
 
 ---
 
 ## Antes de empezar: tenga a mano
 
 - Su cuenta de **supabase.com** abierta.
-- Su repositorio en **github.com** abierto, en
+- Los datos de su **VPS** (la IP, el usuario y la llave de entrar por SSH).
+- Su repositorio en **github.com**, en
   **Settings → Secrets and variables → Actions**.
 
-Va a copiar tres valores de la primera a la segunda. Nada más.
+Va a pegar seis valores ahí dentro. Uno por uno, con el botón
+**New repository secret**. Ninguno se ve después: GitHub los guarda tapados.
 
 ---
 
-## Secreto 1 · `SUPABASE_ACCESS_TOKEN`
+# Paso 1 · Las llaves de Supabase
+
+## `SUPABASE_ACCESS_TOKEN`
 
 Es el permiso para que GitHub publique la función del servidor.
 
@@ -26,27 +30,18 @@ Es el permiso para que GitHub publique la función del servidor.
 2. **Access Tokens** → **Generate new token**.
 3. Nombre: `github-credisan`. Copie el texto que aparece.
    *(Sólo se enseña una vez.)*
-4. En GitHub: **New repository secret**
-   · Name: `SUPABASE_ACCESS_TOKEN`
-   · Secret: lo que copió.
 
-## Secreto 2 · `SUPABASE_PROJECT_REF`
+## `SUPABASE_PROJECT_REF`
 
-Es el nombre corto de su proyecto.
-
-Mire la dirección de su proyecto en Supabase:
+Es el nombre corto de su proyecto. Mírelo en su dirección:
 
 ```
-https://abcdefghijklm.supabase.co
-        ↑─────────────↑
+https://pnbeudvizovmlbvzzezn.supabase.co
+        ↑──────────────────↑
         esto es lo que se copia
 ```
 
-En GitHub: **New repository secret**
-· Name: `SUPABASE_PROJECT_REF`
-· Secret: esa parte del medio.
-
-## Secreto 3 · `SUPABASE_DB_URL`
+## `SUPABASE_DB_URL`
 
 Es la conexión a la base de datos.
 
@@ -56,9 +51,6 @@ Es la conexión a la base de datos.
    `postgresql://postgres.abcdef:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres`
 4. Sustituya `[YOUR-PASSWORD]` (corchetes incluidos) por la contraseña de
    su base de datos.
-5. En GitHub: **New repository secret**
-   · Name: `SUPABASE_DB_URL`
-   · Secret: la cadena ya con su contraseña.
 
 > **Por qué Session pooler y no Direct connection:** la conexión directa
 > sólo responde por IPv6, y los servidores de GitHub no llegan hasta ahí.
@@ -66,66 +58,118 @@ Es la conexión a la base de datos.
 
 ---
 
-## Ahora, un botón
+# Paso 2 · Las llaves de su servidor
+
+Son las que permiten publicar la web y guardar los respaldos. Si alguna vez
+subió el sitio a mano, estos son los mismos datos que usó entonces.
+
+| Secreto | Qué es |
+|---|---|
+| `VPS_HOST` | la IP de su servidor |
+| `VPS_USER` | el usuario con el que entra por SSH |
+| `VPS_SSH_KEY` | la llave privada de despliegue, **el contenido completo** del archivo, desde `-----BEGIN` hasta `-----END` |
+| `VPS_PORT` | sólo si su SSH no usa el puerto 22. Si usa el 22, no hace falta crearlo |
+
+> Si todavía no tiene una llave sólo para publicar, cómo crearla está en
+> `docs/DESPLIEGUE_AUTOMATICO.md`. **No reutilice su llave personal**: ésta
+> se puede revocar sin dejarle a usted fuera del servidor.
+
+---
+
+# Paso 3 · Un botón
 
 En GitHub, pestaña **Actions** → **Poner en marcha CrediSan** → *Run
 workflow*.
 
-Eso hace las dos cosas en el orden correcto: primero pone la base al día,
-después publica la función del servidor y crea sus llaves. Tarda unos tres
-minutos y al terminar escribe un resumen en castellano diciendo qué hizo.
+Hace las tres cosas en el orden correcto:
 
-> Los dos pasos existen también por separado —*Migrar base CrediSan* y
-> *Desplegar función CrediSan*— por si alguna vez hace falta lanzar sólo
-> uno. Para empezar, el botón único es suficiente.
+1. Pone la **base de datos** al día.
+2. Publica la **función del servidor** y crea sus llaves.
+3. Lleva la **web** a su servidor.
+
+Tarda unos cuatro minutos y al terminar escribe un resumen en castellano
+diciendo qué hizo y qué comprobar.
+
+> Los tres pasos existen también por separado —*Migrar base*, *Desplegar
+> función* y *Desplegar CrediSan Control*— por si alguna vez hace falta
+> lanzar sólo uno. Para empezar, el botón único es suficiente.
 
 ---
 
-## Cómo saber que quedó bien
+# Paso 4 · Comprobar que quedó bien
 
-Entre a **control.sinfiltroconmax.com/panel/** con su usuario:
+## La prueba rápida
+
+Entre a **control.sinfiltroconmax.com** — la portada del sitio *es* la página
+de estado. Son cinco comprobaciones y deben salir las cinco en verde. Si
+alguna sale en rojo, ahí mismo dice qué falta y cómo arreglarlo: no hay que
+adivinar.
+
+## La prueba de fuego
+
+Entre al **panel** con su usuario, vaya a **Personal** y pulse **PIN** en
+cualquier trabajador.
+
+**Si sale un PIN de seis dígitos, todo el circuito funciona**: el panel habla
+con la base, la base con la función del servidor, y la función tiene sus
+llaves. Es el paso que lo prueba todo de una vez.
+
+Mientras eso no esté publicado, el personal aparece con la etiqueta
+**«PIN pendiente»** y el panel avisa arriba de la lista. No es un error suyo:
+es el sistema diciendo exactamente qué le falta.
+
+## Y de paso, que esté completo
 
 | Debería ver | Significa que |
 |---|---|
-| Pestaña **Hoy** con las tres sedes | La base está en la fase 6 |
+| Pestaña **Hoy** con las sedes | La base llegó a la fase 6 |
 | Pestaña **Cierres** | La fase 5 está aplicada |
 | **Más → Auditoría** con movimientos | La auditoría funciona |
 | **Más → Terminales y conexión** | La fase 6 está aplicada |
-| **Más → Terminales y conexión** | La fase 6 está aplicada |
-| En **Personal**, el botón **PIN** genera un PIN de 6 dígitos | La función del servidor está publicada y funcionando |
-
-Ese último es la prueba de fuego: si el PIN sale, **todo el circuito
-funciona**, de punta a punta.
 
 ---
 
-## Después ya puede usarlo de verdad
+# Paso 5 · Ya se puede usar
 
 1. **Personal → + Nuevo** para cada trabajador de cada sede.
 2. A cada uno, botón **Poner foto**. Desde el teléfono abre la cámara: una
-   foto de frente y ya. Es la que verá al marcar, y la que le permite a
-   usted comprobar de un vistazo que quien marcó fue quien dice el PIN.
+   foto de frente y ya. Es la que verá al marcar, y la que le permite a usted
+   comprobar de un vistazo que quien marcó fue quien dice el PIN.
 3. A cada uno, botón **PIN**: se enseña una vez, anótelo y entrégueselo.
-4. **Más → Sedes → terminal → Vincular**: da un código de 8 caracteres
-   que vive 10 minutos.
+4. **Más → Sedes → terminal → Vincular**: da un código de 8 caracteres que
+   vive 10 minutos.
 5. En el teléfono o tableta del mostrador, abra
-   **control.sinfiltroconmax.com/kiosk/**, escriba el código, y ese
-   aparato queda atado a esa sede para siempre.
+   **control.sinfiltroconmax.com/kiosk/**, escriba el código, y ese aparato
+   queda atado a esa sede para siempre.
 6. **Instálelo como app**: en el menú del navegador, *Añadir a pantalla de
    inicio*. Aparece un icono llamado **Marcar** que abre directo el teclado,
    sin barra de navegador. A partir de ahí el aparato funciona aunque se
    caiga el internet.
 7. Ya se puede marcar.
 
+Repita los pasos 4 y 5 en cada sede: Caja Seca, Maracaibo y Maracay.
+
+---
+
+# Lo que a partir de ahí pasa solo
+
+| Cuándo | Qué |
+|---|---|
+| Cada noche, 00:40 | Se cierra el día, se calculan ausencias y retrasos, y se borran las fotos que cumplieron 180 días |
+| Cada noche, 01:10 | Se guarda una copia completa de la base en su VPS (14 días de historial) |
+| Cada vez que se cambie algo | La web, la función y la base se publican solas |
+
+Usted no tiene que acordarse de nada de eso.
+
 ---
 
 ## Si algo sale en rojo
 
-Los tres flujos escriben en castellano qué pasó y qué revisar. No hay que
-leer registros técnicos: el resumen lo dice.
+Los flujos escriben en castellano qué pasó y qué revisar. No hay que leer
+registros técnicos: el resumen lo dice.
 
-Y si un flujo de base de datos falla, **no dejó nada a medias**: cada
-archivo se aplica en una sola transacción, así que la base queda
-exactamente como estaba antes de intentarlo.
+Y si un flujo de base de datos falla, **no dejó nada a medias**: cada archivo
+se aplica en una sola transacción, así que la base queda exactamente como
+estaba antes de intentarlo.
 
 Si se atasca, pegue aquí el mensaje del resumen y lo vemos.

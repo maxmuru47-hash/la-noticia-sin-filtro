@@ -2,13 +2,14 @@
 # CrediSan Control · poner el sistema en marcha
 # =====================================================================
 # Un solo botón que hace, en el orden correcto, lo que de otro modo son
-# dos: poner la base al día y publicar la función del servidor.
+# tres: poner la base al día, publicar la función del servidor y llevar la
+# web al VPS.
 #
 # Existe por una razón práctica: quien lo va a pulsar no tiene por qué
 # saber que la base va antes que la función. Que el orden lo sepa el
 # sistema, no la persona.
 #
-# No repite nada: llama a los otros dos flujos, que siguen existiendo
+# No repite nada: llama a los otros tres flujos, que siguen existiendo
 # por separado para cuando haga falta lanzar sólo uno.
 # =====================================================================
 
@@ -29,9 +30,15 @@ jobs:
     uses: ./.github/workflows/desplegar-funcion.yml
     secrets: inherit
 
+  web:
+    name: 3 · Publicar la web al servidor
+    needs: funcion     # va última: así la pantalla nunca es más nueva que la base
+    uses: ./.github/workflows/desplegar-credisan.yml
+    secrets: inherit
+
   listo:
-    name: 3 · Resumen
-    needs: [base, funcion]
+    name: 4 · Resumen
+    needs: [base, funcion, web]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -39,12 +46,14 @@ jobs:
         run: |
           base="${{ needs.base.result }}"
           fun="${{ needs.funcion.result }}"
+          web="${{ needs.web.result }}"
 
-          if [ "$base" = "success" ] && [ "$fun" = "success" ]; then
+          if [ "$base" = "success" ] && [ "$fun" = "success" ] && [ "$web" = "success" ]; then
             {
               echo "## El sistema está en marcha"
               echo ""
-              echo "Base de datos al día y función del servidor publicada."
+              echo "Base de datos al día, función del servidor publicada y la web"
+              echo "al día en su servidor."
               echo ""
               echo "### Compruébelo usted mismo"
               echo ""
@@ -67,6 +76,7 @@ jobs:
               echo "|---|---|"
               echo "| Base de datos | \`$base\` |"
               echo "| Función del servidor | \`$fun\` |"
+              echo "| Web | \`$web\` |"
               echo ""
               echo "Abra el paso que no quedó en verde: ahí está escrito en castellano"
               echo "qué pasó y qué revisar."

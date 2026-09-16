@@ -240,6 +240,13 @@ async function cargarHoy() {
   $('hoy-lista').innerHTML = '<p class="cargando">Cargando…</p>';
   const { data, error } = await sb.rpc('tablero_hoy', { p_branch: sede });
   if (error) { $('hoy-lista').innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+  // Si la respuesta no trae la forma esperada —una base a medio actualizar,
+  // por ejemplo— se avisa en vez de reventar: una excepción aquí se lleva
+  // por delante el resto del arranque del panel.
+  if (!data || !data.resumen) {
+    $('hoy-lista').innerHTML = '<p class="vacio">El tablero de hoy no está disponible todavía. Revise <a href="../index.html">estado del sistema</a>.</p>';
+    return;
+  }
 
   const r = data.resumen;
   $('hoy-kpis').innerHTML =

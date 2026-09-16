@@ -28,6 +28,12 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
   await p.click('#btn-entrar');
   await p.waitForTimeout(700);
 
+  // Los terminales viven en «Más → Sedes» desde que el panel tiene vistas
+  // (fase 4). Antes colgaban de la pantalla principal.
+  await p.click('.nav button[data-vista="v-mas"]');
+  await p.click('[data-ir="v-sedes"]');
+  await p.waitForTimeout(600);
+
   console.log('1 · terminales listados:', await p.$$eval('#lista-terminales .ficha', (n) => n.length));
   console.log('   botones:', await p.$$eval('#lista-terminales .ficha__accion', (n) => n.map((x) => x.textContent.trim())));
 
