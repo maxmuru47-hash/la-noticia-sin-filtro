@@ -37,6 +37,7 @@ let editando = null;
 let periodo = 'hoy';
 let filtroNovedades = 'pendiente';
 let tiposNovedad = [];
+let conHorarioPropio = new Set();   // quién no hace el horario de su sede
 
 /* ── Utilidades ─────────────────────────────────────────────────────── */
 
@@ -660,6 +661,12 @@ async function cargarPersonal() {
     return;
   }
 
+  // Quién se mide con un horario distinto al de su sede. Se marca en la
+  // lista a propósito: nadie debería enterarse de que a alguien se le
+  // mide distinto sólo si se le ocurre abrir su ficha.
+  const { data: propios } = await sb.rpc('horarios_propios', { p_branch: filtro || null });
+  conHorarioPropio = new Set(Array.isArray(propios) ? propios : []);
+
   const nombreSede = (id) => sedes.find((s) => s.id === id)?.name || '';
 
   caja.innerHTML = data.map((e) => `
@@ -672,12 +679,14 @@ async function cargarPersonal() {
           <span class="pastilla pastilla--${e.is_active ? 'activo' : 'inactivo'}">
             ${e.is_active ? 'Activo' : 'Inactivo'}</span>
           ${e.pin_updated_at ? '' : '<span class="pastilla pastilla--pin">PIN pendiente</span>'}
+          ${conHorarioPropio.has(e.id) ? '<span class="pastilla pastilla--horario">Horario propio</span>' : ''}
         </span>
       </div>
       ${puedeEditar() ? `<div style="display:grid;gap:.35rem">
         <button class="ficha__accion" data-editar="${e.id}">Editar</button>
         <button class="ficha__accion" data-pin="${e.id}">${e.pin_updated_at ? 'Nuevo PIN' : 'Dar PIN'}</button>
         <button class="ficha__accion" data-foto="${e.id}">${e.photo_path ? 'Cambiar foto' : 'Poner foto'}</button>
+        <button class="ficha__accion" data-horario="${e.id}">Horario</button>
       </div>` : ''}
     </div>`).join('');
 
@@ -687,6 +696,8 @@ async function cargarPersonal() {
     b.addEventListener('click', () => generarPin(data.find((x) => x.id === b.dataset.pin), b)));
   caja.querySelectorAll('[data-foto]').forEach((b) =>
     b.addEventListener('click', () => pedirFoto(data.find((x) => x.id === b.dataset.foto), b)));
+  caja.querySelectorAll('[data-horario]').forEach((b) =>
+    b.addEventListener('click', () => abrirHorarioPropio(data.find((x) => x.id === b.dataset.horario))));
 
   // Las fotos que ya existen, cada una con su URL firmada. Se piden
   // después de pintar la lista para que la lista salga ya.
@@ -698,6 +709,135 @@ async function cargarPersonal() {
     comprobarFuncion().then(avisoFuncion);
   }
 }
+
+/* ── HORARIO PROPIO DE UN TRABAJADOR ────────────────────────────────
+   El horario de la sede está en «Más → Horarios». Éste es el de una
+   persona, y por eso vive en su ficha.
+
+   El formulario arranca con el horario que HOY se le aplica —el suyo si
+   lo tiene, el de la sede si no—, para que cambiar una hora de entrada
+   sea cambiar una hora, no rellenar catorce casillas. */
+
+let horarioPropioDe = null;             // a quién se le está editando
+
+async function abrirHorarioPropio(emp) {
+  if (!emp) return;
+  horarioPropioDe = emp;
+  const form = $('form-horario-propio');
+  const caja = $('dias-horario-propio');
+
+  $('horario-propio-titulo').textContent = `Horario de ${emp.first_name} ${emp.last_name}`;
+  $('horario-propio-origen').textContent = '';
+  aviso($('horario-propio-aviso'), '');
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+  ver('btn-quitar-horario-propio', false);
+  form.hidden = false;
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const { data, error } = await sb.rpc('horario_de_trabajador', { p_employee: emp.id });
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+
+  $('horario-propio-origen').textContent = data.propio
+    ? 'Hoy se le mide con su propio horario.'
+    : `Hoy se le mide con el horario general de ${data.sede}. Si guarda, pasará a tener el suyo.`;
+  ver('btn-quitar-horario-propio', !!data.propio);
+
+  // Los siete días, vengan o no en la respuesta: un horario sin definir
+  // el domingo no puede dejar el domingo fuera del formulario.
+  const porDia = new Map((data.dias || []).map((d) => [Number(d.dia), d]));
+  caja.innerHTML = [0, 1, 2, 3, 4, 5, 6].map((n) => {
+    const d = porDia.get(n) || {};
+    const hora = (v, porDefecto) => (v ? String(v).slice(0, 5) : porDefecto);
+    return `
+    <div class="dia" data-dia="${n}">
+      <div class="dia__cabeza">
+        <strong>${DIAS[n]}</strong>
+        <label class="suiche">
+          <input type="checkbox" data-campo="trabaja" ${d.trabaja ? 'checked' : ''}
+                 aria-label="${DIAS[n]} laborable"><i></i>
+        </label>
+      </div>
+      <div class="dia__horas" ${d.trabaja ? '' : 'hidden'}>
+        <div style="grid-column:1/-1">
+          <label>
+            <input type="checkbox" data-campo="corrida" ${d.continua ? 'checked' : ''}
+                   style="width:auto;min-height:0;margin-right:.4rem">
+            Jornada corrida (sin almuerzo)
+          </label>
+        </div>
+        <div><label>Entrada</label>
+          <input type="time" data-campo="entrada" value="${hora(d.entrada, '08:00')}"></div>
+        <div data-almuerzo ${d.continua ? 'hidden' : ''}><label>Salida a almuerzo</label>
+          <input type="time" data-campo="salida_almuerzo" value="${hora(d.salida_almuerzo, '12:00')}"></div>
+        <div data-almuerzo ${d.continua ? 'hidden' : ''}><label>Regreso</label>
+          <input type="time" data-campo="regreso" value="${hora(d.regreso, '14:00')}"></div>
+        <div><label>Salida</label>
+          <input type="time" data-campo="salida" value="${hora(d.salida, '18:00')}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // A diferencia del horario de sede, aquí un día no se guarda solo: se
+  // guardan los siete de una vez, al pulsar Guardar.
+  caja.querySelectorAll('.dia').forEach((fila) => {
+    const dato = (campo) => fila.querySelector(`[data-campo="${campo}"]`);
+    dato('trabaja').addEventListener('change', (e) => {
+      fila.querySelector('.dia__horas').hidden = !e.target.checked;
+    });
+    dato('corrida').addEventListener('change', (e) => {
+      fila.querySelectorAll('[data-almuerzo]').forEach((n) => { n.hidden = e.target.checked; });
+    });
+  });
+}
+
+function leerDiasHorarioPropio() {
+  return [...$('dias-horario-propio').querySelectorAll('.dia')].map((fila) => {
+    const dato = (campo) => fila.querySelector(`[data-campo="${campo}"]`);
+    const trabaja = dato('trabaja').checked;
+    const continua = trabaja && dato('corrida').checked;
+    return {
+      dia: Number(fila.dataset.dia),
+      trabaja,
+      continua,
+      entrada: trabaja ? dato('entrada').value : null,
+      salida:  trabaja ? dato('salida').value  : null,
+      salida_almuerzo: trabaja && !continua ? dato('salida_almuerzo').value : null,
+      regreso:         trabaja && !continua ? dato('regreso').value : null
+    };
+  });
+}
+
+$('form-horario-propio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!horarioPropioDe) return;
+  const btn = e.target.querySelector('button[type=submit]');
+  ocupado(btn, true, 'Guardar horario');
+  aviso($('horario-propio-aviso'), '');
+
+  const { error } = await sb.rpc('dar_horario_propio', {
+    p_employee: horarioPropioDe.id,
+    p_dias: leerDiasHorarioPropio()
+  });
+  ocupado(btn, false, 'Guardar horario');
+
+  if (error) { aviso($('horario-propio-aviso'), traducir(error)); return; }
+  $('form-horario-propio').hidden = true;
+  avisoPanel('Horario guardado. Rige desde hoy.');
+  await cargarPersonal();
+});
+
+$('btn-quitar-horario-propio').addEventListener('click', async () => {
+  if (!horarioPropioDe) return;
+  const quien = `${horarioPropioDe.first_name} ${horarioPropioDe.last_name}`;
+  if (!confirm(`¿Devolver a ${quien} al horario general de su sede?\n\n`
+             + 'Rige desde hoy. Los días ya cerrados se quedan como se midieron.')) return;
+
+  const { error } = await sb.rpc('quitar_horario_propio', { p_employee: horarioPropioDe.id });
+  if (error) { aviso($('horario-propio-aviso'), traducir(error)); return; }
+  $('form-horario-propio').hidden = true;
+  avisoPanel(`${quien} vuelve al horario de su sede.`);
+  await cargarPersonal();
+});
 
 /* ── ¿Está publicada la función del servidor? ───────────────────────
    Sin ella no hay PIN, y el panel enseña a todo el personal como «PIN

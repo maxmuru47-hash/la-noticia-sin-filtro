@@ -175,6 +175,9 @@ le cierra ese acceso en el acto.
 
 Está explicado con detalle en `docs/FASE11_SOCIOS.md`.
 
+Y los **horarios personalizados** —cuando alguien no hace el horario de su
+sede— en `docs/FASE12_HORARIOS.md`.
+
 ---
 
 # Lo que a partir de ahí pasa solo

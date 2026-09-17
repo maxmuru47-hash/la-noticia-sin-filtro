@@ -32,6 +32,15 @@ const MENSAJES = {
   FALTAN_HORAS:        'Faltan horas por completar en ese día.',
   DIA_INEXISTENTE:     'No se encontró ese día del horario.',
   SIN_HORARIO:         'Esta sede todavía no tiene horario asignado.',
+  FALTAN_DIAS:         'Hay que enviar los siete días de la semana.',
+  DIA_INVALIDO:        'Hay un día fuera de rango (van de domingo a sábado).',
+  DIA_REPETIDO:        'Un día de la semana viene repetido.',
+  TRABAJADOR_INEXISTENTE: 'Ese trabajador no existe o fue dado de baja.',
+  NO_TIENE_HORARIO_PROPIO: 'Esta persona ya se mide con el horario general de su sede.',
+  YA_TIENE_OTRO_ACCESO: 'Ese correo ya tiene otro tipo de acceso al panel. Use otro correo.',
+  SEDE_DESCONOCIDA:    'Una de las sedes marcadas no existe.',
+  NO_ES_SOCIO:         'Esa persona no es un socio.',
+  SIN_SEDES:           'Hay que marcarle al menos una sede: sin ninguna no vería nada.',
   'Invalid login credentials': 'Correo o contraseña incorrectos.',
   'Email not confirmed':       'El correo aún no está confirmado en Supabase.'
 };

@@ -155,6 +155,28 @@
         <button type="submit" class="boton">Guardar</button>
       </div>
     </form>
+
+    <!-- ══ HORARIO PROPIO DE UN TRABAJADOR ═══════════════════════════ -->
+    <!-- Vive aquí, en la ficha de la persona, y no en «Horarios»: el
+         de allá es el de la sede entera; éste es el de alguien. -->
+    <form class="tarjeta" id="form-horario-propio" hidden>
+      <h2 id="horario-propio-titulo">Horario de …</h2>
+      <p class="ayuda" id="horario-propio-origen"></p>
+      <p class="ayuda">
+        Con lo que se guarde aquí se le medirá <strong>a esta persona</strong>:
+        su puntualidad, sus marcaciones esperadas y su cierre de la semana.
+        Rige <strong>desde hoy</strong>; los días ya pasados se quedan como
+        se midieron.
+      </p>
+      <div id="dias-horario-propio"></div>
+      <div class="aviso" id="horario-propio-aviso" data-t="error" hidden style="margin-top:1rem"></div>
+      <div class="fila-botones">
+        <button type="button" class="boton boton--secundario" data-cerrar="form-horario-propio">Cancelar</button>
+        <button type="submit" class="boton">Guardar horario</button>
+      </div>
+      <button type="button" class="boton boton--secundario" id="btn-quitar-horario-propio"
+              hidden style="margin-top:.6rem">Volver al horario de la sede</button>
+    </form>
   </main>
 
   <!-- ══ NOVEDADES ═════════════════════════════════════════════════════ -->

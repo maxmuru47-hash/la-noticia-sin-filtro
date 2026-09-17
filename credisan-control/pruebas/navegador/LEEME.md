@@ -42,6 +42,7 @@ para integración continua tal cual.
 | `kiosk-test.js` | El kiosco completo con cámara simulada, incluida la comprobación de que el PIN no vuelve a viajar al confirmar |
 | `mock-f6.js` · `panel-f6-test.js` | La pantalla de conexión de los terminales, por rol |
 | `kiosk-f6-test.js` | **El terminal sin conexión.** Corta la red de verdad, abre IndexedDB para comprobar que el PIN no quedó en claro, y descifra los sobres con una llave privada real generada en la propia prueba |
+| `panel-horarios-test.js` | **El horario propio de un trabajador.** 31 comprobaciones: que el botón esté en la ficha de la persona, que se mande al servidor exactamente lo marcado —con el almuerzo fuera cuando la jornada es corrida, que es justo lo que la base rechazaría— y que al jefe operativo y al socio el panel no les ofrezca un botón que la base les va a rechazar |
 
 ## Una advertencia sobre cómo escribirlas
 

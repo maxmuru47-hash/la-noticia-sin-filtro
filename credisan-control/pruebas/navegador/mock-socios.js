@@ -75,6 +75,8 @@
     exit_time:      w >= 1 && w <= 5 ? '18:00' : null
   }));
 
+  const CON_HORARIO_PROPIO = ['e2'];   // Luis, el que hace jornada corrida
+
   let sesion = null;
   window.__llamadas = [];
 
@@ -284,6 +286,42 @@
             return R({ ok:true, desde:'2026-09-09', filas:m.length, marcaciones:m });
           }
           if (nombre === 'horario_sede')  return R({ ok:true, schedule_id:'s1', dias: DIAS });
+
+          // ── Fase 12 · horario propio de un trabajador ───────────────
+          // Luis hace jornada corrida; los demás, la de la sede. El
+          // simulado rechaza igual que la base: sólo ceo y admin mandan.
+          if (nombre === 'horarios_propios') {
+            const vis = MI_SEDE ? TODOS_EMP.filter((e) => e.branch_id === MI_SEDE)
+                      : ROL === 'socio' ? TODOS_EMP.filter((e) => SEDES_SOCIO.includes(e.branch_id))
+                      : TODOS_EMP;
+            return R(vis.filter((e) => CON_HORARIO_PROPIO.includes(e.id)).map((e) => e.id));
+          }
+          if (nombre === 'horario_de_trabajador') {
+            const e = TODOS_EMP.find((x) => x.id === args.p_employee);
+            if (!e) return E('TRABAJADOR_INEXISTENTE');
+            const propio = CON_HORARIO_PROPIO.includes(e.id);
+            return R({ ok:true, nombre: e.first_name + ' ' + e.last_name,
+              sede: TODAS.find((s) => s.id === e.branch_id).name,
+              propio, desde: propio ? hoyISO : null,
+              dias: DIAS.map((d) => propio
+                ? { dia:d.weekday, trabaja:d.weekday >= 1 && d.weekday <= 6, continua:true,
+                    entrada:'09:00:00', salida:'15:00:00', salida_almuerzo:null, regreso:null }
+                : { dia:d.weekday, trabaja:d.is_working, continua:false,
+                    entrada:d.entry_time, salida_almuerzo:d.lunch_out_time,
+                    regreso:d.lunch_in_time, salida:d.exit_time }) });
+          }
+          if (nombre === 'dar_horario_propio') {
+            if (ROL !== 'ceo' && ROL !== 'admin') return E('NO_AUTORIZADO');
+            if (!CON_HORARIO_PROPIO.includes(args.p_employee)) CON_HORARIO_PROPIO.push(args.p_employee);
+            return R({ ok:true, nuevo:true, schedule_id:'h1' });
+          }
+          if (nombre === 'quitar_horario_propio') {
+            if (ROL !== 'ceo' && ROL !== 'admin') return E('NO_AUTORIZADO');
+            const i = CON_HORARIO_PROPIO.indexOf(args.p_employee);
+            if (i < 0) return E('NO_TIENE_HORARIO_PROPIO');
+            CON_HORARIO_PROPIO.splice(i, 1);
+            return R({ ok:true, accion:'cerrado' });
+          }
           if (nombre === 'guardar_dia_horario') return R({ ok:true, estado: args.p_trabaja ? 'guardado' : 'descanso' });
           if (nombre === 'crear_sede')    return R({ ok:true, branch_id:'b-nueva', terminal:'VAL-01' });
           if (nombre === 'registrar_usuario') return R({ ok:true });

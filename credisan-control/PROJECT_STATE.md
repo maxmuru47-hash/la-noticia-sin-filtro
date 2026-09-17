@@ -790,6 +790,37 @@ Dos apuntes que costaron una prueba cada uno:
   que fallaba por permisos de columna antes de que la regla opinara. Pasaba sin
   comprobar nada. Ahora exige que el rechazo diga `row-level security`.
 
+## Fase 12 · horario propio de un trabajador
+
+Hay gente que no hace el horario de su sede. Medirla contra el general la
+convierte en impuntual todos los días por una diferencia que la empresa aprobó.
+
+El motor no hizo falta tocarlo: `app.effective_day()` ya buscaba primero el
+horario del trabajador, y toda la medición pasa por ahí. Las reglas de
+escritura tampoco: ya exigían «ceo o admin» más la sede visible. Faltaba la
+puerta —hacerlo requería SQL a mano en tres tablas— y ahora son cuatro
+funciones y un botón en la ficha de la persona.
+
+Puede la **administradora de su sede** y dirección. El jefe operativo no: con
+qué vara se mide a alguien no es operación del día, es una decisión. El socio
+mira y no toca.
+
+La decisión de fondo es que **el pasado no se reescribe**. Ayer alguien entró a
+las 09:00 y fue puntual porque su horario decía 09:00; si hoy se le cambia a
+las 07:00 y el cambio rigiera hacia atrás, el mantenimiento nocturno
+convertiría aquel día en dos horas de retraso sin que nadie se entere. Cambiar
+y quitar cierran con fecha —los dos con el mismo día de corte, hoy— en vez de
+borrar. La excepción es un horario puesto hoy mismo: ése no rigió ningún día
+cerrado, así que se corrige en sitio y no deja un horario huérfano por cada
+rectificación de la misma mañana.
+
+Probado al revés, que es la única forma de saber que la prueba sirve: se rompió
+el motor para que ignorara el horario del trabajador, se rompió la preservación
+del pasado y se quitó el control de rol. Las tres roturas salieron en rojo,
+cada una en la comprobación que le tocaba.
+
+Detalle en `docs/FASE12_HORARIOS.md`.
+
 ## El respaldo nocturno
 
 El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:

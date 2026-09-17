@@ -122,6 +122,7 @@
 .pastilla--activo   { background: #E8F5EA; color: #14622B; }
 .pastilla--inactivo { background: #F1EEF5; color: var(--texto-suave); }
 .pastilla--pin      { background: #FFF9CC; color: #7A6A00; }
+.pastilla--horario  { background: #EAE3F5; color: var(--morado); }
 
 /* ── Horarios ────────────────────────────────────────────────────────── */
 .dia {
