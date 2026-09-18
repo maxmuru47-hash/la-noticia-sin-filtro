@@ -184,6 +184,16 @@
               marcaciones: 9 - i, puntualidad: 100 - i * 6
             })));
           }
+          // Una base anterior a la fase 13: la función existe pero no
+          // manda las tres banderas, y la del contador no existe.
+          if (nombre === 'novedades' && window.__BASE_VIEJA) {
+            const vis = MI_SEDE ? NOVEDADES.filter((x) => x.branch_id === MI_SEDE) : NOVEDADES;
+            return R(vis.filter((x) => !args.p_estado || x.estado === args.p_estado)
+              .map(({ tiene_documento, requiere_documento, puede_aprobarse, ...resto }) => resto));
+          }
+          if (nombre === 'novedades_pendientes' && window.__BASE_VIEJA) {
+            return E('function public.novedades_pendientes(uuid) does not exist');
+          }
           if (nombre === 'novedades') {
             const est = args.p_estado;
             let n = MI_SEDE ? NOVEDADES.filter((x) => x.branch_id === MI_SEDE) : NOVEDADES;
@@ -401,14 +411,32 @@
         },
         from(tabla) {
           if (tabla === 'employees') return consulta(EMPLEADOS.slice());
-          if (tabla === 'incident_kinds') return consulta([
-            { code:'permiso', label:'Permiso', sort_order:10, system_only:false,
-              is_active:true, requiere_documento:true,  socio_puede:true },
-            { code:'reposo',  label:'Reposo médico', sort_order:20, system_only:false,
-              is_active:true, requiere_documento:true,  socio_puede:true },
-            { code:'olvido_marcacion', label:'Olvido de marcación', sort_order:40,
-              system_only:false, is_active:true, requiere_documento:false, socio_puede:false }
-          ]);
+          if (tabla === 'incident_kinds') {
+            // Una base anterior a la fase 13 no tiene esas dos columnas, y
+            // PostgREST responde con un error a la consulta ENTERA: no
+            // devuelve las filas sin ellas. Por eso el panel se quedaba
+            // sin tipos que ofrecer.
+            if (window.__BASE_VIEJA) {
+              return { select: (campos) => ({ order: () =>
+                Promise.resolve(/requiere_documento/.test(campos)
+                  ? { data: null, error: { code: '42703',
+                      message: 'column incident_kinds.requiere_documento does not exist' } }
+                  : { data: [
+                      { code:'permiso', label:'Permiso', sort_order:10,
+                        system_only:false, is_active:true },
+                      { code:'olvido_marcacion', label:'Olvido de marcación',
+                        sort_order:40, system_only:false, is_active:true }
+                    ], error: null }) }) };
+            }
+            return consulta([
+              { code:'permiso', label:'Permiso', sort_order:10, system_only:false,
+                is_active:true, requiere_documento:true,  socio_puede:true },
+              { code:'reposo',  label:'Reposo médico', sort_order:20, system_only:false,
+                is_active:true, requiere_documento:true,  socio_puede:true },
+              { code:'olvido_marcacion', label:'Olvido de marcación', sort_order:40,
+                system_only:false, is_active:true, requiere_documento:false, socio_puede:false }
+            ]);
+          }
           return consulta([]);
         }
       };

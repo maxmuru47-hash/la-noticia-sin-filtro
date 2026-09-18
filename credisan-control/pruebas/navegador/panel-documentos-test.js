@@ -25,7 +25,7 @@ const mal = (t, v) => { fallos++; console.log(`  ✖ ${t}  → ${v}`); };
 const es  = (t, a, b) => (String(a) === String(b) ? ok(t, a) : mal(t, `${a} ≠ ${b}`));
 const si  = (t, c, v) => (c ? ok(t, v) : mal(t, v));
 
-async function abrir(rol) {
+async function abrir(rol, baseVieja = false) {
   const b = await chromium.launch(NAVEGADOR ? { executablePath: NAVEGADOR } : {});
   const p = await b.newPage({ viewport: { width: 414, height: 900 }, deviceScaleFactor: 2 });
   const errs = [];
@@ -34,6 +34,7 @@ async function abrir(rol) {
   p.on('dialog', (d) => d.accept());
 
   await p.addInitScript(`window.__ROL_PRUEBA = ${JSON.stringify(rol)};`);
+  if (baseVieja) await p.addInitScript('window.__BASE_VIEJA = true;');
   await p.route('**/supabase-js@**', (r) => r.fulfill({ contentType: 'application/javascript', body: MOCK }));
   await p.route('**/config/env.js', (r) => r.fulfill({ contentType: 'application/javascript', body: ENV }));
   await p.route('**/fonts.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/css', body: '' }));
@@ -253,6 +254,47 @@ const PDF = { name: 'permiso.pdf', mimeType: 'application/pdf',
     } else {
       ok('el jefe operativo no ve novedades de otra sede', 'correcto');
     }
+    si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
+    await b.close();
+  }
+
+  // ── 7 · Panel nuevo contra base vieja ─────────────────────────────
+  // Pasó de verdad, y en producción: el panel se publicó y la migración
+  // falló por una contraseña. El panel quedó pidiéndole a la base dos
+  // columnas que aún no existían.
+  //
+  // Un programa nuevo tiene que seguir sirviendo contra una base que
+  // todavía no lo acompaña. No es una hipótesis: el panel se guarda en
+  // el teléfono, y la actualización de la base es otro paso que puede ir
+  // más lento o fallar.
+  console.log('\n7 · El panel no se rompe si la base va por detrás');
+  {
+    const { b, p, errs } = await abrir('admin', true);
+
+    await p.click('#btn-nueva-novedad');
+    await p.waitForTimeout(500);
+
+    const tipos = await p.$$eval('#nov-tipo option', (n) => n.map((o) => o.value));
+    si('el desplegable de tipos NO sale vacío', tipos.length > 0, tipos.join(', ') || 'VACÍO');
+    si('trae los tipos que la base vieja sí sabe dar',
+       tipos.includes('permiso'), tipos.join(', '));
+
+    // Nada de lo que la base vieja no puede atender debe ofrecerse
+    await p.click('[data-cerrar="form-novedad"]');
+    await p.waitForTimeout(300);
+    es('no se ofrece adjuntar documento',
+       await p.locator('#lista-novedades [data-adjuntar]').count(), 0);
+    es('ni abrir ninguno', await p.locator('#lista-novedades [data-documento]').count(), 0);
+    si('el contador se queda callado en vez de dar error',
+       !(await p.locator('#insignia-novedades').isVisible()));
+
+    // Y lo que sí existía desde antes, sigue existiendo
+    si('Aprobar sigue ofreciéndose: el panel no pierde una función',
+       (await p.locator('#lista-novedades [data-aprobar]').count()) > 0,
+       String(await p.locator('#lista-novedades [data-aprobar]').count()));
+    si('y se pueden seguir listando las novedades',
+       (await p.locator('#lista-novedades .novedad').count()) > 0);
+
     si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
     await b.close();
   }

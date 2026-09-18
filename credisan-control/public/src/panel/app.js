@@ -463,7 +463,7 @@ async function cargarNovedades() {
       <div class="novedad__acciones">
         ${n.tiene_documento
           ? `<button data-documento="${n.id}">Ver documento</button>` : ''}
-        ${(n.estado === 'pendiente' && !n.tiene_documento)
+        ${(n.estado === 'pendiente' && n.tiene_documento === false)
           ? `<button data-adjuntar="${n.id}" data-sede="${n.branch_id}">Adjuntar documento</button>` : ''}
         ${(n.estado === 'pendiente' && puedeEditar()) ? `
           <button class="btn-rechazar" data-rechazar="${n.id}">Rechazar</button>
@@ -608,6 +608,29 @@ async function resolver(id, aprobar) {
   cargarNovedades();
 }
 
+/* Los tipos de novedad, contra una base de cualquiera de las dos edades.
+   ---------------------------------------------------------------------
+   Las dos columnas que dicen qué tipo exige documento y cuál puede
+   cargar un socio llegaron con la fase 13. Si el panel se publica antes
+   que la base —o si alguien abre una copia guardada en el teléfono—,
+   pedirlas hace fallar la consulta ENTERA y el desplegable de tipos sale
+   vacío: una pantalla rota por un dato de adorno.
+
+   Así que se piden, y si la base todavía no las tiene se vuelve a
+   preguntar sin ellas. El panel sigue sirviendo; lo que falta son los
+   avisos, no la función. */
+async function cargarTiposNovedad() {
+  const util = (d) => (d || []).filter((t) => t.is_active && !t.system_only);
+  const base = 'code, label, sort_order, system_only, is_active';
+
+  const { data, error } = await sb.from('incident_kinds')
+    .select(base + ', requiere_documento, socio_puede').order('sort_order');
+  if (!error) return util(data);
+
+  const { data: viejo } = await sb.from('incident_kinds').select(base).order('sort_order');
+  return util(viejo);
+}
+
 $('btn-nueva-novedad').addEventListener('click', abrirNovedad);
 $('btn-novedad-rapida').addEventListener('click', () => {
   document.querySelector('.nav button[data-vista="v-novedades"]').click();
@@ -615,12 +638,7 @@ $('btn-novedad-rapida').addEventListener('click', () => {
 });
 
 async function abrirNovedad() {
-  if (!tiposNovedad.length) {
-    const { data } = await sb.from('incident_kinds')
-      .select('code, label, sort_order, system_only, is_active, requiere_documento, socio_puede')
-      .order('sort_order');
-    tiposNovedad = (data || []).filter((t) => t.is_active && !t.system_only);
-  }
+  if (!tiposNovedad.length) tiposNovedad = await cargarTiposNovedad();
 
   // El socio carga autorizaciones —permiso, reposo, comisión, salida—,
   // no novedades operativas. Ofrecerle las demás sería ofrecerle botones
