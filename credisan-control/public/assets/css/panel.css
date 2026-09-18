@@ -88,6 +88,7 @@
   font-family: inherit; font-size: .72rem; font-weight: 600;
   color: var(--texto-suave);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem;
+  position: relative;            /* para la insignia de novedades pendientes */
 }
 .nav button span { font-size: 1.15rem; line-height: 1; }
 .nav button[aria-current="true"] { color: var(--morado); }
@@ -123,6 +124,17 @@
 .pastilla--inactivo { background: #F1EEF5; color: var(--texto-suave); }
 .pastilla--pin      { background: #FFF9CC; color: #7A6A00; }
 .pastilla--horario  { background: #EAE3F5; color: var(--morado); }
+.pastilla--documento { background: #E8F5EA; color: #14622B; }
+.pastilla--falta     { background: #FDECEC; color: #97231F; }
+
+/* Aviso a administración: cuántas novedades esperan en el botón */
+.insignia {
+  position: absolute; top: .3rem; left: 50%; margin-left: .55rem;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: #C0392B; color: #fff; font-size: .68rem; font-weight: 700;
+  font-style: normal; line-height: 18px; text-align: center;
+}
+.insignia[hidden] { display: none; }
 
 /* ── Horarios ────────────────────────────────────────────────────────── */
 .dia {

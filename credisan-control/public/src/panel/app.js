@@ -190,9 +190,10 @@ async function entrar() {
   ver('btn-nuevo-empleado', puedeEditar());
   ver('caja-salario',       puedeEditar());
   ver('periodos',           puedeEditar());
-  // El socio no reporta novedades: la base tampoco se lo permitiría, y
-  // ofrecer un botón que va a fallar es peor que no ofrecerlo.
-  ver('btn-novedad-rapida', !esSocio());
+  // El socio carga el permiso que dio gerencia —con el documento—, así
+  // que el botón vuelve para él. Lo que no puede es reportar novedades
+  // operativas: eso se resuelve limitándole los tipos, no el botón.
+  ver('btn-novedad-rapida', true);
 
   // Dentro de «Más», sólo dirección crea sedes y reparte accesos; la
   // auditoría la ven dirección y administración, cada una lo suyo.
@@ -202,6 +203,7 @@ async function entrar() {
   await cargarSedes();
   if (esCeo()) cargarSocios();
   await cargarHoy();
+  refrescarInsignia();      // el aviso, sin tener que entrar a mirar
 }
 
 /* ── Navegación ─────────────────────────────────────────────────────── */
@@ -421,8 +423,10 @@ async function cargarNovedades() {
   const caja = $('lista-novedades');
   caja.innerHTML = '<p class="cargando">Cargando…</p>';
 
+  // Un socio no pertenece a una sede sino a varias: se pide sin filtro y
+  // la base le entrega las suyas y sólo las suyas.
   const { data, error } = await sb.rpc('novedades', {
-    p_branch: esCeo() ? null : yo.branch_id,
+    p_branch: (esCeo() || esSocio()) ? null : yo.branch_id,
     p_estado: filtroNovedades || null
   });
   if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
@@ -444,21 +448,149 @@ async function cargarNovedades() {
         ${n.origen === 'sistema'
           ? '<span class="pastilla pastilla--pin">Automática</span>'
           : `<span>· ${esc(n.reportada_por || '')}</span>`}
+        ${n.tiene_documento
+          ? '<span class="pastilla pastilla--documento">Con documento</span>'
+          : (n.requiere_documento
+              ? '<span class="pastilla pastilla--falta">Falta el documento</span>' : '')}
         <span class="pastilla pastilla--${n.estado === 'aprobada' ? 'activo' : 'inactivo'}"
               style="margin-left:auto">${n.estado}</span>
       </div>
       ${n.nota ? `<p style="margin-top:.5rem;font-size:.82rem">«${esc(n.nota)}»</p>` : ''}
-      ${(n.estado === 'pendiente' && puedeEditar()) ? `
-        <div class="novedad__acciones">
+      ${(n.estado === 'pendiente' && n.requiere_documento && !n.tiene_documento) ? `
+        <p class="ayuda" style="margin:.5rem 0 0">
+          Sin el documento no se puede aprobar, y hasta que no se apruebe el día
+          no queda justificado.</p>` : ''}
+      <div class="novedad__acciones">
+        ${n.tiene_documento
+          ? `<button data-documento="${n.id}">Ver documento</button>` : ''}
+        ${(n.estado === 'pendiente' && !n.tiene_documento)
+          ? `<button data-adjuntar="${n.id}" data-sede="${n.branch_id}">Adjuntar documento</button>` : ''}
+        ${(n.estado === 'pendiente' && puedeEditar()) ? `
           <button class="btn-rechazar" data-rechazar="${n.id}">Rechazar</button>
-          <button class="btn-aprobar"  data-aprobar="${n.id}">Aprobar</button>
-        </div>` : ''}
+          ${n.puede_aprobarse !== false
+            ? `<button class="btn-aprobar" data-aprobar="${n.id}">Aprobar</button>` : ''}` : ''}
+      </div>
     </div>`).join('');
 
   caja.querySelectorAll('[data-aprobar]').forEach((b) =>
     b.addEventListener('click', () => resolver(b.dataset.aprobar, true)));
   caja.querySelectorAll('[data-rechazar]').forEach((b) =>
     b.addEventListener('click', () => resolver(b.dataset.rechazar, false)));
+  caja.querySelectorAll('[data-documento]').forEach((b) =>
+    b.addEventListener('click', () => verDocumento(b.dataset.documento, b)));
+  caja.querySelectorAll('[data-adjuntar]').forEach((b) =>
+    b.addEventListener('click', () => adjuntarDocumento(b.dataset.adjuntar, b.dataset.sede, b)));
+
+  refrescarInsignia();
+}
+
+/* ── EL DOCUMENTO DE UNA NOVEDAD ────────────────────────────────────
+   Un permiso lo da gerencia y un reposo lo da un médico: ninguno de los
+   dos nace en el mostrador. Aquí se suben, se abren y se cuentan.
+
+   Un detalle del listado que parece un descuido y no lo es: el botón
+   Aprobar se esconde con `puede_aprobarse !== false`, no con
+   `puede_aprobarse`. Si el servidor no manda ese dato —un panel abierto
+   antes de la actualización, por ejemplo— se ofrece igual, y quien
+   rechaza es la base. Al revés, un navegador con el programa viejo se
+   quedaría sin poder aprobar NADA, y esconder un botón nunca debe costar
+   una función. */
+
+// Una foto de un papel no necesita doce megas, pero tampoco puede salir
+// recortada en cuadrado como un retrato: se escala entera.
+function encogerDocumento(archivo, lado = 1600) {
+  return new Promise((listo, falla) => {
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, lado / Math.max(img.width, img.height));
+      const lienzo = document.createElement('canvas');
+      lienzo.width  = Math.round(img.width  * escala);
+      lienzo.height = Math.round(img.height * escala);
+      lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+      URL.revokeObjectURL(img.src);
+      lienzo.toBlob((b) => b ? listo(b) : falla(new Error('no se pudo convertir')),
+                    'image/jpeg', 0.85);
+    };
+    img.onerror = () => falla(new Error('no es una imagen'));
+    img.src = URL.createObjectURL(archivo);
+  });
+}
+
+// Sube el archivo y devuelve la ruta. La sede va delante: la regla de
+// seguridad sólo deja escribir dentro de la carpeta de la sede que se ve.
+async function subirDocumento(archivo, sede) {
+  const esPdf = archivo.type === 'application/pdf';
+  const cuerpo = esPdf ? archivo : await encogerDocumento(archivo);
+  const nombre = (crypto.randomUUID?.() || String(Date.now())) + (esPdf ? '.pdf' : '.jpg');
+  const ruta = `${sede}/${nombre}`;
+
+  const { error } = await sb.storage.from('novedades')
+    .upload(ruta, cuerpo, { contentType: esPdf ? 'application/pdf' : 'image/jpeg' });
+  if (error) throw error;
+  return ruta;
+}
+
+function pedirArchivo() {
+  return new Promise((listo) => {
+    const entrada = document.createElement('input');
+    entrada.type = 'file';
+    entrada.accept = 'application/pdf,image/*';
+    entrada.addEventListener('change', () => listo(entrada.files?.[0] || null));
+    entrada.click();
+  });
+}
+
+async function adjuntarDocumento(id, sede, boton) {
+  const archivo = await pedirArchivo();
+  if (!archivo) return;
+  const texto = boton.textContent;
+  ocupado(boton, true, texto);
+  try {
+    const ruta = await subirDocumento(archivo, sede);
+    const { error } = await sb.rpc('adjuntar_documento', { p_id: id, p_ruta: ruta });
+    if (error) throw error;
+    avisoPanel('Documento adjuntado. Administración ya puede resolverla.');
+    cargarNovedades();
+  } catch (err) {
+    avisoPanel(traducir(err), 'error');
+  } finally {
+    ocupado(boton, false, texto);
+  }
+}
+
+// Pedir la ruta y abrirla son dos pasos a propósito: el primero deja
+// anotado en la auditoría quién abrió el papel de un médico.
+async function verDocumento(id, boton) {
+  const texto = boton.textContent;
+  ocupado(boton, true, texto);
+  try {
+    const { data, error } = await sb.rpc('documento_de_novedad', { p_id: id });
+    if (error) throw error;
+    if (!data.ok) { avisoPanel('Esta novedad no tiene documento.', 'error'); return; }
+
+    const { data: firmada, error: e2 } = await sb.storage.from('novedades')
+      .createSignedUrl(data.ruta, 120);
+    if (e2) throw e2;
+    window.open(firmada.signedUrl, '_blank', 'noopener');
+  } catch (err) {
+    avisoPanel(traducir(err), 'error');
+  } finally {
+    ocupado(boton, false, texto);
+  }
+}
+
+// «Que administración sea notificada» es, dentro del sistema, que el
+// número esté a la vista sin tener que ir a mirar.
+async function refrescarInsignia() {
+  const el = $('insignia-novedades');
+  if (!el) return;
+  const { data, error } = await sb.rpc('novedades_pendientes', { p_branch: null });
+  if (error || !data?.ok || !data.total) { el.hidden = true; return; }
+  el.textContent = data.total > 99 ? '99+' : String(data.total);
+  el.title = data.sin_documento
+    ? `${data.listas} por resolver · ${data.sin_documento} esperando documento`
+    : `${data.total} por resolver`;
+  el.hidden = false;
 }
 
 async function resolver(id, aprobar) {
@@ -485,42 +617,92 @@ $('btn-novedad-rapida').addEventListener('click', () => {
 async function abrirNovedad() {
   if (!tiposNovedad.length) {
     const { data } = await sb.from('incident_kinds')
-      .select('code, label, sort_order, system_only, is_active').order('sort_order');
+      .select('code, label, sort_order, system_only, is_active, requiere_documento, socio_puede')
+      .order('sort_order');
     tiposNovedad = (data || []).filter((t) => t.is_active && !t.system_only);
-    $('nov-tipo').innerHTML = tiposNovedad
-      .map((t) => `<option value="${t.code}">${esc(t.label)}</option>`).join('');
   }
 
+  // El socio carga autorizaciones —permiso, reposo, comisión, salida—,
+  // no novedades operativas. Ofrecerle las demás sería ofrecerle botones
+  // que la base le va a rechazar.
+  const ofrecidos = esSocio() ? tiposNovedad.filter((t) => t.socio_puede) : tiposNovedad;
+  $('nov-tipo').innerHTML = ofrecidos
+    .map((t) => `<option value="${t.code}">${esc(t.label)}</option>`).join('');
+  ayudaDocumento();
+
+  // La sede sale del trabajador elegido: es donde va a guardarse el
+  // documento, y la regla de seguridad la comprueba por la ruta.
   let q = sb.from('employees').select('id, first_name, last_name, branch_id').order('last_name');
-  if (!esCeo()) q = q.eq('branch_id', yo.branch_id);
+  if (!esCeo() && !esSocio()) q = q.eq('branch_id', yo.branch_id);
   const { data: emp } = await q;
   $('nov-empleado').innerHTML = (emp || [])
-    .map((e) => `<option value="${e.id}">${esc(e.first_name)} ${esc(e.last_name)}</option>`).join('');
+    .map((e) => `<option value="${e.id}" data-sede="${e.branch_id}">${esc(e.first_name)} ${esc(e.last_name)}</option>`)
+    .join('');
 
+  $('nov-documento').value = '';
   $('form-novedad').hidden = false;
   $('form-novedad').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// Decirlo ANTES de rellenar el formulario, no después de rechazarlo.
+function ayudaDocumento() {
+  const el = $('ayuda-documento');
+  if (!el) return;
+  const t = tiposNovedad.find((x) => x.code === $('nov-tipo').value);
+  if (esSocio()) {
+    el.textContent = 'Obligatorio: el socio carga el documento que respalda la autorización.';
+  } else if (t?.requiere_documento) {
+    el.textContent = 'Este tipo no se puede APROBAR sin el documento. '
+                   + 'Puede registrarlo ahora y adjuntarlo cuando llegue el papel.';
+  } else {
+    el.textContent = 'Opcional. Puede ser un PDF o una foto del papel.';
+  }
+}
+
+$('nov-tipo').addEventListener('change', ayudaDocumento);
+
 $('form-novedad').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type=submit]');
+  const archivo = $('nov-documento').files?.[0] || null;
+
+  if (esSocio() && !archivo) {
+    avisoPanel('Adjunte el documento: un socio carga el papel, no el reporte.', 'error');
+    return;
+  }
+
   ocupado(btn, true, 'Registrar');
+  try {
+    // El archivo PRIMERO, y la novedad con su ruta: la base comprueba
+    // que el documento exista de verdad antes de aceptarla.
+    let ruta = null;
+    if (archivo) {
+      const sede = $('nov-empleado').selectedOptions[0]?.dataset.sede;
+      if (!sede) throw new Error('No se pudo determinar la sede del trabajador.');
+      ruta = await subirDocumento(archivo, sede);
+    }
 
-  const cuando = $('nov-cuando').value;
-  const { error } = await sb.rpc('registrar_novedad', {
-    p_employee: $('nov-empleado').value,
-    p_tipo: $('nov-tipo').value,
-    p_descripcion: $('nov-descripcion').value.trim(),
-    p_desde: cuando ? new Date(cuando).toISOString() : null
-  });
+    const cuando = $('nov-cuando').value;
+    const { error } = await sb.rpc('registrar_novedad', {
+      p_employee: $('nov-empleado').value,
+      p_tipo: $('nov-tipo').value,
+      p_descripcion: $('nov-descripcion').value.trim(),
+      p_desde: cuando ? new Date(cuando).toISOString() : null,
+      p_evidencia: ruta
+    });
+    if (error) throw error;
 
-  ocupado(btn, false, 'Registrar');
-  if (error) { avisoPanel(traducir(error), 'error'); return; }
-
-  avisoPanel('Novedad registrada. Queda pendiente de revisión.');
-  e.target.reset();
-  e.target.hidden = true;
-  cargarNovedades();
+    avisoPanel(archivo
+      ? 'Novedad registrada con su documento. Queda pendiente de revisión.'
+      : 'Novedad registrada. Queda pendiente de revisión.');
+    e.target.reset();
+    e.target.hidden = true;
+    cargarNovedades();
+  } catch (err) {
+    avisoPanel(traducir(err), 'error');
+  } finally {
+    ocupado(btn, false, 'Registrar');
+  }
 });
 
 /* ── SEDES Y TERMINALES ─────────────────────────────────────────────── */

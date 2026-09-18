@@ -60,11 +60,26 @@
   const NOVEDADES = [
     { id:'n1', empleado:'Ana Pérez', empleado_id:'e1', sede:'Maracaibo', branch_id:'b-mcb',
       tipo:'sin_evidencia', tipo_nombre:'Marcación sin foto', descripcion:'La cámara no respondió',
-      desde: hoyISO + 'T08:14:00Z', estado:'pendiente', origen:'sistema', reportada_por:null, nota:null },
+      desde: hoyISO + 'T08:14:00Z', estado:'pendiente', origen:'sistema', reportada_por:null, nota:null,
+      tiene_documento:false, requiere_documento:false, puede_aprobarse:true },
+    // La que espera el papel: no se puede aprobar todavía
+    { id:'n3', empleado:'Luis Rojas', empleado_id:'e2', sede:'Maracaibo', branch_id:'b-mcb',
+      tipo:'reposo', tipo_nombre:'Reposo médico', descripcion:'Reposo de tres días',
+      desde: hoyISO + 'T08:00:00Z', estado:'pendiente', origen:'manual',
+      reportada_por:'Jefe Maracaibo', nota:null,
+      tiene_documento:false, requiere_documento:true, puede_aprobarse:false },
+    // Pendiente pero CON papel: el contraste con la de arriba. Ésta sí
+    // se puede aprobar, y es la que se abre.
+    { id:'n4', empleado:'Ana Pérez', empleado_id:'e1', sede:'Maracaibo', branch_id:'b-mcb',
+      tipo:'permiso', tipo_nombre:'Permiso', descripcion:'Permiso de gerencia consignado',
+      desde: hoyISO + 'T09:00:00Z', estado:'pendiente', origen:'manual',
+      reportada_por:'Socio', nota:null,
+      tiene_documento:true, requiere_documento:true, puede_aprobarse:true },
     { id:'n2', empleado:'Mará Silva', empleado_id:'e3', sede:'Caja Seca', branch_id:'b-css',
       tipo:'permiso', tipo_nombre:'Permiso', descripcion:'Cita médica',
       desde: hoyISO + 'T10:00:00Z', estado:'aprobada', origen:'manual',
-      reportada_por:'Administración', nota:'Consignó constancia' }
+      reportada_por:'Administración', nota:'Consignó constancia',
+      tiene_documento:true, requiere_documento:true, puede_aprobarse:false }
   ];
 
   const DIAS = [0,1,2,3,4,5,6].map((w) => ({
@@ -79,6 +94,8 @@
 
   let sesion = null;
   window.__llamadas = [];
+  window.__subidas  = [];
+  window.__firmadas = [];
 
   const consulta = (filas) => {
     const api = {
@@ -177,7 +194,39 @@
             if (ROL === 'supervisor') return E('permission denied for table incidents');
             return R({ ok: true });
           }
-          if (nombre === 'registrar_novedad') return R({ ok: true, incident_id: 'n9' });
+          if (nombre === 'registrar_novedad') {
+            // Como la base: un socio sólo con documento y sólo de los
+            // tipos que son una autorización.
+            if (ROL === 'socio') {
+              const k = ['permiso','reposo','comision','salida_autorizada'];
+              if (!args.p_evidencia || !k.includes(args.p_tipo)) {
+                return E('new row violates row-level security policy for table "incidents"');
+              }
+            }
+            return R({ ok: true, id: 'n9' });
+          }
+          if (nombre === 'adjuntar_documento') {
+            const n = NOVEDADES.find((x) => x.id === args.p_id);
+            if (n) { n.tiene_documento = true; n.puede_aprobarse = n.estado === 'pendiente'; }
+            return R({ ok: true, sustituido: false });
+          }
+          if (nombre === 'documento_de_novedad') {
+            const n = NOVEDADES.find((x) => x.id === args.p_id);
+            if (!n || !n.tiene_documento) return R({ ok:false, reason:'SIN_DOCUMENTO' });
+            // Un reposo lo abren dirección y administración, no el jefe
+            if (ROL === 'supervisor') return E('NO_AUTORIZADO');
+            return R({ ok:true, ruta: n.branch_id + '/doc.pdf', nombre: n.empleado,
+                       tipo: n.tipo, fecha: hoyISO });
+          }
+          if (nombre === 'novedades_pendientes') {
+            const vis = MI_SEDE ? NOVEDADES.filter((x) => x.branch_id === MI_SEDE)
+                      : ROL === 'socio' ? NOVEDADES.filter((x) => SEDES_SOCIO.includes(x.branch_id))
+                      : NOVEDADES;
+            const p = vis.filter((x) => x.estado === 'pendiente');
+            return R({ ok:true, total: p.length,
+                       listas: p.filter((x) => !x.requiere_documento || x.tiene_documento).length,
+                       sin_documento: p.filter((x) => x.requiere_documento && !x.tiene_documento).length });
+          }
           if (nombre === 'recalcular_rango')  return R({ ok: true, dias: 7 });
 
           // ── Fase 5 ──────────────────────────────────────────────────
@@ -334,11 +383,31 @@
           if (nombre === 'reclamar_ceo')  return R({ ok:false, reason:'YA_HAY_USUARIOS' });
           return R({ ok:true });
         },
+        storage: {
+          from(deposito) {
+            return {
+              upload(ruta, cuerpo, opciones) {
+                window.__subidas.push({ deposito, ruta, tipo: opciones?.contentType,
+                                        bytes: cuerpo?.size ?? null });
+                return Promise.resolve({ data: { path: ruta }, error: null });
+              },
+              createSignedUrl(ruta, segundos) {
+                window.__firmadas.push({ deposito, ruta, segundos });
+                return Promise.resolve({
+                  data: { signedUrl: 'https://demo.supabase.co/firmada/' + ruta }, error: null });
+              }
+            };
+          }
+        },
         from(tabla) {
           if (tabla === 'employees') return consulta(EMPLEADOS.slice());
           if (tabla === 'incident_kinds') return consulta([
-            { code:'permiso', name:'Permiso', requires_approval:true },
-            { code:'reposo',  name:'Reposo médico', requires_approval:true }
+            { code:'permiso', label:'Permiso', sort_order:10, system_only:false,
+              is_active:true, requiere_documento:true,  socio_puede:true },
+            { code:'reposo',  label:'Reposo médico', sort_order:20, system_only:false,
+              is_active:true, requiere_documento:true,  socio_puede:true },
+            { code:'olvido_marcacion', label:'Olvido de marcación', sort_order:40,
+              system_only:false, is_active:true, requiere_documento:false, socio_puede:false }
           ]);
           return consulta([]);
         }

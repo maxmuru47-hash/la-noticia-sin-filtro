@@ -27,3 +27,4 @@ correr credisan_f8 supabase/tests/08_ruta_evidencia.sql
 correr credisan_dia supabase/tests/09_dia_completo.sql
 correr credisan_soc supabase/tests/10_socios.sql
 correr credisan_hor supabase/tests/11_horarios.sql
+correr credisan_doc supabase/tests/12_documentos.sql

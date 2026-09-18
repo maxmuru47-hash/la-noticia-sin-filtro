@@ -43,6 +43,7 @@ para integración continua tal cual.
 | `mock-f6.js` · `panel-f6-test.js` | La pantalla de conexión de los terminales, por rol |
 | `kiosk-f6-test.js` | **El terminal sin conexión.** Corta la red de verdad, abre IndexedDB para comprobar que el PIN no quedó en claro, y descifra los sobres con una llave privada real generada en la propia prueba |
 | `panel-horarios-test.js` | **El horario propio de un trabajador.** 31 comprobaciones: que el botón esté en la ficha de la persona, que se mande al servidor exactamente lo marcado —con el almuerzo fuera cuando la jornada es corrida, que es justo lo que la base rechazaría— y que al jefe operativo y al socio el panel no les ofrezca un botón que la base les va a rechazar |
+| `panel-documentos-test.js` | **El documento de una novedad.** 43 comprobaciones: que el archivo se suba ANTES de registrar la novedad —al revés la base la rechazaría—, que vaya a la carpeta de la sede del trabajador, que un PDF no se convierta en foto, que el panel no ofrezca *Aprobar* en lo que la base va a rechazar pero sí en lo que ya tiene su papel, y que abrir un reposo médico pase siempre por la función que deja rastro |
 
 ## Una advertencia sobre cómo escribirlas
 

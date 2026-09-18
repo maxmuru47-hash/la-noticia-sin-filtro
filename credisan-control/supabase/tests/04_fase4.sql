@@ -132,8 +132,16 @@ begin;
 rollback;
 
 -- ── 2. La administradora resuelve ────────────────────────────────────
+-- Era un «permiso» hasta la fase 13, que decidió que un permiso no se
+-- aprueba sin el documento. Esta batería mide OTRA cosa —que quien
+-- resuelve sea administración y que el listado no cruce sedes— así que
+-- se cambia por un tipo que no exige papel, en vez de debilitar la
+-- regla nueva para que la prueba vieja siga pasando.
+--
+-- Que la exigencia del documento se cumpla se comprueba entera en
+-- supabase/tests/12_documentos.sql.
 insert into incidents (employee_id, branch_id, kind, description, occurred_from, work_date, reported_by)
-values (:'e2', :'mcb', 'permiso', 'Permiso a resolver', now(), current_date,
+values (:'e2', :'mcb', 'olvido_marcacion', 'Permiso a resolver', now(), current_date,
         '33333333-3333-3333-3333-333333333333');
 
 begin;

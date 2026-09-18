@@ -821,6 +821,45 @@ cada una en la comprobación que le tocaba.
 
 Detalle en `docs/FASE12_HORARIOS.md`.
 
+## Fase 13 · el documento de una novedad
+
+Un permiso lo da gerencia y un reposo lo da un médico: ninguno nace en el
+mostrador, y hasta ahora esos papeles vivían en un teléfono o en una gaveta
+mientras administración decidía si pagar la semana completa.
+
+Casi toda la infraestructura ya estaba —el depósito privado, la columna, la
+función que aceptaba una ruta, y el hecho de que aprobar una novedad justifique
+el día y el cierre cuente ese día como cumplido—. Faltaba la puerta.
+
+Tres decisiones:
+
+- **Un permiso o un reposo no se APRUEBAN sin el papel.** Crearlos sí: el jefe
+  reporta hoy lo que pasó hoy aunque el documento llegue mañana. Pero como sólo
+  una novedad aprobada justifica el día, sin papel nadie cobra una semana
+  completa por una ausencia. Qué tipo lo exige es configuración, no código.
+- **El socio carga, no cuenta.** La fase 11 lo dejó fuera de las novedades por
+  completo; ésta entreabre la puerta sólo para los tipos que son una
+  autorización, y siempre con el documento encima. El jefe operativo no perdió
+  nada, y hay una prueba que lo exige.
+- **La ruta tiene que existir de verdad.** La base comprueba que el archivo esté
+  subido, en el depósito correcto y en la carpeta de esa sede, con un disparador
+  y no en la función del panel: así vale también para un UPDATE a mano.
+
+Un reposo médico es un dato de salud, así que se trata como la fotografía de
+una marcación: lo abren dirección, administración de esa sede y quien lo subió
+—el jefe operativo no, aunque él reportara la novedad— y abrirlo queda anotado.
+Para que ese rastro no sea opcional, el listado no entrega la ruta: la única
+forma de obtenerla es la función que anota antes de darla.
+
+Dos cosas las encontraron las pruebas viejas. La batería de la fase 4 dejó de
+pasar porque aprobaba un permiso sin documento: tenía razón en fallar, y se
+cambió esa prueba en vez de debilitar la regla nueva. Y el botón Aprobar se
+escondía de más —contra un servidor que no manda el dato nuevo, se escondía
+siempre—, así que ahora sólo se esconde cuando el servidor dice explícitamente
+que no se puede.
+
+Detalle en `docs/FASE13_DOCUMENTOS.md`.
+
 ## El respaldo nocturno
 
 El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:

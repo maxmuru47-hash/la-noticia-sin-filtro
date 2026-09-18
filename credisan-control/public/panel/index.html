@@ -212,6 +212,13 @@
         <input type="datetime-local" id="nov-cuando">
         <p class="ayuda">Si lo deja vacío, se registra con la hora actual.</p>
       </div>
+      <div class="campo">
+        <label for="nov-documento">Documento (permiso, reposo, constancia)</label>
+        <input type="file" id="nov-documento" accept="application/pdf,image/*">
+        <p class="ayuda" id="ayuda-documento">
+          Puede ser un PDF o una foto del papel. Queda guardado en el sistema.
+        </p>
+      </div>
       <div class="aviso" data-t="info" id="aviso-novedad">
         Queda <strong>pendiente</strong> hasta que administración la revise.
       </div>
@@ -528,7 +535,8 @@
   <nav class="nav">
     <button data-vista="v-hoy" aria-current="true"><span>📋</span>Hoy</button>
     <button data-vista="v-personal"><span>👥</span>Personal</button>
-    <button data-vista="v-novedades"><span>⚠️</span>Novedades</button>
+    <button data-vista="v-novedades"><span>⚠️</span>Novedades<i class="insignia"
+            id="insignia-novedades" hidden></i></button>
     <button data-vista="v-cierres" id="nav-cierres" hidden><span>📅</span>Cierres</button>
     <button data-vista="v-mas"     id="nav-mas"     hidden><span>⚙️</span>Más</button>
   </nav>

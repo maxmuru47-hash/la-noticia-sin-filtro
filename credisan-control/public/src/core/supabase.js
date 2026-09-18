@@ -41,6 +41,14 @@ const MENSAJES = {
   SEDE_DESCONOCIDA:    'Una de las sedes marcadas no existe.',
   NO_ES_SOCIO:         'Esa persona no es un socio.',
   SIN_SEDES:           'Hay que marcarle al menos una sede: sin ninguna no vería nada.',
+  FALTA_DOCUMENTO:     'Esta novedad no se puede aprobar sin el documento adjunto.',
+  DOCUMENTO_NO_SUBIDO: 'El archivo no llegó a guardarse. Vuelva a adjuntarlo.',
+  DOCUMENTO_DE_OTRA_SEDE: 'El documento quedó guardado en la sede equivocada.',
+  YA_TIENE_DOCUMENTO:  'Esta novedad ya tiene documento. Sólo administración puede sustituirlo.',
+  NOVEDAD_YA_RESUELTA: 'Esa novedad ya fue revisada: no admite documentos nuevos.',
+  NOVEDAD_NO_ENCONTRADA: 'No se encontró esa novedad.',
+  SIN_DOCUMENTO:       'Esta novedad no tiene documento adjunto.',
+  EMPLEADO_INEXISTENTE: 'Ese trabajador no existe o fue dado de baja.',
   'Invalid login credentials': 'Correo o contraseña incorrectos.',
   'Email not confirmed':       'El correo aún no está confirmado en Supabase.'
 };

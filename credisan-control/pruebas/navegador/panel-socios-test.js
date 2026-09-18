@@ -115,8 +115,13 @@ async function abrir(rol, preparar) {
     si('tiene la pestaña de cierres', await p.locator('#nav-cierres').isVisible());
     si('NO tiene «Más» (sedes, horarios, auditoría)',
        !(await p.locator('#nav-mas').isVisible()));
-    si('NO se le ofrece reportar una novedad',
-       !(await p.locator('#btn-novedad-rapida').isVisible()));
+    // Esto cambió en la fase 13, y a propósito: el socio ya NO está
+    // fuera de las novedades — es quien carga el permiso que dio
+    // gerencia. Lo que sigue sin poder es reportar de oídas: sólo
+    // autorizaciones y siempre con el documento encima. La regla
+    // estrecha se comprueba entera en panel-documentos-test.js.
+    si('se le ofrece cargar una novedad, porque ahora carga documentos',
+       await p.locator('#btn-novedad-rapida').isVisible());
 
     const sedes = await p.$$eval('#hoy-sede option', (n) => n.map((o) => o.textContent.trim()));
     si('sólo ve las sedes que le corresponden', sedes.length === 1 && sedes[0] === 'Maracaibo',
