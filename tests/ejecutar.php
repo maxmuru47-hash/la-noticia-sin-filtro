@@ -1054,6 +1054,104 @@ Pruebas::iguales([], Subscriber::destinatarios('inventado'), 'Un propósito inex
 Database::run('DELETE FROM subscribers WHERE email = :e', ['e' => $correoPrueba]);
 
 // =====================================================================
+Pruebas::grupo('24 · El correo: la cola y lo que se escribe');
+// =====================================================================
+
+use App\Services\Mailer;
+use App\Services\NewsletterService;
+
+$urlPrueba   = 'https://ejemplo.test';
+$marcaPrueba = 'La Noticia SIN FILTRO';
+
+// Sin proveedor configurado, los correos NO se pierden ni se marcan como
+// fallidos: se quedan esperando a que haya clave.
+Mailer::configurar(['clave' => '', 'desde' => '', 'desde_nombre' => '', 'url' => $urlPrueba]);
+Pruebas::afirmar(!Mailer::configurado(), 'Sin clave, el envío se considera no configurado');
+
+$enColaAntes = Mailer::enCola();
+$idCorreo = Mailer::encolar('destino-' . $sufijo . '@ejemplo.test', 'Asunto de prueba', 'Cuerpo de prueba');
+Pruebas::afirmar($idCorreo > 0, 'Encolar un correo devuelve su identificador');
+Pruebas::iguales($enColaAntes + 1, Mailer::enCola(), 'El correo encolado cuenta como pendiente');
+
+$resultado = Mailer::enviarPendientes(10);
+Pruebas::iguales(0, $resultado['enviados'], 'Sin proveedor no se envía nada');
+Pruebas::iguales(0, $resultado['fallidos'], 'Sin proveedor tampoco se marca nada como fallido');
+Pruebas::iguales('pendiente',
+    (string) Database::value('SELECT status FROM notifications WHERE id = :id', ['id' => $idCorreo]),
+    'El correo sigue en cola, esperando a que se configure el envío');
+
+// Todo correo lleva su enlace de baja, con el token de esa persona.
+$pie = NewsletterService::pieDeBaja(str_repeat('a', 48), $urlPrueba);
+Pruebas::afirmar(str_contains($pie, '/suscripcion/baja?t=' . str_repeat('a', 48)),
+    'El pie de baja lleva el enlace con el token de la persona');
+
+// El correo de confirmación tiene que llevar el enlace correcto.
+$confirmacion = NewsletterService::confirmacion(str_repeat('b', 48), $urlPrueba, $marcaPrueba);
+Pruebas::afirmar(str_contains($confirmacion['cuerpo'], '/suscripcion/confirmar?t=' . str_repeat('b', 48)),
+    'El correo de confirmación lleva su enlace');
+Pruebas::afirmar(!str_contains($confirmacion['cuerpo'], 'null') && trim($confirmacion['asunto']) !== '',
+    'El correo de confirmación tiene asunto y no arrastra valores vacíos');
+
+// Una barra de más en la dirección no puede producir enlaces rotos.
+$conBarra = NewsletterService::confirmacion(str_repeat('c', 48), $urlPrueba . '/', $marcaPrueba);
+Pruebas::afirmar(!str_contains($conBarra['cuerpo'], '//suscripcion'),
+    'Una barra sobrante en la dirección no rompe el enlace');
+
+// El resumen NO se manda si no hubo nada que contar esa semana. Se fuerza
+// el caso con una ventana que empieza mañana: nada puede caer dentro,
+// porque una pieza con fecha futura ni siquiera se considera publicada.
+Pruebas::iguales(null, NewsletterService::resumenSemanal($urlPrueba, $marcaPrueba, -1),
+    'Sin piezas en el periodo, no hay resumen que enviar');
+
+// Y si hay piezas, el resumen las lleva con su enlace.
+$resumen = NewsletterService::resumenSemanal($urlPrueba, $marcaPrueba, 3650);
+Pruebas::afirmar($resumen !== null, 'Con piezas publicadas sí hay resumen');
+if ($resumen !== null) {
+    Pruebas::afirmar(str_contains($resumen['cuerpo'], $urlPrueba . '/noticia/'),
+        'El resumen enlaza cada pieza a su dirección permanente');
+    Pruebas::afirmar(str_contains($resumen['asunto'], $marcaPrueba),
+        'El asunto del resumen lleva el nombre de la casa');
+}
+
+// NADIE sin confirmar recibe el resumen. Esta es la prueba que protege a
+// la gente de recibir correo que no pidió.
+$correoNoConf = 'noconfirmado-' . $sufijo . '@ejemplo.test';
+Subscriber::alta($correoNoConf, ['resumen_semanal'], 'Prueba');
+$colaAntes = Mailer::enCola();
+NewsletterService::encolarResumen($urlPrueba, $marcaPrueba);
+$nuevos = Database::all(
+    'SELECT payload FROM notifications WHERE channel = "correo" AND id > :id',
+    ['id' => $idCorreo]
+);
+$destinatarios = [];
+foreach ($nuevos as $n) {
+    $d = json_decode((string) $n['payload'], true);
+    if (is_array($d) && isset($d['email'])) { $destinatarios[] = $d['email']; }
+}
+Pruebas::afirmar(!in_array($correoNoConf, $destinatarios, true),
+    'Quien no ha confirmado NO recibe el resumen');
+
+// Un correo encolado sin destinatario válido se marca fallido y no
+// bloquea la cola del resto.
+Mailer::configurar(['clave' => 'clave-de-prueba', 'desde' => 'hola@ejemplo.test',
+                    'desde_nombre' => $marcaPrueba, 'url' => $urlPrueba]);
+Pruebas::afirmar(Mailer::configurado(), 'Con clave y remitente, el envío se considera configurado');
+$idRoto = Database::insert('notifications', [
+    'channel' => 'correo', 'audience' => 'suscriptores',
+    'subject' => 'Sin destinatario', 'body' => 'x',
+    'payload' => json_encode(['email' => 'esto-no-es-un-correo']), 'status' => 'pendiente',
+]);
+Database::run('UPDATE notifications SET status = "enviada" WHERE channel = "correo" AND id <> :id AND status = "pendiente"', ['id' => $idRoto]);
+$r = Mailer::enviarPendientes(5);
+Pruebas::iguales('fallida',
+    (string) Database::value('SELECT status FROM notifications WHERE id = :id', ['id' => $idRoto]),
+    'Un correo sin destinatario válido se marca como fallido, no se reintenta para siempre');
+
+Mailer::configurar(['clave' => '', 'desde' => '', 'desde_nombre' => '', 'url' => '']);
+Database::run('DELETE FROM notifications WHERE channel = "correo" AND audience = "suscriptores"');
+Database::run('DELETE FROM subscribers WHERE email LIKE :p', ['p' => '%' . $sufijo . '@ejemplo.test']);
+
+// =====================================================================
 // LIMPIEZA
 // =====================================================================
 

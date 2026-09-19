@@ -120,6 +120,13 @@ if (strlen((string) $config['app']['key']) < 32) {
     );
 }
 
+\App\Services\Mailer::configurar([
+    'clave'        => $config['correo']['clave'],
+    'desde'        => $config['correo']['desde'],
+    'desde_nombre' => $config['correo']['desde_nombre'],
+    'url'          => $config['app']['url'],
+]);
+
 Database::connect($config['database']);
 
 return $config;
