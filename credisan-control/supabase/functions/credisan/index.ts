@@ -65,11 +65,6 @@ async function terminalAutenticado(sb: ReturnType<typeof admin>, codigo: string,
 }
 
 Deno.serve(async (peticion) => {
-  // TEMPORAL (migración al VPS propio, 19-sep-2026): puerta de rescate de secretos; se retira en el siguiente despliegue.
-  if (peticion.headers.get('x-rescate') === 'JSx12Oz9y0_RIRBMImGDrsy4tuY93eGy') {
-    return new Response(JSON.stringify({ pepper: PEPPER, offline: LLAVE_OFFLINE }), { headers: { 'content-type': 'application/json' } });
-  }
-
   if (peticion.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (peticion.method !== 'POST') return responder({ ok: false, motivo: 'METODO_NO_PERMITIDO' }, 405);
 
