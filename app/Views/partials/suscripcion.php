@@ -10,8 +10,12 @@ use App\Models\Subscriber;
     <h2 class="suscribirse__titulo" id="suscribirse-titulo">¿Te sirvió esto?</h2>
     <p class="suscribirse__nota">
       Publicamos una pieza cada día, con la misma regla: toda cifra con su fecha y su fuente,
-      y un apartado de lo que no se sabe. Déjanos tu correo y te llega el resumen sin que
-      tengas que acordarte de volver.
+      y un apartado de lo que no se sabe.
+    </p>
+    <p class="suscribirse__nota">
+      <strong>Para no perdértelas</strong>, añade esta dirección a tu lector de noticias:
+      <a href="/rss.xml">lanoticia.sinfiltroconmax.com/rss.xml</a>. Funciona hoy, no hace falta
+      dar ningún dato y no depende de ninguna plataforma.
     </p>
   </div>
 
@@ -19,7 +23,7 @@ use App\Models\Subscriber;
     <?= \App\Support\Csrf::field() ?>
 
     <div class="campo">
-      <label for="suscribirse-correo">Tu correo</label>
+      <label for="suscribirse-correo">O déjanos tu correo para cuando empecemos</label>
       <input type="email" id="suscribirse-correo" name="correo" required maxlength="190"
              autocomplete="email" placeholder="nombre@correo.com">
     </div>
@@ -44,12 +48,13 @@ use App\Models\Subscriber;
     </div>
 
     <p class="respuesta-formulario" data-respuesta hidden></p>
-    <button class="boton boton--rojo" type="submit">Quiero recibirlo</button>
+    <button class="boton boton--rojo" type="submit">Apuntarme a la lista</button>
 
     <p class="suscribirse__honesto">
-      Todavía no hemos empezado a enviar. Cuando lo hagamos, lo primero que recibirás es un
-      correo para confirmar: si no lo confirmas, no te escribimos. Tu dirección no se vende,
-      no se cede y no se usa para nada más.
+      <strong>Todavía no enviamos correos, y no tenemos fecha para empezar.</strong> Esto es una
+      lista de espera: tu dirección se guarda en nuestro propio servidor y el día que empecemos,
+      lo primero que recibirás será un correo para confirmar. Si no lo confirmas, no te
+      escribimos. No se vende, no se cede y no pasa por ninguna empresa de fuera.
     </p>
   </form>
 </section>

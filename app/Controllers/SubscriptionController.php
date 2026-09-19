@@ -76,7 +76,7 @@ final class SubscriptionController
         $this->responder(
             $request,
             true,
-            'Apuntado. Todavía no hemos empezado a enviar: cuando lo hagamos, lo primero que recibirás es un correo para confirmar.',
+            'Apuntado a la lista de espera. Todavía no enviamos correos y no tenemos fecha; el día que empecemos, lo primero será pedirte que confirmes. Mientras tanto, el RSS te avisa de cada pieza.',
             200
         );
     }
