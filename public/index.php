@@ -21,6 +21,7 @@ use App\Controllers\DossierController;
 use App\Controllers\FeedController;
 use App\Controllers\HomeController;
 use App\Controllers\LiveController;
+use App\Controllers\SubscriptionController;
 use App\Controllers\PageController;
 use App\Controllers\SearchController;
 use App\Controllers\TaxonomyController;
@@ -50,6 +51,7 @@ $search   = new SearchController($config);
 $taxonomy = new TaxonomyController($config);
 $video    = new VideoController($config);
 $live     = new LiveController($config);
+$suscribir = new SubscriptionController($config);
 $dossier  = new DossierController($config);
 $page     = new PageController($config);
 $feed     = new FeedController($config);
@@ -75,6 +77,10 @@ $router->get('/autor/{slug:[a-z0-9\-]+}', [$taxonomy, 'author']);
 
 $router->get('/videos', [$video, 'index']);
 $router->get('/video/{slug:[a-z0-9\-]+}', [$video, 'show']);
+
+$router->post('/suscribirse',            [$suscribir, 'store']);
+$router->get('/suscripcion/confirmar',   [$suscribir, 'confirm']);
+$router->get('/suscripcion/baja',        [$suscribir, 'unsubscribe']);
 
 $router->get('/lives', [$live, 'index']);
 $router->get('/live/{slug:[a-z0-9\-]+}', [$live, 'show']);
@@ -111,6 +117,7 @@ $adminArticles  = new Admin\ArticleController($config);
 $adminMedia     = new Admin\MediaController($config);
 $adminVideos    = new Admin\VideoController($config);
 $adminLives     = new Admin\LiveController($config);
+$adminSuscrip   = new Admin\SubscriberController($config);
 $adminTaxonomy  = new Admin\TaxonomyController($config);
 $adminUsers     = new Admin\UserController($config);
 $adminModeration = new Admin\ModerationController($config);
@@ -174,6 +181,7 @@ $router->post('/panel/videos/nuevo',       [$adminVideos, 'store']);
 $router->get('/panel/videos/{id:\d+}',     [$adminVideos, 'edit']);
 $router->post('/panel/videos/{id:\d+}',    [$adminVideos, 'update']);
 
+$router->get('/panel/suscriptores',    [$adminSuscrip, 'index']);
 $router->get('/panel/lives',           [$adminLives, 'index']);
 $router->get('/panel/lives/cargar',    [$adminLives, 'bulkForm']);
 $router->post('/panel/lives/cargar',   [$adminLives, 'bulkStore']);

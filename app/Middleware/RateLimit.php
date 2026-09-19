@@ -74,7 +74,7 @@ final class RateLimit
      * cero. Contar cuántas veces en una ventana permite ambas cosas: varias
      * seguidas sí, cien no.
      */
-    public static function burst(string $action, int $max, int $seconds): bool
+    public static function demasiadosEnVentana(string $action, int $max, int $seconds): bool
     {
         $key    = '_rlb_' . $action;
         $ahora  = time();

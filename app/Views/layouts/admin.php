@@ -18,6 +18,7 @@ $menu = [
         ['/panel/medios', 'Imágenes', Auth::CAP_MEDIA_MANAGE],
         ['/panel/videos', 'Videos',   Auth::CAP_VIDEO_MANAGE],
         ['/panel/lives',  'Lives',    Auth::CAP_LIVE_MANAGE],
+        ['/panel/suscriptores', 'Suscriptores', Auth::CAP_USER_MANAGE],
     ],
     'Comunidad' => [
         ['/panel/moderacion', 'Moderación', Auth::CAP_MODERATE],

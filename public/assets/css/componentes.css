@@ -1027,3 +1027,46 @@
   .tarjeta__medio--generada { transition: transform .35s ease; }
   .tarjeta:hover .tarjeta__medio--generada { transform: scale(1.012); }
 }
+
+/* ---------------------------------------------------------------------
+   SUSCRIBIRSE
+   Va al final de la pieza. Se distingue del cuerpo sin gritar: un fondo
+   hueco y una linea roja arriba bastan. Si esto pareciera un anuncio,
+   el lector lo saltaria como salta los anuncios.
+   --------------------------------------------------------------------- */
+.suscribirse {
+  display: grid;
+  gap: var(--e4);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  padding: var(--e5);
+  background: var(--papel-hueco);
+  border-top: 3px solid var(--rojo);
+  border-radius: var(--radio);
+}
+@media (max-width: 720px) {
+  .suscribirse { grid-template-columns: 1fr; padding: var(--e4); }
+}
+.suscribirse__titulo { margin: 0 0 var(--e2); }
+.suscribirse__nota { margin: 0; color: var(--tinta-tenue); }
+.suscribirse__form { margin: 0; }
+.campo--grupo {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: var(--e3);
+  margin: 0;
+  display: grid;
+  gap: var(--e2);
+}
+.campo--grupo legend {
+  padding: 0 var(--e2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--tinta-tenue);
+}
+.suscribirse__honesto {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--tinta-tenue);
+}

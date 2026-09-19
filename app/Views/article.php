@@ -436,6 +436,14 @@ $id = (int) $a['id'];
   </div>
 </article>
 
+<!-- 17b. VOLVER MAÑANA. Va aquí, no antes: se le pide el correo a quien
+     ya terminó de leer, no a quien acaba de llegar. -->
+<section class="seccion">
+  <div class="contenedor">
+    <?= \App\Support\View::partial('partials/suscripcion') ?>
+  </div>
+</section>
+
 <!-- 18. CONTENIDO SIGUIENTE, RELACIONADO POR TEMA Y CONTEXTO -->
 <?php if ($relacionadas !== []): ?>
 <section class="seccion seccion--hueca">

@@ -288,7 +288,7 @@ final class ApiController
 
         // Ocho preguntas en medio minuto: de sobra para conversar, poco para
         // usar la búsqueda del archivo como ariete.
-        if (RateLimit::burst('asistente', 8, 30)) {
+        if (RateLimit::demasiadosEnVentana('asistente', 8, 30)) {
             Response::json([
                 'ok'    => false,
                 'error' => 'Muchas preguntas seguidas. Espera unos segundos y sigue.',
