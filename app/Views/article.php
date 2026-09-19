@@ -436,13 +436,16 @@ $id = (int) $a['id'];
   </div>
 </article>
 
-<!-- 17b. VOLVER MAÑANA. Va aquí, no antes: se le pide el correo a quien
-     ya terminó de leer, no a quien acaba de llegar. -->
-<section class="seccion">
-  <div class="contenedor">
-    <?= \App\Support\View::partial('partials/suscripcion') ?>
-  </div>
-</section>
+<!-- 17b. VOLVER MAÑANA. Una línea, sin formulario y sin pedir ningún
+     dato: quien no quiera perderse una pieza añade la dirección a su
+     lector y le llegan solas. No depende de ninguna plataforma. -->
+<div class="contenedor">
+  <p class="volver-manana">
+    Publicamos una pieza cada día.
+    <a href="/rss.xml">Añade esta web a tu lector de noticias</a>
+    y te llegan sin que tengas que acordarte de volver.
+  </p>
+</div>
 
 <!-- 18. CONTENIDO SIGUIENTE, RELACIONADO POR TEMA Y CONTEXTO -->
 <?php if ($relacionadas !== []): ?>

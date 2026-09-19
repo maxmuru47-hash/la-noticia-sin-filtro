@@ -1029,44 +1029,15 @@
 }
 
 /* ---------------------------------------------------------------------
-   SUSCRIBIRSE
-   Va al final de la pieza. Se distingue del cuerpo sin gritar: un fondo
-   hueco y una linea roja arriba bastan. Si esto pareciera un anuncio,
-   el lector lo saltaria como salta los anuncios.
+   VOLVER MAÑANA
+   Una sola línea al final de la pieza. Ni caja, ni borde, ni botón: no
+   es una llamada a la acción, es un dato útil para quien lo quiera.
    --------------------------------------------------------------------- */
-.suscribirse {
-  display: grid;
-  gap: var(--e4);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
-  padding: var(--e5);
-  background: var(--papel-hueco);
-  border-top: 3px solid var(--rojo);
-  border-radius: var(--radio);
-}
-@media (max-width: 720px) {
-  .suscribirse { grid-template-columns: 1fr; padding: var(--e4); }
-}
-.suscribirse__titulo { margin: 0 0 var(--e2); }
-.suscribirse__nota { margin: 0; color: var(--tinta-tenue); }
-.suscribirse__form { margin: 0; }
-.campo--grupo {
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
-  padding: var(--e3);
-  margin: 0;
-  display: grid;
-  gap: var(--e2);
-}
-.campo--grupo legend {
-  padding: 0 var(--e2);
-  font-size: var(--t-sm);
-  font-weight: 600;
+.volver-manana {
+  max-width: 68ch;
+  margin: var(--e5) auto 0;
+  padding-top: var(--e3);
+  border-top: 1px solid var(--borde);
   color: var(--tinta-tenue);
-}
-.suscribirse__honesto {
-  margin: 0;
   font-size: var(--t-sm);
-  line-height: 1.5;
-  color: var(--tinta-tenue);
 }
