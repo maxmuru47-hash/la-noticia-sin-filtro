@@ -63,16 +63,6 @@ final class Subscriber
         );
     }
 
-    /** Si esa direccion esta apuntada pero todavia no ha confirmado. */
-    public static function necesitaConfirmar(string $email): bool
-    {
-        return Database::value(
-            'SELECT id FROM subscribers
-              WHERE email = :email AND confirmed_at IS NULL AND unsubscribed_at IS NULL',
-            ['email' => $email]
-        ) !== null;
-    }
-
     public static function porToken(string $token): ?array
     {
         if (!preg_match('/^[0-9a-f]{48}$/', $token)) {

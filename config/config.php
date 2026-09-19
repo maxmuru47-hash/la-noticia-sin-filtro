@@ -56,14 +56,6 @@ return [
         'caption_mimes'  => ['text/vtt' => 'vtt', 'text/plain' => 'vtt'],
     ],
 
-    // El envio de correo. Sin CORREO_CLAVE la casa funciona igual: los
-    // correos se acumulan en la cola y salen el dia que se configure.
-    'correo' => [
-        'clave'        => (string) Env::get('CORREO_CLAVE', ''),
-        'desde'        => (string) Env::get('CORREO_DESDE', ''),
-        'desde_nombre' => (string) Env::get('CORREO_DESDE_NOMBRE', 'La Noticia SIN FILTRO'),
-    ],
-
     'brand' => [
         'name'              => (string) Env::get('BRAND_NAME', 'SIN FILTRO con Max'),
         'instagram'         => (string) Env::get('BRAND_INSTAGRAM', 'sinfiltroconmax'),

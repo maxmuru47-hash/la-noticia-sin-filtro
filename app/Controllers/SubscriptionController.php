@@ -5,8 +5,6 @@ namespace App\Controllers;
 
 use App\Middleware\RateLimit;
 use App\Models\Subscriber;
-use App\Services\Mailer;
-use App\Services\NewsletterService;
 use App\Support\Csrf;
 use App\Support\Request;
 use App\Support\Response;
@@ -70,33 +68,15 @@ final class SubscriptionController
             return;
         }
 
-        $token = Subscriber::alta($email, $request->list('intereses'), self::CONSENTIMIENTO);
-
-        // La confirmacion solo se encola si esa direccion todavia no
-        // estaba confirmada. A quien ya dijo que si no se le vuelve a
-        // pedir permiso cada vez que cambia sus intereses.
-        if (Subscriber::necesitaConfirmar($email)) {
-            $correo = NewsletterService::confirmacion(
-                $token,
-                $this->config['app']['url'],
-                $this->config['app']['name']
-            );
-            Mailer::encolar($email, $correo['asunto'], $correo['cuerpo']
-                . NewsletterService::pieDeBaja($token, $this->config['app']['url']));
-        }
+        Subscriber::alta($email, $request->list('intereses'), self::CONSENTIMIENTO);
 
         // La respuesta es la MISMA tanto si la direccion ya estaba como
         // si es nueva. Decir «ya estabas apuntado» le confirmaria a un
         // desconocido que ese correo esta en la lista.
-        // El mensaje dice la verdad segun el estado real de la casa. Si
-        // todavia no hay proveedor de correo configurado, prometer un
-        // correo que no va a llegar quema la lista antes de tenerla.
         $this->responder(
             $request,
             true,
-            Mailer::configurado()
-                ? 'Apuntado. Te acabamos de enviar un correo para confirmar: ábrelo y pulsa el enlace. Si no aparece, mira en la carpeta de no deseados.'
-                : 'Apuntado. Todavía no hemos empezado a enviar: cuando lo hagamos, lo primero que recibirás es un correo para confirmar.',
+            'Apuntado. Todavía no hemos empezado a enviar: cuando lo hagamos, lo primero que recibirás es un correo para confirmar.',
             200
         );
     }
