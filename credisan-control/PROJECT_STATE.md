@@ -860,6 +860,32 @@ que no se puede.
 
 Detalle en `docs/FASE13_DOCUMENTOS.md`.
 
+## Fase 14 · el mantenimiento recupera lo perdido
+
+Entre el 18 y el 21 de septiembre el mantenimiento nocturno y el respaldo
+fallaron tres noches seguidas. La causa no fue el código: la contraseña de la
+base dejó de funcionar. El mismo motivo impidió aplicar la fase 13.
+
+Lo grave no era el fallo —una clave caduca, una red se cae— sino lo que pasaba
+después: `job_close_yesterday()` cerraba literalmente AYER, así que una noche
+perdida se perdía PARA SIEMPRE. Al volver la conexión, la tarea siguiente
+cerraba sólo su propio ayer y los días de en medio se quedaban sin calcular.
+En un sistema de asistencia eso son ausencias que no aparecen y semanas que no
+cuadran, hasta que alguien lo nota mirando un reporte.
+
+Ahora el cierre diario repasa los últimos cuatro días y el semanal repasa
+también la semana anterior. Repasar es inocuo cuando no hay nada que recuperar.
+Y lo que administración aprobó no se toca: `compute_weekly_closure` lleva
+escrito `where status = 'pendiente'`, comprobado plantando una cifra imposible
+en una semana aprobada y exigiendo que siga ahí.
+
+De paso, revisando el sistema apareció que `09_dia_completo.sql` fallaba TODOS
+LOS LUNES: elegía el viernes anterior, a más de 72 horas, y el sistema rechazaba
+sus marcaciones por estar fuera de la ventana sin conexión. El producto tenía
+razón; la prueba pedía algo imposible.
+
+Detalle en `docs/FASE14_RECUPERAR.md`.
+
 ## El respaldo nocturno
 
 El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:

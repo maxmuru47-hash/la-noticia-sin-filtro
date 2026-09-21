@@ -34,14 +34,22 @@ values (:'mcb','MCB-001','Ana','Pérez','V-1','Cajera','2026-01-15'),
        (:'mcb','MCB-002','Luis','Rojas','V-2','Asesor','2026-01-15'),
        (:'mcb','MCB-003','Mara','Silva','V-3','Supervisora','2026-01-15');
 
--- El día de trabajo: AYER, para que ya esté cerrado y las faltas sean
--- firmes. Si cayó en fin de semana se toma el viernes anterior, porque
--- un sábado apagado no genera ausencia y la prueba no probaría nada.
-select case
-         when extract(isodow from current_date - 1) between 1 and 5
-           then (current_date - 1)
-         else (date_trunc('week', current_date) - interval '3 days')::date
-       end as dia \gset
+-- El día de trabajo: AYER, siempre. Ya está cerrado, así que las faltas
+-- son firmes, y cae dentro de la ventana de 72 horas que acepta una
+-- marcación sin conexión.
+--
+-- ANTES se esquivaba el fin de semana tomando el viernes anterior, con
+-- el argumento de que un sábado apagado no genera ausencia. El argumento
+-- era bueno y la consecuencia, mala: ejecutada un LUNES, la prueba
+-- apuntaba al viernes —más de 72 horas atrás— y el sistema rechazaba
+-- las ocho marcaciones con FUERA_DE_VENTANA_OFFLINE. Rechazarlas es
+-- CORRECTO; era la prueba la que pedía algo imposible, y sólo fallaba
+-- los lunes.
+--
+-- Esquivar el fin de semana además sobraba: la excepción de abajo es de
+-- alcance EMPLEADO, y ésa manda por encima del horario de la sede. Un
+-- domingo con jornada especial es un día laborable para quien la tiene.
+select (current_date - 1) as dia \gset
 select set_config('t.dia', :'dia', false);
 
 insert into schedule_exceptions (scope, employee_id, kind, date_from, date_to, is_working, is_continuous,
