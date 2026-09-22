@@ -65,6 +65,10 @@
 
   <!-- ══ HOY ═══════════════════════════════════════════════════════════ -->
   <main class="vista" id="v-hoy">
+    <!-- Sólo aparece si el respaldo lleva días sin hacerse. Si todo va
+         bien, el panel no gasta una línea en decirlo. -->
+    <div class="aviso" id="aviso-respaldo" data-t="error" hidden style="margin-bottom:1rem"></div>
+
     <div class="campo" id="hoy-sede-caja" hidden>
       <label for="hoy-sede">Sede</label>
       <select id="hoy-sede"></select>

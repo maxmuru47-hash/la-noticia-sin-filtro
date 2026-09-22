@@ -886,6 +886,37 @@ razón; la prueba pedía algo imposible.
 
 Detalle en `docs/FASE14_RECUPERAR.md`.
 
+## El respaldo pasó a ser del VPS, y restaurarlo encontró un fallo grave
+
+Lo disparaba GitHub. Entre el 18 y el 21 de septiembre falló cuatro noches
+seguidas —una contraseña que caducó— y se supo por casualidad. Ahora lo ejecuta
+el propio servidor, con su cron y sus credenciales: `vps/respaldo.sh`. El
+horario de GitHub se apagó a propósito; queda el disparo a mano. Un respaldo con
+dos dueños es un respaldo del que cada uno supone que se encarga el otro.
+
+Y se restauró de verdad, que nunca se había hecho. Apareció esto:
+`pg_dump --schema=public --schema=app` no copia las extensiones —en Supabase
+viven en otro esquema— así que al restaurar se perdían, EN SILENCIO, las dos
+restricciones que impiden que un trabajador tenga dos horarios vigentes el mismo
+día. La base restaurada aceptaba los solapes que la original rechaza.
+
+Lo que enseña el cómo se encontró: contando filas, tablas, funciones y permisos
+TODO cuadraba. El respaldo roto pasaba cada una de esas comprobaciones. Sólo
+apareció al pedirle a la base restaurada que se COMPORTARA como la original.
+
+Ahora el volcado lleva delante las extensiones que necesita y se basta solo; el
+guion comprueba cinco marcas antes de dar una copia por buena; y
+`vps/probar-restauracion.sh` repite el ciclo entero —respaldar, restaurar,
+comparar comportamiento— cuando se quiera.
+
+De paso, dos fallos del propio guion que sólo se ven ejecutándolo: `grep -q`
+corta la tubería y con `pipefail` puesto daba por fallida la comprobación aunque
+la tabla estuviera —rechazaba todos los respaldos buenos—, y el aviso de estado
+no existía. Ahora el panel avisa si el respaldo falló o lleva dos días sin
+hacerse, y se calla cuando todo va bien.
+
+Detalle en `docs/RESPALDO_EN_EL_VPS.md`.
+
 ## El respaldo nocturno
 
 El plan de Supabase del cliente es el **FREE**, y el FREE no hace respaldos:

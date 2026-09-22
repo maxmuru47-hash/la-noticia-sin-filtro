@@ -30,11 +30,21 @@
 
 name: Respaldo diario CrediSan
 
+# EL HORARIO DE AQUÍ SE APAGÓ, Y A PROPÓSITO.
+#
+# El respaldo de CrediSan lo ejecuta ahora EL PROPIO SERVIDOR, con su
+# cron y sus credenciales: credisan-control/vps/respaldo.sh. No depende
+# de GitHub, ni de que una cuenta tenga minutos, ni de un secreto que
+# caduque sin avisar.
+#
+# No es una preferencia. Entre el 18 y el 21 de septiembre de 2026 este
+# flujo falló cuatro noches seguidas porque la contraseña guardada aquí
+# dejó de servir, y nadie se enteró. Un respaldo con dos dueños es un
+# respaldo del que cada uno supone que se encarga el otro.
+#
+# Se conserva el disparo A MANO por si alguna vez hace falta sacar una
+# copia desde fuera del servidor. Horario, ninguno.
 on:
-  schedule:
-    # 05:10 UTC = 01:10 en Caracas, después del mantenimiento nocturno
-    # (que corre a las 00:40) para copiar el día ya cerrado.
-    - cron: '10 5 * * *'
   workflow_dispatch:
 
   # Y a la orden, empujando este archivo desde la rama de trabajo.

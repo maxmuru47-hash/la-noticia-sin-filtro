@@ -235,6 +235,41 @@ async function entrar(reintento = false) {
   if (esCeo()) cargarSocios();
   await cargarHoy();
   refrescarInsignia();      // el aviso, sin tener que entrar a mirar
+  vigilarRespaldo();
+}
+
+/* ── ¿SE ESTÁ RESPALDANDO LA BASE? ──────────────────────────────────
+   El respaldo corre en el servidor de CrediSan y deja constancia de su
+   última pasada. Esto la lee y avisa SÓLO si hace falta.
+
+   Existe por una razón concreta: el respaldo estuvo cuatro noches
+   seguidas fallando —una contraseña que caducó— y no se supo hasta que
+   alguien fue a mirarlo por casualidad. Una copia de seguridad que
+   falla en silencio da exactamente la misma protección que no tenerla,
+   con la tranquilidad añadida de creer que sí. */
+async function vigilarRespaldo() {
+  const caja = $('aviso-respaldo');
+  if (!caja || !puedeEditar()) return;
+
+  let e;
+  try {
+    const r = await fetch('../estado-respaldo.json', { cache: 'no-store' });
+    if (!r.ok) return;                    // aún no instalado: no se alarma a nadie
+    e = await r.json();
+  } catch { return; }
+
+  const dias = Math.floor((Date.now() - new Date(e.ultimo).getTime()) / 86400000);
+
+  if (e.ok === false) {
+    aviso(caja, 'El respaldo de la base falló'
+      + (dias > 0 ? ` hace ${dias} día${dias === 1 ? '' : 's'}` : ' anoche')
+      + '. Avise a soporte: mientras tanto, los datos del personal no tienen copia.', 'error');
+  } else if (dias >= 2) {
+    aviso(caja, `El último respaldo de la base es de hace ${dias} días. `
+      + 'Debería hacerse cada noche.', 'error');
+  } else {
+    caja.hidden = true;
+  }
 }
 
 /* ── Navegación ─────────────────────────────────────────────────────── */
