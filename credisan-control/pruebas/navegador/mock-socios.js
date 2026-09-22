@@ -38,9 +38,12 @@
       fecha: hoyISO, sede: 'Maracaibo',
       resumen: { trabajadores:2, presentes:1, faltantes:1, retrasados:1, novedades:1, completos:0 },
       empleados: [
+        // Con fotografía guardada: es la que abre el visor. Lleva
+        // `evento_id` porque sin él el panel no pinta el enlace «ver»,
+        // igual que en el servidor de verdad.
         { id:'e1', nombre:'Ana Pérez', cargo:'Cajera', estado:'retrasado',
           entrada:'08:14', salida:null, esperada:'08:00', minutos:14,
-          evidencia:'sin_evidencia', origen:'terminal' },
+          evidencia:'almacenada', evento_id:'ev-1', origen:'terminal' },
         { id:'e2', nombre:'Luis Rojas', cargo:'Asesor', estado:'faltante',
           entrada:null, salida:null, esperada:'08:00', minutos:null,
           evidencia:null, origen:null }
@@ -92,7 +95,14 @@
 
   const CON_HORARIO_PROPIO = ['e2'];   // Luis, el que hace jornada corrida
 
-  let sesion = null;
+  // Para la batería de sesión: arrancar YA con sesión guardada, como
+  // quien vuelve a abrir el panel, y dejar a la vista si sigue viva.
+  let sesion = window.__SESION_GUARDADA ? { user: { email: 'admin.mcb@credisan.test' } } : null;
+  window.__SESION_VIVA = !!sesion;
+
+  // Guion de respuestas de mi_perfil, una por llamada. Sirve para imitar
+  // un tropiezo de red o un token a medio renovar.
+  const GUION = Array.isArray(window.__GUION_PERFIL) ? window.__GUION_PERFIL.slice() : null;
   window.__llamadas = [];
   window.__subidas  = [];
   window.__firmadas = [];
@@ -117,15 +127,22 @@
           signInWithPassword: ({ email }) => {
             if (!email.includes('@')) return Promise.resolve({ error: { message: 'Invalid login credentials' } });
             sesion = { user: { email } };
+            window.__SESION_VIVA = true;
             return Promise.resolve({ error: null });
           },
-          signOut: () => { sesion = null; return Promise.resolve({}); }
+          signOut: () => { sesion = null; window.__SESION_VIVA = false; return Promise.resolve({}); }
         },
         rpc(nombre, args) {
           window.__llamadas.push([nombre, args]);
           const R = (d) => Promise.resolve({ data: d, error: null });
           const E = (m) => Promise.resolve({ data: null, error: { message: m, code: '42501' } });
 
+          if (nombre === 'mi_perfil' && GUION) {
+            const paso = GUION.shift() || 'ok';
+            if (paso === 'error')       return E('Failed to fetch');
+            if (paso === 'sin_sesion')  return R({ ok: false, reason: 'SIN_SESION' });
+            if (paso === 'inactivo')    return R({ ok: false, reason: 'INACTIVO' });
+          }
           if (nombre === 'mi_perfil') return R({
             ok: true, rol: ROL, branch_id: MI_SEDE,
             nombre: ROL === 'ceo'   ? 'Dirección General'

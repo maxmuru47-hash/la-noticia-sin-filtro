@@ -128,8 +128,36 @@ $('btn-salir').addEventListener('click', async () => {
   location.reload();
 });
 
-async function entrar() {
+/* POR QUÉ ESTA FUNCIÓN ES TAN CUIDADOSA AL FALLAR
+   ---------------------------------------------------------------------
+   Es lo primero que corre al abrir el panel con una sesión guardada, y
+   de ella depende que a alguien le toque volver a escribir su
+   contraseña o no.
+
+   Dos tropiezos PASAJEROS se trataban como si fueran definitivos:
+
+     · Un fallo de red al arrancar —un teléfono con mala señal, el wifi
+       de la sede reconectando— dejaba al usuario mirando el formulario
+       de acceso con su sesión intacta guardada al lado.
+
+     · `SIN_SESION` quiere decir que ESA petición viajó sin credencial:
+       normalmente porque el token estaba renovándose justo entonces.
+       Y la respuesta era `signOut()`, que BORRA la sesión de verdad.
+       Es decir: ante la duda, el panel destruía lo que quizá estaba
+       perfectamente bien, y convertía un parpadeo en «vuelva a escribir
+       su contraseña».
+
+   Ahora se reintenta una vez, y sólo se cierra la sesión cuando el
+   servidor dice algo DEFINITIVO —que el acceso está desactivado, por
+   ejemplo—. Ante una duda pasajera, la sesión se deja en paz. */
+async function entrar(reintento = false) {
   const { data, error } = await sb.rpc('mi_perfil');
+
+  if ((error || data?.reason === 'SIN_SESION') && !reintento) {
+    await new Promise((r) => setTimeout(r, 1200));
+    return entrar(true);
+  }
+
   if (error) { aviso($('acceso-aviso'), traducir(error)); return; }
 
   if (!data.ok) {
@@ -146,7 +174,10 @@ async function entrar() {
       return;
     }
     aviso($('acceso-aviso'), traducir(new Error(data.reason)));
-    await sb.auth.signOut();
+    // `INACTIVO` es definitivo y sí cierra. `SIN_SESION`, no: borrar la
+    // sesión ahí es exactamente lo que hacía que hubiera que teclear la
+    // contraseña otra vez.
+    if (data.reason !== 'SIN_SESION') await sb.auth.signOut();
     return;
   }
 
@@ -1826,7 +1857,14 @@ const MOTIVOS_EVIDENCIA = {
   SIN_EVIDENCIA: 'Esta marcación se registró sin fotografía. Hay una novedad abierta.',
   PURGADA:       'La fotografía ya se borró: se conservan 180 días.',
   PENDIENTE:     'La fotografía todavía se está guardando.',
-  NO_AUTORIZADO: 'No tiene permiso para ver esta fotografía.'
+  NO_AUTORIZADO: 'No tiene permiso para ver esta fotografía.',
+  // La base dice que hay foto y el depósito dice que no. No es un fallo
+  // de esta pantalla: es una contradicción entre dos sistemas, y hay que
+  // decirlo con esas palabras para que alguien pueda ir a mirarlo.
+  EVIDENCIA_NO_ESTA: 'La marcación dice tener fotografía, pero el archivo no está en el '
+                   + 'depósito. Avise a soporte: no es un problema de su pantalla.',
+  NO_SE_PUDO_FIRMAR: 'El servidor no pudo preparar el enlace de la fotografía. Inténtelo otra vez.',
+  SIN_CONEXION:  'Sin conexión con el servidor. Revise su internet e inténtelo otra vez.'
 };
 
 $('visor-cerrar').addEventListener('click', cerrarVisor);
@@ -1866,12 +1904,34 @@ async function verEvidencia(eventoId, nombre) {
   $('visor-cuando').textContent = new Date(r.cuando).toLocaleString('es-VE',
     { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
+  // Si el enlace firmado no apunta al mismo servidor que el resto del
+  // panel, el navegador nunca va a poder traerlo. Merece un mensaje
+  // propio: es una configuración mal puesta, no una foto perdida, y las
+  // dos se veían exactamente igual.
+  let mismoServidor = true;
+  try {
+    mismoServidor = new URL(r.url).origin === new URL(config.supabaseUrl).origin;
+  } catch { mismoServidor = false; }
+
   const img = new Image();
   img.alt = '';
   img.style.cssText = 'width:100%;border-radius:12px;display:block';
   img.onload = () => { $('visor-cuerpo').innerHTML = ''; $('visor-cuerpo').appendChild(img); };
   img.onerror = () => {
-    $('visor-cuerpo').innerHTML = '<p class="vacio">No se pudo cargar la fotografía.</p>';
+    // Aquí el permiso YA estaba concedido y el archivo YA estaba en el
+    // depósito —las dos cosas se comprobaron antes—, así que lo que
+    // falló fue la descarga. Decirlo así, y ofrecer reintentar: el
+    // enlace dura 60 segundos y una foto no se pierde por un tropiezo.
+    $('visor-cuerpo').innerHTML = mismoServidor
+      ? '<p class="vacio">No se pudo descargar la fotografía. El enlace dura 60 segundos.</p>'
+      : '<p class="vacio">El enlace de la fotografía apunta a otro servidor y el navegador '
+        + 'no puede abrirlo. Es un ajuste del sistema, no un problema suyo.</p>';
+
+    const otra = document.createElement('button');
+    otra.className = 'boton boton--secundario';
+    otra.textContent = 'Intentar de nuevo';
+    otra.addEventListener('click', () => verEvidencia(eventoId, nombre));
+    $('visor-cuerpo').appendChild(otra);
   };
   img.src = r.url;
 

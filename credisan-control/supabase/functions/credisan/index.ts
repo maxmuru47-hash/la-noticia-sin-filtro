@@ -308,10 +308,39 @@ Deno.serve(async (peticion) => {
         if (ePermiso) return responder({ ok: false, motivo: limpiar(ePermiso.message) }, 403);
         if (!permiso?.ok) return responder(permiso ?? { ok: false, motivo: 'NO_AUTORIZADO' });
 
+        // ANTES DE FIRMAR, COMPROBAR QUE EL ARCHIVO ESTÁ.
+        //
+        // `createSignedUrl` no comprueba nada: firma un texto. Si en esa
+        // ruta no hay archivo, la firma sale perfecta y el navegador se
+        // come un 404 — y el panel sólo podía decir «no se pudo cargar
+        // la fotografía», que tapa cuatro causas distintas y no explica
+        // ninguna. Administración se queda sin saber si el problema es
+        // el permiso, la red, o que la foto no existe.
+        //
+        // Si la base dice que hay fotografía y el depósito dice que no,
+        // eso no es un fallo de pantalla: es una contradicción entre dos
+        // sistemas, y hay que nombrarla.
+        const ruta = String(permiso.ruta);
+        const corte = ruta.lastIndexOf('/');
+        const carpeta = corte > 0 ? ruta.slice(0, corte) : '';
+        const archivo = ruta.slice(corte + 1);
+
+        const { data: hallado } = await sb.storage
+          .from('evidencia').list(carpeta, { search: archivo, limit: 100 });
+
+        if (!hallado?.some((o) => o.name === archivo)) {
+          // La ruta NO viaja al navegador —eso se decidió en la fase 9—
+          // pero sí al registro del servidor, que es donde se mira
+          // cuando hay que averiguar qué pasó.
+          console.error('evidencia ausente en el depósito', { evento, ruta });
+          return responder({ ok: false, motivo: 'EVIDENCIA_NO_ESTA' });
+        }
+
         // Sesenta segundos: el tiempo de mirarla, no de repartirla.
         const { data: firmada, error: eFirma } = await sb.storage
-          .from('evidencia').createSignedUrl(String(permiso.ruta), 60);
+          .from('evidencia').createSignedUrl(ruta, 60);
         if (eFirma || !firmada?.signedUrl) {
+          console.error('no se pudo firmar la evidencia', { evento, error: eFirma?.message });
           return responder({ ok: false, motivo: 'NO_SE_PUDO_FIRMAR' }, 500);
         }
 
