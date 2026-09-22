@@ -41,6 +41,13 @@ async function abrir(rol) {
   // saldría a internet de verdad y contaría el fallo de red como error.
   await p.route('**/functions/v1/credisan', (r) =>
     r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, pimienta: true }) }));
+  // El panel consulta el estado del respaldo, que en producción SÍ
+  // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
+  // del programa — que es justamente lo que no es.
+  await p.route('**/estado-respaldo.json', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ultimo: new Date().toISOString(), ok: true, copias: 14 })
+  }));
 
   await p.goto('http://localhost:8099/panel/index.html', { waitUntil: 'domcontentloaded' });
   await p.fill('#correo', 'x@credisan.test');

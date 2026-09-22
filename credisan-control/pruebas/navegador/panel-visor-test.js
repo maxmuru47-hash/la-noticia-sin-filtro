@@ -53,6 +53,13 @@ async function abrirVisor(respuesta) {
   // Cualquier imagen firmada: se responde con un 404, como haría el
   // depósito con una ruta que no existe.
   await p.route('**/firmada/**', (r) => r.fulfill({ status: 404, body: 'Object not found' }));
+  // El panel consulta el estado del respaldo, que en producción SÍ
+  // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
+  // del programa — que es justamente lo que no es.
+  await p.route('**/estado-respaldo.json', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ultimo: new Date().toISOString(), ok: true, copias: 14 })
+  }));
 
   await p.goto('http://localhost:8099/panel/index.html', { waitUntil: 'domcontentloaded' });
   await p.fill('#correo', 'x@credisan.test');

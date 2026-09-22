@@ -36,6 +36,13 @@ async function abrir(b, responderFuncion) {
   {
     const { p, errs } = await abrir(b, (r) => r.fulfill({ status: 404,
       contentType: 'application/json', body: JSON.stringify({ code: 404, message: 'Function not found' }) }));
+  // El panel consulta el estado del respaldo, que en producción SÍ
+  // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
+  // del programa — que es justamente lo que no es.
+  await p.route('**/estado-respaldo.json', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ultimo: new Date().toISOString(), ok: true, copias: 14 })
+  }));
 
     ok(await p.locator('#aviso-funcion').isVisible(), 'sale un aviso en la lista de personal');
     const t = await p.textContent('#aviso-funcion');

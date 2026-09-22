@@ -33,6 +33,13 @@ async function abrir(rol, preparar) {
   await p.addInitScript(`window.__ROL_PRUEBA = ${JSON.stringify(rol)};`);
   await p.route('**/supabase-js@**', (r) => r.fulfill({ contentType: 'application/javascript', body: MOCK }));
   await p.route('**/config/env.js', (r) => r.fulfill({ contentType: 'application/javascript', body: ENV }));
+  // El panel consulta el estado del respaldo, que en producción SÍ
+  // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
+  // del programa — que es justamente lo que no es.
+  await p.route('**/estado-respaldo.json', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ultimo: new Date().toISOString(), ok: true, copias: 14 })
+  }));
   await p.route('**/fonts.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/css', body: '' }));
 
   await p.goto('http://localhost:8099/panel/index.html', { waitUntil: 'domcontentloaded' });

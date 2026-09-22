@@ -16,6 +16,13 @@ const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabas
 
   await p.route('**/supabase-js@**', (r) => r.fulfill({ contentType: 'application/javascript', body: MOCK }));
   await p.route('**/config/env.js', (r) => r.fulfill({ contentType: 'application/javascript', body: ENV }));
+  // El panel consulta el estado del respaldo, que en producción SÍ
+  // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
+  // del programa — que es justamente lo que no es.
+  await p.route('**/estado-respaldo.json', (r) => r.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ultimo: new Date().toISOString(), ok: true, copias: 14 })
+  }));
   await p.route('**/fonts.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/css', body: '' }));
   await p.route('**/functions/v1/credisan', (r) => {
     peticionPin = { cuerpo: JSON.parse(r.request().postData()), auth: r.request().headers()['authorization'] };
