@@ -66,6 +66,7 @@ let dispositivo = {
 let pin = '';
 let sesion = null;        // identidad + ticket devueltos por el servidor
 let flujo = null;         // cámara activa
+let camaraPedida = false; // ¿la queremos encendida AHORA? (ver abrirCamara)
 let regreso = null;       // temporizador de vuelta al teclado
 let ocupado = false;
 
@@ -217,6 +218,23 @@ async function verificarPin() {
     return guardado;
   }
 
+  // La cámara se enciende AQUÍ, no en la pantalla de identidad.
+  //
+  // Un sensor tarda entre medio segundo y segundo y medio en dar su
+  // primera imagen. Encendiéndolo al pintar la identidad, quien se sabe
+  // su PIN pulsa «Confirmar» antes de que haya nada que capturar, y su
+  // marcación queda SIN FOTO. No es teoría: es de donde salen casi
+  // todas las novedades automáticas de «marcación sin evidencia».
+  //
+  // Esta llamada al servidor —la que averigua quién es— es tiempo
+  // muerto que ya estábamos gastando. El sensor calienta dentro de él.
+  // Y no se enciende antes: sólo cuando alguien ya tecleó seis dígitos
+  // y está marcando, que es el instante justo antes de su fotografía.
+  //
+  // Sin `await` a propósito: encender la cámara no debe retrasar ni un
+  // milisegundo la identificación.
+  abrirCamara();
+
   try {
     const r = await llamar({
       accion: 'pin',
@@ -228,6 +246,7 @@ async function verificarPin() {
     if (!r.ok) {
       pin = '';
       pintarPuntos();
+      cerrarCamara();            // el PIN no era: no se deja encendida
       aviso($('aviso-pin'), explicar(r.motivo), 'error');
       if (r.motivo === 'TERMINAL_NO_AUTORIZADO') olvidarDispositivo();
       return;
@@ -290,7 +309,7 @@ async function fotoRapida() {
   try {
     await abrirCamara();
     if (!flujo) return '';
-    await new Promise((r) => setTimeout(r, 350));   // dar tiempo al sensor
+    await camaraLista();          // la misma espera que en línea, en un solo sitio
     const foto = capturarFoto();
     cerrarCamara();
     return foto || '';
@@ -371,6 +390,10 @@ async function confirmar() {
   clearTimeout(regreso);
   $('btn-confirmar').textContent = 'Registrando…';
 
+  // El botón ya dice «Registrando…», así que esta espera no es una
+  // pantalla congelada: es el tiempo que el sensor necesita, y sólo se
+  // gasta cuando de verdad hace falta.
+  await camaraLista();
   const foto = capturarFoto();
   cerrarCamara();
 
@@ -432,11 +455,29 @@ function mostrarError(texto) {
 
 async function abrirCamara() {
   if (!navigator.mediaDevices?.getUserMedia) return;
+  camaraPedida = true;
+  // Ya encendida: no se vuelve a pedir. Pedirla otra vez reemplazaría el
+  // flujo y tiraría a la basura el calentamiento que se acaba de ganar.
+  if (flujo) { $('camara').hidden = false; return; }
   try {
-    flujo = await navigator.mediaDevices.getUserMedia({
+    const nuevo = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
       audio: false
     });
+
+    // MIENTRAS EL PERMISO VIAJABA PUDIERON CANCELAR.
+    //
+    // Encender la cámara tarda, y en ese rato el PIN pudo salir
+    // equivocado o la pantalla pudo volver al teclado. `cerrarCamara()`
+    // ya se ejecutó, pero sobre un flujo que TODAVÍA NO EXISTÍA: no
+    // apagó nada, y el sensor se encendía después, solo, con el
+    // terminal en reposo y su luz puesta delante de la gente.
+    //
+    // Por eso no basta con mirar `flujo`: hay que preguntar si a estas
+    // alturas seguimos queriéndola.
+    if (!camaraPedida) { nuevo.getTracks().forEach((t) => t.stop()); return; }
+
+    flujo = nuevo;
     $('video').srcObject = flujo;
     $('camara').hidden = false;
   } catch {
@@ -446,8 +487,30 @@ async function abrirCamara() {
 }
 
 function cerrarCamara() {
+  camaraPedida = false;
   if (flujo) { flujo.getTracks().forEach((t) => t.stop()); flujo = null; }
+  $('video').srcObject = null;
   $('camara').hidden = true;
+}
+
+/* Esperar a que el sensor dé su PRIMERA imagen, con tope.
+   ---------------------------------------------------------------------
+   `videoWidth` sigue siendo 0 hasta que llega ese primer fotograma,
+   aunque `getUserMedia` ya haya contestado. Capturar antes devuelve
+   nada.
+
+   El tope no es un detalle: la regla de este terminal es que una foto
+   que falla NUNCA impide marcar. Así que se espera un poco —lo que
+   tarda un sensor normal— y, si no llega, se marca sin fotografía
+   exactamente como antes. Nadie se queda delante de una tableta
+   esperando a una cámara. */
+async function camaraLista(tope = 1200) {
+  const hasta = Date.now() + tope;
+  while (Date.now() < hasta) {
+    if (flujo && $('video').videoWidth) return true;
+    await new Promise((r) => setTimeout(r, 40));
+  }
+  return !!(flujo && $('video').videoWidth);
 }
 
 function capturarFoto() {
