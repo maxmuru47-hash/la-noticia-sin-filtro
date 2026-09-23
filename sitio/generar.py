@@ -26,7 +26,10 @@ import re
 import sys
 from pathlib import Path
 
-BASE = "https://lanoticia.sinfiltroconmax.com"
+# La casa es sinfiltroconmax.com. Las noticias viven dentro, no al lado:
+# un solo dominio concentra toda la fuerza en buscadores y evita que el
+# lector tenga que recordar dos direcciones.
+BASE = "https://sinfiltroconmax.com/noticias"
 
 RAIZ = Path(__file__).resolve().parent
 PIEZAS = RAIZ / "piezas"
@@ -34,13 +37,18 @@ PIEZAS = RAIZ / "piezas"
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 
-CABECERA = """<header class="sf-cab">
-  <a class="sf-marca" href="/">La Noticia SIN <em>FILTRO</em></a>
+def cabecera(pref=""):
+    """pref es lo que hay que anteponer para llegar a la raiz del sitio
+    de noticias. Vacio en las piezas publicadas, "../" en los borradores.
+    Todos los enlaces son relativos: asi el sitio funciona igual colgado
+    en /noticias que en cualquier otro sitio, sin tocar una linea."""
+    return """<header class="sf-cab">
+  <a class="sf-marca" href="%(p)sindex.html">La Noticia SIN <em>FILTRO</em></a>
   <nav class="sf-nav">
-    <a href="/">Portada</a>
-    <a href="https://sinfiltroconmax.com">SIN FILTRO con Max</a>
+    <a href="%(p)sindex.html">Portada</a>
+    <a href="https://sinfiltroconmax.com/">SIN FILTRO con Max</a>
   </nav>
-</header>"""
+</header>""" % {"p": pref}
 
 PIE = """<footer class="sf-pie">
   La Noticia SIN <em>FILTRO</em> &middot; Toda cifra con su fecha y su fuente. Cuando no lo sabemos, lo decimos.
@@ -184,7 +192,7 @@ def jsonld_pieza(pieza):
     return bruto.replace("</", "<\\/").replace("<!--", "<\\!--")
 
 
-def pagina_pieza(pieza):
+def pagina_pieza(pieza, pref=""):
     return """<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -195,7 +203,7 @@ def pagina_pieza(pieza):
 <meta property="og:title" content="%(titular)s">
 <meta property="og:description" content="%(entradilla)s">
 <meta property="og:type" content="article">
-<link rel="stylesheet" href="/estilo.css">
+<link rel="stylesheet" href="%(pref)sestilo.css">
 <link rel="canonical" href="%(canonica)s">
 %(robots)s<script type="application/ld+json">%(jsonld)s</script>
 </head>
@@ -222,7 +230,8 @@ def pagina_pieza(pieza):
         "fecha_larga": e(fecha_larga(pieza["fecha"])),
         "cuerpo": cuerpo_html(pieza["cuerpo"]),
         "fuentes": fuentes_html(pieza),
-        "cabecera": CABECERA,
+        "pref": pref,
+        "cabecera": cabecera(pref),
         "pie": PIE,
         "canonica": e(url_de(pieza)),
         "robots": '<meta name="robots" content="noindex, nofollow">\n' if pieza["estado"] != "publicado" else "",
@@ -239,7 +248,7 @@ def pagina_portada(piezas):
           <span class="sf-seccion">%s</span>
           <span class="sf-fecha">%s</span>
         </div>
-        <h2><a href="/%s.html">%s</a></h2>
+        <h2><a href="%s.html">%s</a></h2>
         <p>%s</p>
       </article>""" % (e(p["seccion"]), e(fecha_larga(p["fecha"])), e(p["slug"]),
                        e(p["titular"]), e(p["entradilla"])))
@@ -251,7 +260,7 @@ def pagina_portada(piezas):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>La Noticia SIN FILTRO</title>
 <meta name="description" content="Economía, negocios e inteligencia artificial explicados en consecuencias concretas. Cada cifra con su fecha y su fuente.">
-<link rel="stylesheet" href="/estilo.css">
+<link rel="stylesheet" href="estilo.css">
 <link rel="canonical" href="%s">
 </head>
 <body>
@@ -268,7 +277,7 @@ def pagina_portada(piezas):
 %s
 </body>
 </html>
-""" % (BASE + "/", CABECERA, "\n".join(tarjetas), PIE)
+""" % (BASE + "/", cabecera(), "\n".join(tarjetas), PIE)
 
 
 
@@ -365,7 +374,7 @@ def main():
     for p in publicadas:
         (RAIZ / (p["slug"] + ".html")).write_text(pagina_pieza(p), encoding="utf-8")
     for p in borradores:
-        (carpeta / (p["slug"] + ".html")).write_text(pagina_pieza(p), encoding="utf-8")
+        (carpeta / (p["slug"] + ".html")).write_text(pagina_pieza(p, "../"), encoding="utf-8")
         # Si estuvo publicada antes, se retira de su sitio publico.
         antiguo = RAIZ / (p["slug"] + ".html")
         if antiguo.exists():

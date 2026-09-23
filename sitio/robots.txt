@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /borradores/
 
-Sitemap: https://lanoticia.sinfiltroconmax.com/sitemap.xml
+Sitemap: https://sinfiltroconmax.com/noticias/sitemap.xml
