@@ -1,0 +1,73 @@
+TITULAR: Casi todas las pymes ya usan inteligencia artificial. Cuatro de cada diez no tienen una sola regla sobre qué se puede meter ahí.
+ENTRADILLA: Una encuesta publicada este mes dice que el 97% de las pequeñas empresas españolas usa IA y que el 70% de ellas lo hace porque el empleado la abrió por su cuenta. La cifra es buena, pero quien pagó la encuesta vende la herramienta más citada. Te explicamos qué sirve de ahí y qué hacer el lunes.
+SECCION: IA y tecnología
+FECHA: 2026-09-21
+---
+Si en tu negocio alguien usa un chat de inteligencia artificial para redactar un presupuesto, resumir un contrato o responder a un cliente, esta pieza es para ti. Probablemente ya está pasando y probablemente no lo decidiste tú.
+
+Las cifras, y de dónde salen
+
+Una encuesta de la firma 3Gem, realizada entre el 24 de agosto y el 1 de septiembre de 2026 a mil responsables de pequeñas y medianas empresas en España, arroja esto.
+
+El 97% usa inteligencia artificial: un 59% de forma habitual y un 38% de vez en cuando.
+
+El 73% menciona ChatGPT como la herramienta que usa, y un 48% dice que es de la que más depende.
+
+El 39% no tiene ninguna política formal sobre el uso de IA.
+
+Y el 70% reconoce que sus empleados usan estas herramientas por iniciativa propia.
+
+Ahora el dato que casi ningún titular incluyó
+
+Esa encuesta la encargó OpenAI, que es la empresa dueña de ChatGPT, la herramienta que sale primera en sus propios resultados.
+
+Eso no quiere decir que los números sean falsos. La hizo una firma independiente y el trabajo de campo está fechado. Pero sí quiere decir que hay que leerlos con cuidado: un estudio pagado por quien vende la solución tiende a preguntar de una manera que luzca bien la adopción.
+
+Por eso aquí no nos quedamos con el 97%. Nos quedamos con los otros dos.
+
+Los dos números que sí te sirven
+
+Treinta y nueve por ciento sin ninguna regla escrita. Setenta por ciento donde la herramienta entró porque un empleado la abrió, no porque la empresa la eligiera.
+
+Esos dos, juntos, describen una situación concreta: en la mayoría de los negocios pequeños la inteligencia artificial ya está dentro, y nadie decidió cómo.
+
+Qué significa eso en tu negocio
+
+Cuando alguien de tu equipo pega texto en un chat de IA, ese texto sale de tu empresa y llega al servidor de otra.
+
+Piensa en qué se pega normalmente. La lista de clientes para hacer un correo. El contrato del proveedor para que lo resuman. La lista de precios para armar una comparación. Los datos de un cliente para redactar una respuesta.
+
+No hace falta mala intención. Basta con que nadie haya dicho nunca qué se puede pegar y qué no.
+
+La regla que cabe en una página
+
+Esto no se arregla comprando nada. Se arregla escribiendo tres cosas y pegándolas donde todos las vean.
+
+Uno: qué herramienta usamos. Una, elegida, no la que cada quien prefiera.
+
+Dos: qué NO se pega nunca. Datos de clientes con nombre y cédula, precios de proveedores, contratos, números de cuenta, cualquier cosa que no pondrías en un grupo de WhatsApp del edificio.
+
+Tres: quién revisa antes de que salga. Nada escrito por una máquina llega a un cliente sin que una persona lo lea.
+
+Media hora de trabajo. Cero bolívares.
+
+Lo que no se sabe
+
+No encontramos ningún estudio equivalente sobre pymes venezolanas. Las cifras de arriba son de España, y allá el acceso a estas herramientas, el costo de internet y la relación con la banca no son los de aquí. Sirven para entender la forma del problema, no para medir el nuestro.
+
+Tampoco se sabe cuántas de esas empresas han tenido ya un problema real por esto. La encuesta mide lo que la gente dice que hace, no lo que le ha pasado. No es lo mismo.
+
+Y no hay dato público de cuántos negocios venezolanos usan IA a diario. Si alguien lo ha medido, escríbenos y lo publicamos con su fuente.
+
+Qué te llevas
+
+Antes de preguntarte si tu negocio debería usar inteligencia artificial, averigua si ya la está usando. En siete de cada diez casos la respuesta es que sí, y que nadie lo decidió.
+
+Y cuando veas una cifra de adopción tecnológica que suena redonda, busca quién pagó el estudio antes de repetirla. Muchas veces el que mide es el que vende.
+---
+FUENTES
+https://www.diariosigloxxi.com/texto-ep/mostrar/20260917135938/97-pymes-espanolas-ia-39-hace-politica-formal-riesgos-privacidad-ciberseguridad | Diario Siglo XXI (Europa Press) · «El 97% de las pymes españolas usa IA» | 17 de septiembre de 2026
+https://www.laecuaciondigital.com/tecnologias/inteligencia-artificial/ia-pymes-espanolas-sin-gobernanza-interna/ | La Ecuación Digital · «La IA avanza en las pymes sin gobernanza» | septiembre de 2026
+https://www.ambito.com/negocios/crece-la-adopcion-ia-las-pymes-pero-tambien-el-riesgo-que-aumenten-las-desigualdades-estructurales-n6272170 | Ámbito · «Crece la adopción de IA entre las pymes» | septiembre de 2026
+---
+NOTA: Ficha del estudio: encuesta de 3Gem por encargo de OpenAI, 1.000 responsables de pymes en España, trabajo de campo del 24 de agosto al 1 de septiembre de 2026. Publicar el 97% sin decir quién pagó la encuesta habría sido exactamente lo que criticamos en la pieza.

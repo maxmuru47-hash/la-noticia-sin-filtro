@@ -1,0 +1,25 @@
+# La Noticia SIN FILTRO
+# Este archivo se copia a /etc/caddy/sitios/lanoticia.caddy en el VPS.
+# No toca ningún otro sitio: Caddy los carga por separado.
+lanoticia.sinfiltroconmax.com {
+	root * /srv/lanoticia/sitio
+	file_server
+	encode gzip zstd
+
+	# Las direcciones se escriben sin «.html», pero el archivo sí lo lleva.
+	try_files {path} {path}.html {path}/index.html
+
+	header {
+		# El sitio no carga nada de fuera, así que se puede cerrar del
+		# todo sin romper nada.
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Las tipografías y el estilo no cambian casi nunca.
+	@estaticos path /tipos/* /estilo.css
+	header @estaticos Cache-Control "public, max-age=604800"
+}
