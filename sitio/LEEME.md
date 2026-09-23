@@ -67,3 +67,22 @@ citadas. Se generan `sitemap.xml` y `robots.txt` en cada pasada.
 El JSON de datos estructurados escapa `</` antes de escribirse: un
 titular que contuviera `</script>` podría cerrar la etiqueta y dejar
 meter código en la página. Ya pasó una vez en este proyecto.
+
+## Cómo llega a sinfiltroconmax.com
+
+En cada pasada se genera `sitio/ultimas.html`: un trozo de HTML con las
+tres piezas más recientes, con su propio estilo encerrado bajo
+`.sfx-ultimas` para que no toque ni una regla de la web principal.
+
+**No lleva JavaScript.** Se inserta del lado del servidor con la
+directiva `templates` de Caddy, así que funciona aunque el visitante
+tenga los scripts desactivados y no hace ninguna llamada a nadie.
+
+En la web principal, donde deba salir la sección de noticias:
+
+```
+{{ include "/srv/lanoticia/sitio/ultimas.html" }}
+```
+
+Y en su archivo de Caddy, `templates` activado. Cuando se publica una
+pieza nueva, el fragmento se regenera y la web principal la muestra sola.

@@ -271,6 +271,61 @@ def pagina_portada(piezas):
 """ % (BASE + "/", CABECERA, "\n".join(tarjetas), PIE)
 
 
+
+def fragmento(publicadas, cuantas=3):
+    """Un trozo de HTML con las ultimas piezas, listo para incrustar en
+    sinfiltroconmax.com.
+
+    Lleva su propio estilo, encerrado bajo .sfx-ultimas, para que no
+    toque ni una regla de la web principal. Y no lleva JavaScript: se
+    inserta del lado del servidor, asi que funciona aunque el visitante
+    tenga los scripts desactivados y no hace ninguna llamada a nadie.
+    """
+    tarjetas = []
+    for p in publicadas[:cuantas]:
+        tarjetas.append("""      <article class="sfx-item">
+        <span class="sfx-seccion">%s</span>
+        <h3><a href="%s">%s</a></h3>
+        <p>%s</p>
+      </article>""" % (e(p["seccion"]), e(url_de(p)), e(p["titular"]),
+                       e(recortar(p["entradilla"], 160))))
+
+    return """<!-- LA NOTICIA SIN FILTRO · se regenera solo. No editar a mano. -->
+<section class="sfx-ultimas">
+  <style>
+    .sfx-ultimas{--sfx-rojo:#E1121F;padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px);
+      background:#000;color:#F4F3F1;font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+    .sfx-ultimas *{box-sizing:border-box}
+    .sfx-cab{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+      flex-wrap:wrap;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--sfx-rojo)}
+    .sfx-cab h2{font-family:"Anton","Arial Narrow",Impact,sans-serif;font-weight:400;
+      text-transform:uppercase;font-size:clamp(1.5rem,3.5vw,2.2rem);line-height:1;margin:0}
+    .sfx-cab a{color:#9A9AA0;text-decoration:none;font-size:11px;font-weight:700;
+      letter-spacing:.16em;text-transform:uppercase}
+    .sfx-cab a:hover{color:#F4F3F1}
+    .sfx-rejilla{display:grid;gap:26px}
+    @media(min-width:760px){.sfx-rejilla{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .sfx-item{display:flex;flex-direction:column;gap:10px}
+    .sfx-seccion{align-self:flex-start;padding:4px 10px;border:1px solid var(--sfx-rojo);
+      color:var(--sfx-rojo);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+    .sfx-item h3{font-family:"Anton","Arial Narrow",Impact,sans-serif;font-weight:400;
+      text-transform:uppercase;font-size:clamp(1.15rem,2vw,1.4rem);line-height:1.05;margin:0}
+    .sfx-item h3 a{color:#F4F3F1;text-decoration:none}
+    .sfx-item h3 a:hover{color:var(--sfx-rojo)}
+    .sfx-item p{margin:0;color:#9A9AA0;font-size:14.5px;line-height:1.55}
+  </style>
+
+  <div class="sfx-cab">
+    <h2>La noticia sin filtro</h2>
+    <a href="%s/">Ver todas &rarr;</a>
+  </div>
+
+  <div class="sfx-rejilla">
+%s
+  </div>
+</section>
+""" % (BASE, "\n".join(tarjetas))
+
 def sitemap(publicadas):
     urls = ['  <url><loc>%s/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>' % BASE]
     for p in publicadas:
@@ -319,6 +374,7 @@ def main():
     (RAIZ / "index.html").write_text(pagina_portada(publicadas), encoding="utf-8")
     (RAIZ / "sitemap.xml").write_text(sitemap(publicadas), encoding="utf-8")
     (RAIZ / "robots.txt").write_text(robots(), encoding="utf-8")
+    (RAIZ / "ultimas.html").write_text(fragmento(publicadas), encoding="utf-8")
 
     print("Publicadas: %d   Borradores: %d" % (len(publicadas), len(borradores)))
     for p in borradores:
