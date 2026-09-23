@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /borradores/
+
+Sitemap: https://lanoticia.sinfiltroconmax.com/sitemap.xml

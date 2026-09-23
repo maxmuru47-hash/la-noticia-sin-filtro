@@ -26,6 +26,8 @@ import re
 import sys
 from pathlib import Path
 
+BASE = "https://lanoticia.sinfiltroconmax.com"
+
 RAIZ = Path(__file__).resolve().parent
 PIEZAS = RAIZ / "piezas"
 
@@ -58,7 +60,10 @@ def leer(ruta):
     bruto = ruta.read_text(encoding="utf-8")
     bloques = [b.strip() for b in bruto.split("\n---\n")]
 
-    pieza = {"slug": ruta.stem, "fuentes": [], "nota": ""}
+    # Borrador por defecto: una pieza solo se publica si lo dice
+    # explicitamente. Equivocarse hacia "no publicado" no cuesta nada;
+    # equivocarse hacia "publicado" es irreversible.
+    pieza = {"slug": ruta.stem, "fuentes": [], "nota": "", "estado": "borrador"}
     for linea in bloques[0].splitlines():
         if ":" in linea:
             clave, valor = linea.split(":", 1)
@@ -132,6 +137,53 @@ def fuentes_html(pieza):
   </div>""" % ("\n".join(filas), nota)
 
 
+AVISO_BORRADOR = """<div style="background:#E1121F;color:#fff;padding:12px 20px;
+  font:700 12px/1.4 'Archivo',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-align:center">
+  Borrador &middot; esta pieza todav&iacute;a no est&aacute; publicada &middot; no la compartas
+</div>
+"""
+
+
+def recortar(texto, limite):
+    """Corta por palabra, no a mitad de una."""
+    if len(texto) <= limite:
+        return texto
+    corte = texto[:limite].rsplit(" ", 1)[0]
+    return corte.rstrip(" ,;:") + "..."
+
+
+def url_de(pieza):
+    if pieza["estado"] == "publicado":
+        return "%s/%s.html" % (BASE, pieza["slug"])
+    return "%s/borradores/%s.html" % (BASE, pieza["slug"])
+
+
+def jsonld_pieza(pieza):
+    """Datos estructurados: es lo que hace que un buscador entienda que
+    esto es una pieza periodistica con autor y fecha, y no una pagina
+    cualquiera. Sin esto, la web compite en peores condiciones."""
+    import json
+    datos = {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": recortar(pieza["titular"], 110),
+        "description": pieza["entradilla"],
+        "datePublished": pieza["fecha"],
+        "dateModified": pieza["fecha"],
+        "inLanguage": "es-VE",
+        "articleSection": pieza["seccion"],
+        "author": {"@type": "Person", "name": "Max Gonzalez"},
+        "publisher": {"@type": "Organization", "name": "La Noticia SIN FILTRO"},
+        "mainEntityOfPage": {"@type": "WebPage", "@id": url_de(pieza)},
+        "isBasedOn": [f[0] for f in pieza["fuentes"]],
+    }
+    bruto = json.dumps(datos, ensure_ascii=False, indent=2)
+    # Un titular que contuviera </script> cerraria la etiqueta y dejaria
+    # meter codigo en la pagina. Escapar la barra lo impide sin cambiar
+    # lo que lee un buscador. Esto ya nos pasó una vez en este proyecto.
+    return bruto.replace("</", "<\\/").replace("<!--", "<\\!--")
+
+
 def pagina_pieza(pieza):
     return """<!DOCTYPE html>
 <html lang="es">
@@ -144,9 +196,11 @@ def pagina_pieza(pieza):
 <meta property="og:description" content="%(entradilla)s">
 <meta property="og:type" content="article">
 <link rel="stylesheet" href="/estilo.css">
+<link rel="canonical" href="%(canonica)s">
+%(robots)s<script type="application/ld+json">%(jsonld)s</script>
 </head>
 <body>
-%(cabecera)s
+%(aviso)s%(cabecera)s
 <div class="sf-envol">
   <div class="sf-eyebrow">
     <span class="sf-seccion">%(seccion)s</span>
@@ -170,6 +224,10 @@ def pagina_pieza(pieza):
         "fuentes": fuentes_html(pieza),
         "cabecera": CABECERA,
         "pie": PIE,
+        "canonica": e(url_de(pieza)),
+        "robots": '<meta name="robots" content="noindex, nofollow">\n' if pieza["estado"] != "publicado" else "",
+        "jsonld": jsonld_pieza(pieza),
+        "aviso": AVISO_BORRADOR if pieza["estado"] != "publicado" else "",
     }
 
 
@@ -194,6 +252,7 @@ def pagina_portada(piezas):
 <title>La Noticia SIN FILTRO</title>
 <meta name="description" content="Economía, negocios e inteligencia artificial explicados en consecuencias concretas. Cada cifra con su fecha y su fuente.">
 <link rel="stylesheet" href="/estilo.css">
+<link rel="canonical" href="%s">
 </head>
 <body>
 %s
@@ -209,7 +268,25 @@ def pagina_portada(piezas):
 %s
 </body>
 </html>
-""" % (CABECERA, "\n".join(tarjetas), PIE)
+""" % (BASE + "/", CABECERA, "\n".join(tarjetas), PIE)
+
+
+def sitemap(publicadas):
+    urls = ['  <url><loc>%s/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>' % BASE]
+    for p in publicadas:
+        urls.append('  <url><loc>%s</loc><lastmod>%s</lastmod></url>' % (url_de(p), p["fecha"]))
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "\n".join(urls) + "\n</urlset>\n")
+
+
+def robots():
+    # Los borradores no se indexan nunca. Ademas llevan su propia
+    # etiqueta noindex, porque robots.txt pide y la etiqueta obliga.
+    return ("User-agent: *\n"
+            "Allow: /\n"
+            "Disallow: /borradores/\n\n"
+            "Sitemap: %s/sitemap.xml\n" % BASE)
 
 
 def main():
@@ -220,11 +297,32 @@ def main():
     piezas = [leer(a) for a in archivos]
     piezas.sort(key=lambda p: p["fecha"], reverse=True)
 
-    for p in piezas:
-        (RAIZ / (p["slug"] + ".html")).write_text(pagina_pieza(p), encoding="utf-8")
+    publicadas = [p for p in piezas if p["estado"] == "publicado"]
+    borradores = [p for p in piezas if p["estado"] != "publicado"]
 
-    (RAIZ / "index.html").write_text(pagina_portada(piezas), encoding="utf-8")
-    print("Generadas %d piezas y la portada." % len(piezas))
+    # Los borradores se limpian y se vuelven a escribir en cada pasada,
+    # para que una pieza que pasa a publicada no deje rastro colgando.
+    carpeta = RAIZ / "borradores"
+    carpeta.mkdir(exist_ok=True)
+    for viejo in carpeta.glob("*.html"):
+        viejo.unlink()
+
+    for p in publicadas:
+        (RAIZ / (p["slug"] + ".html")).write_text(pagina_pieza(p), encoding="utf-8")
+    for p in borradores:
+        (carpeta / (p["slug"] + ".html")).write_text(pagina_pieza(p), encoding="utf-8")
+        # Si estuvo publicada antes, se retira de su sitio publico.
+        antiguo = RAIZ / (p["slug"] + ".html")
+        if antiguo.exists():
+            antiguo.unlink()
+
+    (RAIZ / "index.html").write_text(pagina_portada(publicadas), encoding="utf-8")
+    (RAIZ / "sitemap.xml").write_text(sitemap(publicadas), encoding="utf-8")
+    (RAIZ / "robots.txt").write_text(robots(), encoding="utf-8")
+
+    print("Publicadas: %d   Borradores: %d" % (len(publicadas), len(borradores)))
+    for p in borradores:
+        print("   borrador -> %s" % url_de(p))
 
 
 if __name__ == "__main__":

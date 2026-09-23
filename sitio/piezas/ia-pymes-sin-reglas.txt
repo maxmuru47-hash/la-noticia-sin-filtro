@@ -1,6 +1,7 @@
 TITULAR: Casi todas las pymes ya usan inteligencia artificial. Cuatro de cada diez no tienen una sola regla sobre qué se puede meter ahí.
 ENTRADILLA: Una encuesta publicada este mes dice que el 97% de las pequeñas empresas españolas usa IA y que el 70% de ellas lo hace porque el empleado la abrió por su cuenta. La cifra es buena, pero quien pagó la encuesta vende la herramienta más citada. Te explicamos qué sirve de ahí y qué hacer el lunes.
 SECCION: IA y tecnología
+ESTADO: publicado
 FECHA: 2026-09-21
 ---
 Si en tu negocio alguien usa un chat de inteligencia artificial para redactar un presupuesto, resumir un contrato o responder a un cliente, esta pieza es para ti. Probablemente ya está pasando y probablemente no lo decidiste tú.

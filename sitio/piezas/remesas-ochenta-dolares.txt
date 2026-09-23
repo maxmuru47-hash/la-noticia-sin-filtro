@@ -1,6 +1,7 @@
 TITULAR: Ochenta dólares al mes, y nueve de cada diez nunca pasan por un banco
 ENTRADILLA: Las remesas que entran a Venezuela equivalen a cuatro puntos del PIB, pero más del 90% no toca el sistema financiero formal. Si vendes algo en este país, esa frase explica cómo te paga buena parte de tus clientes, y por qué exigir transferencia te cuesta ventas.
 SECCION: Dinero real
+ESTADO: publicado
 FECHA: 2026-09-22
 ---
 Hay un dinero que sostiene el consumo de este país y que casi no aparece en ninguna estadística bancaria. Si tienes un negocio, ya lo estás recibiendo, aunque no lo llames así.

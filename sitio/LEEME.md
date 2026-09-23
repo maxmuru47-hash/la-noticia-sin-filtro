@@ -42,3 +42,28 @@ ni analítica, ni CDN: ningún lector hace una petición a un servidor que
 no sea el nuestro. Si alguien añadiera algo externo por descuido, la
 cabecera `Content-Security-Policy` de `lanoticia.caddy` lo bloquea. Es
 deliberado.
+
+## Borrador y publicado
+
+Cada pieza lleva una línea `ESTADO:`.
+
+- `ESTADO: borrador` → se genera en `/borradores/<slug>.html`, con aviso
+  rojo arriba y etiqueta `noindex`. No sale en la portada ni en el
+  sitemap, y `robots.txt` lo excluye.
+- `ESTADO: publicado` → sale en la portada, en el sitemap y en Google.
+
+**Si falta la línea, la pieza es borrador.** Equivocarse hacia «no
+publicado» no cuesta nada; equivocarse hacia «publicado» es irreversible.
+
+Pasar de borrador a publicado es cambiar esa palabra y hacer push. La
+página del borrador se borra sola en la siguiente pasada.
+
+## Posicionamiento
+
+Cada página lleva su `canonical`, sus etiquetas Open Graph y datos
+estructurados `NewsArticle` con autor, fecha, sección y las fuentes
+citadas. Se generan `sitemap.xml` y `robots.txt` en cada pasada.
+
+El JSON de datos estructurados escapa `</` antes de escribirse: un
+titular que contuviera `</script>` podría cerrar la etiqueta y dejar
+meter código en la página. Ya pasó una vez en este proyecto.
