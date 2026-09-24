@@ -98,3 +98,41 @@ sobre algo urgente.
 Se escribe de otra cosa. Siempre hay un dato económico, una herramienta de
 IA o un caso de emprendimiento que sirve. Romper la línea editorial por un
 día de mucho tráfico es el peor negocio posible.
+
+## Dos reglas que no se negocian (añadidas 23/09/2026)
+
+### 1. Tiene que ser noticia de hoy, no dato bueno
+
+Antes de escribir, la pieza tiene que pasar esta prueba: **¿por qué es
+noticia hoy?** La respuesta solo vale si es una de estas tres:
+
+- un hecho que ocurrió en los últimos dos o tres días,
+- una cifra **publicada** esta semana (no una cifra vieja que sigue siendo
+  cierta),
+- una fecha próxima sobre la que el lector todavía puede actuar.
+
+Si la respuesta es "porque el dato es interesante", **no es noticia**: es
+material de consulta. Va a `docs/material-consulta/` y se usa como contexto
+dentro de una pieza futura, nunca como pieza propia.
+
+De un informe hay que verificar **la fecha de publicación**, no solo el año
+del dato. Un informe de 2025 publicado hace meses no es noticia en
+septiembre de 2026, aunque sus números sean de 2025.
+
+### 2. La pieza se entrega en el chat
+
+El texto completo va **en la conversación**, en bloques separados por campo,
+listos para copiar y pegar en el panel. El archivo en `docs/piezas-diarias/`
+es respaldo, no la entrega. Max no debe tener que abrir nada para publicar.
+
+### Y una de siempre
+
+Toda cifra lleva fecha y fuente. **Una cifra sin año no se publica**, aunque
+sea impresionante. Si dos fuentes se contradicen, no se publica ninguna
+hasta confirmar en la fuente primaria.
+
+### La hora
+
+Todo se fecha en **hora de Caracas (UTC−4)**. El entorno de trabajo corre en
+UTC y después de las 8:00 pm de Caracas ya marca el día siguiente. La hora
+de Max manda.
