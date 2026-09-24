@@ -5,18 +5,22 @@ contexto de fondo: es el encargo.
 
 ## Qué se produce
 
-Una sola pieza, lista para pegar en **Panel → Publicar rápido**, con esta
-forma exacta:
+Una sola pieza, entregada **en el chat**, en seis bloques que se copian de
+uno en uno. Son los seis campos reales del panel, en este orden:
 
-- **TITULAR** — una línea.
-- **ENTRADILLA** — dos o tres frases.
-- **CUERPO** — texto corrido, párrafos separados por línea en blanco.
-  Los intertítulos van en su propia línea, sin punto final (el sistema los
-  reconoce solos).
-- **SECCIÓN** — una de las cinco de abajo.
+| Campo del panel | Qué lleva |
+|---|---|
+| **TITULAR** | Una línea, corta y con gancho. |
+| **RESUMEN** | Dos o tres frases. |
+| **ARTÍCULO COMPLETO** | Texto corrido, párrafos separados por línea en blanco. Los intertítulos van en su propia línea y sin punto final. Termina con la línea de **Fuentes**. |
+| **MATRIZ DE OPINIÓN · MAX GONZÁLEZ** | Siempre marcado como **BORRADOR**. Es una propuesta para que Max la reescriba. Nunca se presenta como su voz. |
+| **CATEGORÍA** | Opinión, Análisis o Debate. |
+| **ETIQUETA** | Aquí va la sección de las cinco de abajo (por ejemplo, «IA y tecnología»). |
 
-Nada más. Ni imagen, ni etiquetas, ni redes. Eso se añade después si hace
-falta.
+Dentro del **ARTÍCULO COMPLETO** son obligatorios los dos intertítulos
+**Lo que no se sabe** y **Qué te llevas**.
+
+Nada más. Ni imagen ni redes. Eso se añade después si hace falta.
 
 ## Las cinco secciones
 
