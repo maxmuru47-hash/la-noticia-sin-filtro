@@ -26,7 +26,8 @@ el techo de precio sube.
 
 ## Redes sociales
 
-**R1 · Los seguidores dejaron de importar: cambiaron los algoritmos.**
+**R1 · Los seguidores dejaron de importar: cambiaron los algoritmos.** ESCRITA
+el 25/09/2026, ver `piezas-diarias/2026-09-26-alcance-redes.md`.
 Instagram ya no prioriza número de seguidores ni likes: prioriza tiempo de
 visualización, guardados, compartidos e interacciones profundas. En TikTok el
 completion rate y el tiempo de visualización pesan más que los likes, y cada
