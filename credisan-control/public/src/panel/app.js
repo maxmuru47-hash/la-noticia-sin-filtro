@@ -1939,36 +1939,70 @@ async function verEvidencia(eventoId, nombre) {
   $('visor-cuando').textContent = new Date(r.cuando).toLocaleString('es-VE',
     { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
-  // Si el enlace firmado no apunta al mismo servidor que el resto del
-  // panel, el navegador nunca va a poder traerlo. Merece un mensaje
-  // propio: es una configuración mal puesta, no una foto perdida, y las
-  // dos se veían exactamente igual.
+  // SE PIDE LA IMAGEN A MANO, NO CON <img src>.
+  //
+  // Con `img.src`, cuando algo falla lo único que llega es «onerror»:
+  // no se sabe si el depósito contestó 404 —el archivo no está—, 403
+  // —el enlace no vale—, o si no se llegó a contestar. Los tres se
+  // veían igual: «No se pudo cargar la fotografía», que no sirve para
+  // arreglar nada.
+  //
+  // Pidiéndola así se sabe el número exacto, y ese número dice qué
+  // hacer. La imagen se descarga UNA vez igual: lo que llega se pinta.
   let mismoServidor = true;
   try {
     mismoServidor = new URL(r.url).origin === new URL(config.supabaseUrl).origin;
   } catch { mismoServidor = false; }
 
-  const img = new Image();
-  img.alt = '';
-  img.style.cssText = 'width:100%;border-radius:12px;display:block';
-  img.onload = () => { $('visor-cuerpo').innerHTML = ''; $('visor-cuerpo').appendChild(img); };
-  img.onerror = () => {
-    // Aquí el permiso YA estaba concedido y el archivo YA estaba en el
-    // depósito —las dos cosas se comprobaron antes—, así que lo que
-    // falló fue la descarga. Decirlo así, y ofrecer reintentar: el
-    // enlace dura 60 segundos y una foto no se pierde por un tropiezo.
-    $('visor-cuerpo').innerHTML = mismoServidor
-      ? '<p class="vacio">No se pudo descargar la fotografía. El enlace dura 60 segundos.</p>'
-      : '<p class="vacio">El enlace de la fotografía apunta a otro servidor y el navegador '
-        + 'no puede abrirlo. Es un ajuste del sistema, no un problema suyo.</p>';
-
+  const decir = (texto, detalle) => {
+    $('visor-cuerpo').innerHTML = `<p class="vacio">${esc(texto)}</p>`;
+    if (detalle) {
+      const p = document.createElement('p');
+      p.className = 'ayuda';
+      p.style.cssText = 'margin-top:.5rem;font-size:.75rem';
+      p.textContent = detalle;
+      $('visor-cuerpo').appendChild(p);
+    }
     const otra = document.createElement('button');
     otra.className = 'boton boton--secundario';
+    otra.style.marginTop = '.6rem';
     otra.textContent = 'Intentar de nuevo';
     otra.addEventListener('click', () => verEvidencia(eventoId, nombre));
     $('visor-cuerpo').appendChild(otra);
   };
-  img.src = r.url;
+
+  if (!mismoServidor) {
+    decir('El enlace de la fotografía apunta a otro servidor y el navegador no puede '
+        + 'abrirlo. Es un ajuste del sistema, no un problema suyo.',
+        'Detalle para soporte: el panel habla con ' + config.supabaseUrl);
+    return;
+  }
+
+  try {
+    const resp = await fetch(r.url, { cache: 'no-store' });
+
+    if (!resp.ok) {
+      // 404 = la marcación dice tener foto pero el archivo no está.
+      // 400/403 = el enlace no sirve o caducó.
+      decir(resp.status === 404
+        ? 'La marcación dice tener fotografía, pero el archivo no está en el depósito. '
+        + 'Avise a soporte: no es un problema de su pantalla.'
+        : 'El depósito no entregó la fotografía. Inténtelo otra vez.',
+        'Detalle para soporte: el depósito respondió ' + resp.status);
+      return;
+    }
+
+    const img = new Image();
+    img.alt = '';
+    img.style.cssText = 'width:100%;border-radius:12px;display:block';
+    img.onload = () => { $('visor-cuerpo').innerHTML = ''; $('visor-cuerpo').appendChild(img); };
+    img.onerror = () => decir('La fotografía llegó pero no se pudo mostrar.',
+                              'Detalle para soporte: el archivo llegó dañado');
+    img.src = URL.createObjectURL(await resp.blob());
+  } catch (err) {
+    decir('No se pudo llegar al depósito de fotografías. Revise su internet.',
+          'Detalle para soporte: ' + (err?.message || 'la petición no llegó a contestar'));
+  }
 
   // El enlace caduca a los 60 s. Se cierra antes para no dejar en
   // pantalla una imagen que ya no se podría volver a pedir.

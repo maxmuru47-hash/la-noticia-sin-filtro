@@ -19,13 +19,21 @@ const fs = require('fs');
 const MOCK = fs.readFileSync('mock-socios.js', 'utf8');
 const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabaseAnonKey:'clave-de-prueba-larga-para-validacion',version:'1.0.0'};`;
 
+// Un JPEG de 1×1 DE VERDAD. Con bytes inventados el panel avisaba de
+// que la imagen llegó dañada — que es lo correcto, pero no es lo que
+// esta sección quiere probar.
+const JPEG_REAL = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a'
+  + 'HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA'
+  + 'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==', 'base64');
+
 let fallos = 0;
 const ok  = (t, v) => console.log(`  ✔ ${t}${v !== undefined ? '  → ' + v : ''}`);
 const mal = (t, v) => { fallos++; console.log(`  ✖ ${t}  → ${v}`); };
 const si  = (t, c, v) => (c ? ok(t, v) : mal(t, v));
 
 // `respuesta` es lo que contesta la función del servidor al pedir la foto.
-async function abrirVisor(respuesta) {
+async function abrirVisor(respuesta, codigoDeposito = 404) {
   const b = await chromium.launch(NAVEGADOR ? { executablePath: NAVEGADOR } : {});
   const p = await b.newPage({ viewport: { width: 414, height: 900 } });
   // Dos de estas pruebas TUMBAN la imagen a propósito, y el navegador
@@ -50,9 +58,12 @@ async function abrirVisor(respuesta) {
     }
     return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, pimienta: true }) });
   });
-  // Cualquier imagen firmada: se responde con un 404, como haría el
-  // depósito con una ruta que no existe.
-  await p.route('**/firmada/**', (r) => r.fulfill({ status: 404, body: 'Object not found' }));
+  // El depósito contesta lo que pida cada caso: así se comprueba que el
+  // panel distinga un 404 (el archivo no está) de un 400 (el enlace no
+  // sirve) de una imagen que sí llega.
+  await p.route('**/firmada/**', (r) => codigoDeposito === 200
+    ? r.fulfill({ status: 200, contentType: 'image/jpeg', body: JPEG_REAL })
+    : r.fulfill({ status: codigoDeposito, body: 'no' }));
   // El panel consulta el estado del respaldo, que en producción SÍ
   // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
   // del programa — que es justamente lo que no es.
@@ -101,16 +112,38 @@ async function abrirVisor(respuesta) {
   }
 
   // ── 3 · La descarga se cayó: se puede reintentar ──────────────────
-  console.log('\n3 · La descarga falla, y el enlace dura 60 segundos');
+  console.log('\n3 · El depósito contesta 404: el archivo no está');
   {
-    const { b, p, errs, texto } = await abrirVisor({
-      ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
-      url: 'https://demo.supabase.co/firmada/foto.jpg'
-    });
-    si('se distingue de las otras causas', texto.includes('No se pudo descargar'), texto);
-    si('se explica que el enlace caduca', texto.includes('60 segundos'));
-    si('y se ofrece intentarlo otra vez',
-       await p.locator('#visor-cuerpo button').isVisible());
+    const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
+                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+    const { b, p, errs, texto } = await abrirVisor(foto, 404);
+    si('se dice que el archivo no está', texto.includes('no está en el depósito'), texto);
+    si('y se da el número exacto para soporte', texto.includes('404'), texto);
+    si('con opción de reintentar', await p.locator('#visor-cuerpo button').isVisible());
+    si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
+    await b.close();
+  }
+
+  console.log('\n3b · El depósito contesta 400: el enlace no sirve');
+  {
+    const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
+                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+    const { b, errs, texto } = await abrirVisor(foto, 400);
+    si('NO se confunde con un archivo ausente',
+       !texto.includes('no está en el depósito'), texto);
+    si('y también da el número', texto.includes('400'), texto);
+    si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
+    await b.close();
+  }
+
+  console.log('\n3c · La fotografía llega: se ve');
+  {
+    const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
+                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+    const { b, p, errs } = await abrirVisor(foto, 200);
+    si('se pinta la imagen', await p.locator('#visor-cuerpo img').count() > 0);
+    si('y no queda ningún mensaje de fallo',
+       !(await p.textContent('#visor-cuerpo')).includes('no se pudo'));
     si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
     await b.close();
   }
