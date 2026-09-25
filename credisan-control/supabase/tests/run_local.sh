@@ -29,3 +29,4 @@ correr credisan_soc supabase/tests/10_socios.sql
 correr credisan_hor supabase/tests/11_horarios.sql
 correr credisan_doc supabase/tests/12_documentos.sql
 correr credisan_rec supabase/tests/13_recuperar.sql
+correr credisan_sal supabase/tests/14_salidas.sql

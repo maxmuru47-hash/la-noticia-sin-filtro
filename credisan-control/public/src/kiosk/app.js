@@ -30,6 +30,8 @@ const ESTADOS = {
 
 const MOTIVOS = {
   TERMINAL_NO_AUTORIZADO: 'Este dispositivo ya no está vinculado. Avise a administración.',
+  TERMINAL_INACTIVO: 'Este terminal está desactivado en el panel. En cuanto lo activen, '
+                   + 'vuelve a funcionar solo: NO hace falta volver a vincularlo.',
   TERMINAL_INVALIDO:      'Terminal no reconocido.',
   PIN_INVALIDO:           'PIN incorrecto. Intente de nuevo.',
   EMPLEADO_INACTIVO:      'Su ficha está desactivada. Consulte con administración.',
@@ -248,6 +250,11 @@ async function verificarPin() {
       pintarPuntos();
       cerrarCamara();            // el PIN no era: no se deja encendida
       aviso($('aviso-pin'), explicar(r.motivo), 'error');
+      // Sólo se borra la vinculación cuando se perdió DE VERDAD. Si el
+      // terminal está apagado desde el panel, su llave sigue siendo
+      // buena: borrarla obligaría a emparejar de nuevo, y en una sede
+      // eso es que nadie marca hasta que alguien con acceso al panel
+      // genere un código. Un interruptor no debe costar una visita.
       if (r.motivo === 'TERMINAL_NO_AUTORIZADO') olvidarDispositivo();
       return;
     }
@@ -598,7 +605,10 @@ async function intentarSincronizar() {
     // tras un corte largo puede haber más de un lote en espera.
     for (let vuelta = 0; vuelta < 10; vuelta++) {
       const r = await sincronizar(llamar, dispositivo);
+      // Igual que arriba: un terminal apagado conserva su vinculación y
+      // la cola espera. Lo que se marcó sin conexión no se pierde.
       if (r.motivo === 'TERMINAL_NO_AUTORIZADO') { olvidarDispositivo(); break; }
+      if (r.motivo === 'TERMINAL_INACTIVO') break;
       if (!r.quedan || (!r.aceptadas && !r.rechazadas)) break;
     }
   } catch {

@@ -64,6 +64,37 @@ async function terminalAutenticado(sb: ReturnType<typeof admin>, codigo: string,
   return data as string;
 }
 
+/* POR QUÉ NO SE AUTORIZÓ, Y POR QUÉ IMPORTA LA DIFERENCIA
+   ---------------------------------------------------------------------
+   Cuando un terminal no se autentica, el kiosco BORRA su vinculación y
+   vuelve a pedir un código de emparejamiento. En una sede eso significa
+   que NADIE MARCA hasta que alguien con acceso al panel genere un código
+   nuevo — y un mostrador no siempre tiene a esa persona cerca.
+
+   Tiene sentido cuando la vinculación se perdió de verdad: alguien la
+   retiró desde el panel, o vinculó otro aparato a ese mismo terminal y
+   éste quedó reemplazado. Ahí no hay vuelta atrás y hay que volver a
+   emparejar.
+
+   Pero NO tiene sentido si el terminal sólo está DESACTIVADO. Su llave
+   sigue siendo buena: en cuanto alguien lo reactive, el aparato podría
+   seguir marcando solo. Borrarle la vinculación convierte un interruptor
+   en una visita técnica.
+
+   Se distinguen sólo esos dos casos, a propósito. Devolver el motivo
+   exacto de cada fallo le diría a cualquiera qué códigos de terminal
+   existen; con esto, lo único que se añade es «este está apagado». */
+async function motivoDelRechazo(sb: ReturnType<typeof admin>, codigo: string) {
+  try {
+    const { data } = await sb.from('terminals')
+      .select('is_active, deleted_at')
+      .eq('code', String(codigo ?? ''))
+      .maybeSingle();
+    if (data && (data.is_active === false || data.deleted_at)) return 'TERMINAL_INACTIVO';
+  } catch { /* si no se puede averiguar, se trata como antes */ }
+  return 'TERMINAL_NO_AUTORIZADO';
+}
+
 Deno.serve(async (peticion) => {
   if (peticion.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (peticion.method !== 'POST') return responder({ ok: false, motivo: 'METODO_NO_PERMITIDO' }, 405);
@@ -103,7 +134,9 @@ Deno.serve(async (peticion) => {
       // El PIN viaja una sola vez y se cambia por un ticket de 60 s.
       case 'pin': {
         const terminal = await terminalAutenticado(sb, cuerpo.terminal, cuerpo.token);
-        if (!terminal) return responder({ ok: false, motivo: 'TERMINAL_NO_AUTORIZADO' }, 401);
+        if (!terminal) {
+          return responder({ ok: false, motivo: await motivoDelRechazo(sb, cuerpo.terminal) }, 401);
+        }
 
         const pin = String(cuerpo.pin ?? '');
         if (!/^\d{6}$/.test(pin)) {
@@ -146,7 +179,9 @@ Deno.serve(async (peticion) => {
       // ── Paso 2: confirmar, registrar y guardar la fotografía ──────
       case 'confirmar': {
         const terminal = await terminalAutenticado(sb, cuerpo.terminal, cuerpo.token);
-        if (!terminal) return responder({ ok: false, motivo: 'TERMINAL_NO_AUTORIZADO' }, 401);
+        if (!terminal) {
+          return responder({ ok: false, motivo: await motivoDelRechazo(sb, cuerpo.terminal) }, 401);
+        }
 
         const { data: marca, error } = await sb.rpc('edge_registrar', {
           p_ticket: String(cuerpo.ticket ?? ''),
@@ -212,7 +247,9 @@ Deno.serve(async (peticion) => {
       // una llave que el dispositivo no posee, y eso sí está.
       case 'sincronizar': {
         const terminal = await terminalAutenticado(sb, cuerpo.terminal, cuerpo.token);
-        if (!terminal) return responder({ ok: false, motivo: 'TERMINAL_NO_AUTORIZADO' }, 401);
+        if (!terminal) {
+          return responder({ ok: false, motivo: await motivoDelRechazo(sb, cuerpo.terminal) }, 401);
+        }
 
         if (!LLAVE_OFFLINE) {
           return responder({ ok: false, motivo: 'FALTA_LLAVE_OFFLINE',
