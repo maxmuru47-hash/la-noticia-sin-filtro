@@ -118,7 +118,7 @@ septiembre de 2026. Análisis sobre crédito hipotecario: Curadas, 24 de
 septiembre de 2026.
 
 =====================================================================
-CAMPO 4 — MATRIZ DE OPINIÓN · MAX GONZÁLEZ
+CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
 *** BORRADOR. Es una propuesta para que la reescribas con tus palabras.
 *** No la publiques como tu voz si no te suena a ti.

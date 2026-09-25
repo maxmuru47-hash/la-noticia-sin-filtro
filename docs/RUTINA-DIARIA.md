@@ -13,7 +13,7 @@ uno en uno. Son los seis campos reales del panel, en este orden:
 | **TITULAR** | Una línea, corta y con gancho. |
 | **RESUMEN** | Dos o tres frases. |
 | **ARTÍCULO COMPLETO** | Texto corrido, párrafos separados por línea en blanco. Los intertítulos van en su propia línea y sin punto final. Termina con la línea de **Fuentes**. |
-| **MATRIZ DE OPINIÓN · MAX GONZÁLEZ** | Siempre marcado como **BORRADOR**. Es una propuesta para que Max la reescriba. Nunca se presenta como su voz. |
+| **LO QUE YO VEO** | La voz de Max: su lectura de la noticia desde su posición de empresario y emprendedor. Va firmada «Max González · empresario», no rotulada con su nombre. Cualquier texto que escriba Claude aquí va marcado como **BORRADOR** y nunca se presenta como su voz. |
 | **CATEGORÍA** | Opinión, Análisis o Debate. |
 | **ETIQUETA** | Aquí va la sección de las cinco de abajo (por ejemplo, «IA y tecnología»). |
 
@@ -134,6 +134,22 @@ es respaldo, no la entrega. Max no debe tener que abrir nada para publicar.
 Toda cifra lleva fecha y fuente. **Una cifra sin año no se publica**, aunque
 sea impresionante. Si dos fuentes se contradicen, no se publica ninguna
 hasta confirmar en la fuente primaria.
+
+### Por qué el bloque de opinión no se llama «matriz de opinión» (25/09/2026)
+
+Se llamaba así y se cambió a **«Lo que yo veo»** por dos razones.
+
+La primera es de reputación: en Venezuela «matriz de opinión» es una expresión
+quemada. Se usa como acusación —«están creando una matriz de opinión»— para
+decir que un medio fabrica una narrativa. Un bloque titulado literalmente así
+le entrega el insulto ya redactado a quien quiera desacreditar la web.
+
+La segunda es de estilo: era la única frase de la página que sonaba a oficina
+de prensa, al lado de «Lo que no se sabe» y «Qué te llevas». Los tres rótulos
+tienen que hablar el mismo idioma.
+
+El nombre de Max no va en el rótulo: va en la firma debajo («Max González ·
+empresario»). La web ya es suya; repetirlo en el título era redundante.
 
 ### La hora
 

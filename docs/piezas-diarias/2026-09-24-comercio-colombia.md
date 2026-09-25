@@ -95,7 +95,7 @@ enero-junio 2025. Proyección de comercio binacional y convocatoria de Visión
 Frontera 2026: Cámara Colombo Venezolana y Gobernación de Norte de Santander.
 
 =====================================================================
-CAMPO 4 — MATRIZ DE OPINIÓN · MAX GONZÁLEZ
+CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
 *** BORRADOR. Es una propuesta para que la reescribas con tus palabras.
 *** No la publiques como tu voz si no te suena a ti.

@@ -90,7 +90,7 @@ Nota de transparencia: Max González tiene participación en Credisan. Esta nota
 se publica con esa relación declarada.
 
 =====================================================================
-CAMPO 4 — MATRIZ DE OPINIÓN · MAX GONZÁLEZ
+CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
 *** BORRADOR. Esta es la que más te conviene reescribir tú, porque es tu
 *** empresa y tu voz. Lo que te propongo es el gesto, no las palabras.

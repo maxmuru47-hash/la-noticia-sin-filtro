@@ -175,7 +175,7 @@ empresas mencionadas en esta nota. Lo decimos porque el lector tiene derecho a
 saberlo.
 
 =====================================================================
-CAMPO 4 — MATRIZ DE OPINIÓN · MAX GONZÁLEZ
+CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
 *** BORRADOR. Reescríbela con tus palabras.
 

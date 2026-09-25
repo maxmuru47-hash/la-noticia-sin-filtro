@@ -77,7 +77,7 @@ apoyo de CAF, Mercantil Banco y EY Venezuela). Encuesta de coyuntura de
 Fedecámaras, segundo trimestre de 2026, 151 gremios empresariales.
 
 =====================================================================
-CAMPO 4 — MATRIZ DE OPINIÓN · MAX GONZÁLEZ
+CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
 *** BORRADOR. Es una propuesta para que la reescribas con tus palabras.
 *** No la publiques como tu voz si no te suena a ti.
