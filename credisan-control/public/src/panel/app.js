@@ -4,7 +4,7 @@
    filtrada por las políticas de la base de datos, así que lo que se
    oculta aquí es por comodidad, nunca por seguridad. */
 
-import { config, estaConfigurado } from '../core/config.js';
+import { config, estaConfigurado, porNuestroCamino } from '../core/config.js';
 import { crearCliente, traducir } from '../core/supabase.js';
 
 const $ = (id) => document.getElementById(id);
@@ -1949,10 +1949,9 @@ async function verEvidencia(eventoId, nombre) {
   //
   // Pidiéndola así se sabe el número exacto, y ese número dice qué
   // hacer. La imagen se descarga UNA vez igual: lo que llega se pinta.
-  let mismoServidor = true;
-  try {
-    mismoServidor = new URL(r.url).origin === new URL(config.supabaseUrl).origin;
-  } catch { mismoServidor = false; }
+  // El enlace lo firma Supabase con su propio dominio; aquí se le pone
+  // el camino por el que este panel habla con el servidor.
+  const enlace = porNuestroCamino(r.url);
 
   const decir = (texto, detalle) => {
     $('visor-cuerpo').innerHTML = `<p class="vacio">${esc(texto)}</p>`;
@@ -1971,15 +1970,8 @@ async function verEvidencia(eventoId, nombre) {
     $('visor-cuerpo').appendChild(otra);
   };
 
-  if (!mismoServidor) {
-    decir('El enlace de la fotografía apunta a otro servidor y el navegador no puede '
-        + 'abrirlo. Es un ajuste del sistema, no un problema suyo.',
-        'Detalle para soporte: el panel habla con ' + config.supabaseUrl);
-    return;
-  }
-
   try {
-    const resp = await fetch(r.url, { cache: 'no-store' });
+    const resp = await fetch(enlace, { cache: 'no-store' });
 
     if (!resp.ok) {
       // 404 = la marcación dice tener foto pero el archivo no está.

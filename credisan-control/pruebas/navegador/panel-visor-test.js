@@ -17,7 +17,11 @@ const { chromium } = require('playwright');
 const NAVEGADOR = process.env.CHROMIUM_PATH || undefined;
 const fs = require('fs');
 const MOCK = fs.readFileSync('mock-socios.js', 'utf8');
-const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://demo.supabase.co',supabaseAnonKey:'clave-de-prueba-larga-para-validacion',version:'1.0.0'};`;
+// EL MONTAJE REAL: el panel NO habla con Supabase directamente, sino a
+// través del propio VPS. Así es como está CrediSan en producción, y es
+// justo lo que destapó el fallo de las fotos: los enlaces que firma
+// Supabase vienen con SU dominio y se salían de este camino.
+const ENV = `window.CREDISAN_ENV={supabaseUrl:'https://control.sinfiltroconmax.com/api',supabaseAnonKey:'clave-de-prueba-larga-para-validacion',version:'1.0.0'};`;
 
 // Un JPEG de 1×1 DE VERDAD. Con bytes inventados el panel avisaba de
 // que la imagen llegó dañada — que es lo correcto, pero no es lo que
@@ -61,9 +65,13 @@ async function abrirVisor(respuesta, codigoDeposito = 404) {
   // El depósito contesta lo que pida cada caso: así se comprueba que el
   // panel distinga un 404 (el archivo no está) de un 400 (el enlace no
   // sirve) de una imagen que sí llega.
-  await p.route('**/firmada/**', (r) => codigoDeposito === 200
+  // La fotografía SÓLO se entrega si se pide por el camino del VPS
+  // (/api/...). Pedida al dominio de Supabase no contesta nadie, que es
+  // exactamente lo que pasaba en producción.
+  await p.route('https://control.sinfiltroconmax.com/api/storage/**', (r) => codigoDeposito === 200
     ? r.fulfill({ status: 200, contentType: 'image/jpeg', body: JPEG_REAL })
     : r.fulfill({ status: codigoDeposito, body: 'no' }));
+  await p.route('https://proyecto.supabase.co/**', (r) => r.abort('connectionrefused'));
   // El panel consulta el estado del respaldo, que en producción SÍ
   // existe. Sin contestarlo aquí, la prueba cuenta su 404 como un error
   // del programa — que es justamente lo que no es.
@@ -96,26 +104,30 @@ async function abrirVisor(respuesta, codigoDeposito = 404) {
     await b.close();
   }
 
-  // ── 2 · El enlace apunta a otro servidor ──────────────────────────
-  // Un ajuste mal puesto se veía exactamente igual que una foto perdida.
-  console.log('\n2 · El enlace firmado apunta a otro servidor');
+  // ── 2 · El enlace de Supabase viaja por el camino del VPS ────────
+  // EL FALLO QUE MAX VEÍA. El panel habla por /api del VPS; Supabase
+  // firma con su propio dominio. Ese enlace se salía del camino y el
+  // navegador no llegaba — mientras el resto de la pantalla funcionaba,
+  // que es lo que lo hacía tan difícil de entender.
+  console.log('\n2 · El enlace firmado se trae por el camino del VPS');
   {
-    const { b, p, errs, texto } = await abrirVisor({
-      ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
-      url: 'https://otro-servidor.example.com/firmada/foto.jpg'
-    });
-    si('se nombra el problema real', texto.includes('otro servidor'), texto);
-    si('y se dice que es un ajuste del sistema',
-       texto.includes('ajuste del sistema'));
+    const foto = { ok: true, nombre: 'Florived Andrade', cuando: new Date().toISOString(),
+                   url: 'https://proyecto.supabase.co/storage/v1/object/sign/evidencia/f.jpg?token=abc' };
+    const { b, p, errs, texto } = await abrirVisor(foto, 200);
+
+    si('la fotografía SE VE', await p.locator('#visor-cuerpo img').count() > 0, texto || 'sin mensaje');
+    si('y ya no se habla de «otro servidor»', !texto.includes('otro servidor'), texto);
+
+    // Se comprobó pidiéndola por /api: al dominio de Supabase no
+    // contesta nadie en esta prueba, así que si se ve, viajó por donde debe.
     si('sin un solo error de JavaScript', errs.length === 0, errs.join(' | '));
     await b.close();
   }
 
-  // ── 3 · La descarga se cayó: se puede reintentar ──────────────────
   console.log('\n3 · El depósito contesta 404: el archivo no está');
   {
     const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
-                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+                   url: 'https://proyecto.supabase.co/storage/v1/object/sign/evidencia/f.jpg?token=abc' };
     const { b, p, errs, texto } = await abrirVisor(foto, 404);
     si('se dice que el archivo no está', texto.includes('no está en el depósito'), texto);
     si('y se da el número exacto para soporte', texto.includes('404'), texto);
@@ -127,7 +139,7 @@ async function abrirVisor(respuesta, codigoDeposito = 404) {
   console.log('\n3b · El depósito contesta 400: el enlace no sirve');
   {
     const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
-                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+                   url: 'https://proyecto.supabase.co/storage/v1/object/sign/evidencia/f.jpg?token=abc' };
     const { b, errs, texto } = await abrirVisor(foto, 400);
     si('NO se confunde con un archivo ausente',
        !texto.includes('no está en el depósito'), texto);
@@ -139,7 +151,7 @@ async function abrirVisor(respuesta, codigoDeposito = 404) {
   console.log('\n3c · La fotografía llega: se ve');
   {
     const foto = { ok: true, nombre: 'Marina López', cuando: new Date().toISOString(),
-                   url: 'https://demo.supabase.co/firmada/foto.jpg' };
+                   url: 'https://proyecto.supabase.co/storage/v1/object/sign/evidencia/f.jpg?token=abc' };
     const { b, p, errs } = await abrirVisor(foto, 200);
     si('se pinta la imagen', await p.locator('#visor-cuerpo img').count() > 0);
     si('y no queda ningún mensaje de fallo',

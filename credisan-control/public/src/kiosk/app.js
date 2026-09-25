@@ -7,7 +7,7 @@
      · no guarda ni un PIN: lo envía una vez y lo olvida
    Su trabajo es capturar seis dígitos y una foto, y enseñar el resultado. */
 
-import { config, estaConfigurado } from '../core/config.js';
+import { config, estaConfigurado, porNuestroCamino } from '../core/config.js';
 import { cola, siguienteSeq, anclarReloj, ahoraFiable, cerrarSobre, sincronizar }
   from './offline.js';
 
@@ -373,7 +373,10 @@ function mostrarIdentidad(r) {
       retrato.dataset.conFoto = '1';
     };
     img.onerror = () => { /* se quedan las iniciales */ };
-    img.src = r.foto_url;
+    // Igual que la del panel: la firma Supabase con su dominio y hay
+    // que traerla por el camino de este sistema, o el trabajador ve sus
+    // iniciales en vez de su cara.
+    img.src = porNuestroCamino(r.foto_url);
   }
 
   $('ident-nombre').textContent = r.nombre;
