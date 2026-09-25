@@ -72,6 +72,22 @@ brecha entre los salarios y el precio de los inmuebles, y el riesgo que
 representa para un banco prestar a veinte o treinta años en un entorno de
 volatilidad cambiaria.
 
+Esto no es tierra de nadie
+
+Conviene aclarar algo que mucha gente asume mal, y es que este crédito no tiene
+reglas ni consecuencias. Las tiene. La Superintendencia de las Instituciones
+del Sector Bancario, SUDEBAN, dictó en enero de 2021 la Resolución 001.21, que
+regula los servicios de tecnología financiera, y a finales de año emitió otra
+norma sobre el uso de computación en la nube en bancos y fintech. El marco
+existe.
+
+Y para el cliente hay una consecuencia concreta: dejar de pagar una cuota no
+se queda entre tú y la empresa. Además de multas y del bloqueo de la cuenta,
+el incumplimiento se reporta al SICRI, el registro de información crediticia.
+Es decir, deja rastro. El que piense que esto es un crédito informal sin
+memoria está equivocado, y lo va a descubrir cuando vaya a pedir algo más
+grande.
+
 Entonces lo que ocurrió es esto. El crédito al consumo no desapareció de
 Venezuela: cambió de manos. Salió del banco, donde estaba regulado, medido y
 publicado, y se fue a un sector nuevo, veloz y mucho más útil para la gente,
@@ -90,13 +106,18 @@ real donde tú estás vendiendo.
 
 Lo que no se sabe
 
-Nadie publica la morosidad del sector. Si 88% del financiamiento al consumo del
-país pasa por estas plataformas y no existe una cifra pública de cuánta gente
-está dejando de pagar, no hay manera de saber si esto es un sistema sano o una
-bola de nieve formándose. No lo encontramos verificado, y es el dato que más
-falta hace. Lo pedimos: la empresa que publique primero su morosidad y su tasa
-efectiva va a ser la que se gane la confianza del mercado, no la que más
-publicidad haga.
+La morosidad del sector no se publica de forma regular ni auditada. La única
+cifra que encontramos es una declaración del director ejecutivo de Cashea, que
+habló de 1,8% de morosidad. Pero hay que leerla con cuidado: la dio cuando la
+empresa operaba con unos 3.500 comercios afiliados, una escala muy distinta a
+los más de 40.000 de hoy. Una cartera de 2021 o 2023 no dice nada sobre una
+cartera de 2026.
+
+Así que la pregunta sigue abierta, y es la que más importa: si 88% del
+financiamiento al consumo del país pasa por estas plataformas, ¿cuánta gente
+está dejando de pagar hoy? No lo encontramos verificado para ninguna de las
+empresas del sector. Y el que publique primero una cifra actual y auditada va a
+ganar más confianza que con cualquier campaña publicitaria.
 
 Tampoco se sabe qué tasa está pagando la gente en el conjunto del sector.
 «Sin interés si pagas a tiempo» es una condición, no una tasa, y lo que ocurre
@@ -130,8 +151,11 @@ que te respondan por escrito: cuál es la tasa efectiva anual y quién asume la
 pérdida si el cliente no paga, tú o la plataforma. La segunda define si eso es
 un servicio o un riesgo que te están pasando.
 
-Y si eres tú el que va a comprar: una cuota que te cabe en el mes no es lo
-mismo que un precio que puedes pagar. Pregunta siempre el total, no la cuota.
+Y si eres tú el que va a comprar, dos cosas. Una cuota que te cabe en el mes no
+es lo mismo que un precio que puedes pagar: pregunta siempre el total, no la
+cuota. Y entiende que atrasarte no es gratis ni anónimo, porque va al SICRI.
+Tu historial de cuotas de hoy es el que te van a revisar el día que quieras
+pedir algo grande.
 
 Fuentes: estudio «Tendencias del Consumidor Venezolano 2026», Datanálisis,
 presentado el 17 de septiembre de 2026 en el IESA (8.500 entrevistas; ciclos de
@@ -139,7 +163,12 @@ campo: primer semestre y julio-agosto de 2026), presentado por Luis Vicente
 León. Cifras de Cashea: Bloomberg Línea y La Nación (ronda Serie B de US$100
 millones, julio de 2026); Banca y Negocios. Hogares que gastan más del 55% en
 comida: Infobae, 21 de septiembre de 2026. Crédito hipotecario: Curadas, 24 de
-septiembre de 2026. Datos de Credisan: informados por la propia empresa.
+septiembre de 2026. Marco regulatorio: Resolución 001.21 de SUDEBAN, del 4 de
+enero de 2021, sobre servicios de tecnología financiera. Declaración de
+morosidad de 1,8% del director ejecutivo de Cashea: Comunicación Continua, sin
+fecha de corte verificable de la cartera. Consecuencias del atraso y reporte al
+SICRI: condiciones publicadas por Cashea. Datos de Credisan: informados por la
+propia empresa.
 
 Nota de transparencia: Max González tiene participación en Credisan, una de las
 empresas mencionadas en esta nota. Lo decimos porque el lector tiene derecho a
