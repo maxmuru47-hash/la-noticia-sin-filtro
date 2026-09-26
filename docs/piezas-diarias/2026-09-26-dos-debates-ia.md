@@ -109,14 +109,6 @@ profesionales para subrayar el riesgo; quien habla en un foro de negocios tiene
 razones para subrayar la oportunidad. Eso no significa que mientan: significa
 que ninguno de los dos es un observador neutral, y conviene leerlos sabiéndolo.
 
-Y hay una sospecha que están planteando varios analistas y que hay que recoger
-con pinzas, porque es una pregunta y no un hecho comprobado: que este debate se
-reavive justo antes de que Anthropic salga a bolsa no sería casualidad, porque
-una empresa que advierte que su producto es peligrosísimo también está
-diciendo que su producto es poderosísimo. No tenemos manera de verificar la
-intención de nadie. Lo anotamos porque la pregunta está sobre la mesa y el
-lector tiene derecho a conocerla.
-
 Del argumento optimista hay que decir que se apoya en una analogía histórica: lo
 que pasó con la automatización en los ochenta y noventa. Una analogía no es una
 prueba. Que antes saliera bien no garantiza que salga bien otra vez.
