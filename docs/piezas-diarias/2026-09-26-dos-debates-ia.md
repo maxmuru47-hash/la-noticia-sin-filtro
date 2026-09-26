@@ -1,6 +1,6 @@
 PIEZA — Los dos debates de la IA
 Hora de referencia: Caracas (UTC−4)
-Estado: LISTA PARA REVISAR Y PUBLICAR
+Estado: PUBLICADA el 25/09/2026. Corregida el 26/09/2026.
 
 POR QUÉ ES NOTICIA: el hilo de renuncia de Jacob Coxon (9 de septiembre de
 2026) superó los 133 millones de vistas y la discusión sigue abierta. El
@@ -148,6 +148,13 @@ Declaraciones de Scott Galloway en el foro México Siglo XXI 2026 de la
 Fundación Telmex-Telcel, recogidas por Infobae (8 de septiembre de 2026), El
 Siglo de Durango y Diario de Tabasco. «Los mitos de la IA»: El Heraldo de
 México, 24 de septiembre de 2026.
+
+Corrección, 26 de septiembre de 2026: la primera versión de esta nota decía que
+la publicación superó los 10 millones de vistas y que Jacob Coxon había
+renunciado días antes que la respuesta de Hubinger. Ambos datos eran
+incorrectos. El hilo de renuncia de Coxon es del mismo 9 de septiembre y superó
+los 133 millones de vistas. Lo enmendamos aquí, a la vista, en lugar de
+cambiarlo en silencio.
 
 =====================================================================
 CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
