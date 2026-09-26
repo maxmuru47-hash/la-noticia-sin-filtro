@@ -11,7 +11,7 @@ tabla.**
 |---|---|---|
 | (por confirmar) | La Expo | Publicada por Max en septiembre. |
 | (por confirmar) | Polar · 1.000 Empresas | Publicada por Max en septiembre. |
-| 25/09/2026 | Los dos debates de la IA | Publicada con la version anterior. Corregida el 26/09: 10 millones de vistas pasa a 133 millones, y la cronologia de Coxon. Lleva nota de correccion al pie. |
+| 25/09/2026 | Los dos debates de la IA | Publicada con la version anterior. Correccion aplicada en la web el 26/09 por Max: 133 millones de vistas y la cronologia de Coxon. Lleva nota de correccion visible al pie. CERRADA. |
 
 ## En cola, sin publicar
 
