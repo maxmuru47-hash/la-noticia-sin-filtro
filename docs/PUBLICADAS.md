@@ -17,11 +17,18 @@ tabla.**
 
 | Pieza | Archivo | Estado |
 |---|---|---|
-| Once millones sin pisar un banco | `2026-09-26-credito-sin-banco.md` | Lista y corregida dos veces. |
-| Colombia nos vende diez veces más | `2026-09-24-comercio-colombia.md` | Lista. Caduca el 14 de octubre (Cúcuta). |
-| Estafar se volvió barato | `2026-09-25-ia-fraude.md` | Lista. No caduca rápido. |
-| Facebook creció 51% (R1) | `2026-09-26-alcance-redes.md` | Lista. Guardada como pieza de servicio. |
-| Credisan tres años | `2026-10-03-credisan-tres-anos.md` | BORRADOR. Faltan cifras de Max. Fecha: 3 de octubre. |
+| Cien problemas en 24 dias | `2026-09-27-matematicas-ia.md` | Lista. |
+
+## Descartadas por Max (26/09/2026)
+
+No se publican. Quedan en el repositorio como material de consulta.
+
+- Colombia nos vende diez veces mas · `2026-09-24-comercio-colombia.md`
+- Estafar se volvio barato · `2026-09-25-ia-fraude.md`
+- Once millones sin pisar un banco · `2026-09-26-credito-sin-banco.md`
+- Facebook crecio 51% (R1) · `2026-09-26-alcance-redes.md`
+- Credisan tres anos · `2026-10-03-credisan-tres-anos.md` (borrador, nunca
+  llegaron las cifras)
 
 ## La regla sobre borrar
 
