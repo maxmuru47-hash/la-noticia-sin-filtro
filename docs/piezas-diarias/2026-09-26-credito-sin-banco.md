@@ -113,6 +113,13 @@ empresa operaba con unos 3.500 comercios afiliados, una escala muy distinta a
 los más de 40.000 de hoy. Una cartera de 2021 o 2023 no dice nada sobre una
 cartera de 2026.
 
+Hay algo más, y es revelador. Cuando FinSight Ventures lideró la ronda de 100
+millones de dólares en Cashea, uno de los indicadores que se mencionó como
+decisivo fue una tasa de morosidad «comparable a las mejores carteras de crédito
+de mercados desarrollados», junto a rentabilidad sostenida desde mediados de
+2024. Es decir: la cifra existe, se la enseñan a los inversionistas, y al
+público se le entrega el adjetivo en lugar del número.
+
 Así que la pregunta sigue abierta, y es la que más importa: si 88% del
 financiamiento al consumo del país pasa por estas plataformas, ¿cuánta gente
 está dejando de pagar hoy? No lo encontramos verificado para ninguna de las

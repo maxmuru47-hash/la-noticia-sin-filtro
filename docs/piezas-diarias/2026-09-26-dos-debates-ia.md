@@ -2,10 +2,10 @@ PIEZA — Los dos debates de la IA
 Hora de referencia: Caracas (UTC−4)
 Estado: LISTA PARA REVISAR Y PUBLICAR
 
-POR QUÉ ES NOTICIA: el post de Evan Hubinger (9-10 de septiembre de 2026)
-superó los 10 millones de vistas y sigue en conversación. El contrapunto de
-El Heraldo de México es del 24 de septiembre. Las dos discusiones están vivas
-esta semana.
+POR QUÉ ES NOTICIA: el hilo de renuncia de Jacob Coxon (9 de septiembre de
+2026) superó los 133 millones de vistas y la discusión sigue abierta. El
+contrapunto de El Heraldo de México es del 24 de septiembre. Las dos
+discusiones están vivas esta semana.
 
 =====================================================================
 CAMPO 1 — TITULAR
@@ -15,10 +15,11 @@ La IA tiene dos debates. El que se hizo viral no es el que te afecta
 =====================================================================
 CAMPO 2 — RESUMEN
 =====================================================================
-Un investigador de Anthropic escribió que le da más de 10% de probabilidad a
-que la IA extinga a la humanidad en diez años, y el post pasó de 10 millones de
-vistas. El mismo mes, en un foro en México, se dijo algo mucho menos
-espectacular y mucho más útil para tu negocio.
+Un investigador renunció a Anthropic acusando a los laboratorios de apostar
+nuestras vidas, su jefe de seguridad le dio la razón con una cifra —más de 10%
+de riesgo de extinción en diez años— y el hilo pasó de 133 millones de vistas.
+El mismo mes, en un foro en México, se dijo algo mucho menos espectacular y
+mucho más útil para tu negocio.
 
 =====================================================================
 CAMPO 3 — ARTÍCULO COMPLETO
@@ -29,24 +30,31 @@ porque casi nadie lo está haciendo.
 
 La que se hizo viral
 
-El 9 de septiembre de 2026, Evan Hubinger, responsable del área de Alignment
-Science en Anthropic, escribió en X que él personalmente le da más de 10% de
-probabilidad a que la inteligencia artificial mate a todos los seres humanos en
-la próxima década. El post superó los 10 millones de vistas poco después de
-publicarse.
+El 9 de septiembre de 2026, Jacob Coxon, un investigador de 27 años con tres
+años entrenando modelos primero en OpenAI y después en Anthropic, publicó en X
+un hilo de siete mensajes anunciando su renuncia. Escribió que los laboratorios
+de inteligencia artificial «van directo hacia una superinteligencia que se
+automejora y están apostando nuestras vidas». El hilo superó los 133 millones
+de vistas.
 
-No salió de la nada. Días antes, Jacob Coxon, investigador que renunció a la
-misma empresa, acusó a los principales laboratorios de IA de correr de forma
-imprudente hacia la superinteligencia. Hubinger escribió el mismo día: «Jacob
-tiene razón», y dijo que le preocupa que la superinteligencia surja de un
-proceso de automejora recursiva que, según él, está ocurriendo más rápido de lo
-que esperaban.
+Lo que convirtió eso en noticia mundial no fue la renuncia: fue quién le dio la
+razón. Evan Hubinger, responsable del área de Alignment Science en la misma
+empresa, respondió en público: «Jacob tiene razón, de verdad creemos
+sinceramente que la IA podría matar a todos los humanos. Personalmente creo que
+es más de 10% en la próxima década». Samuel Marks, otro investigador de la
+compañía, respaldó también el diagnóstico.
 
-Ahora, con la misma claridad, hay que decir qué es y qué no es esa cifra. Es una
-estimación personal de un empleado, no la evaluación oficial de riesgo de su
-empresa. Y no es evidencia de que exista hoy una superinteligencia. Es una
-probabilidad que alguien le asigna a un escenario futuro, y una probabilidad
-asignada no es una medición.
+Hubinger aclaró que hablaba a título personal, no como posición de la empresa,
+y que su preocupación apunta a sistemas futuros con capacidad de automejora
+recursiva, no a los modelos que existen hoy. Anthropic, por su parte, envió una
+declaración a CNN defendiendo las medidas de seguridad que aplica a sus modelos
+y recordando que siempre ha hablado abiertamente tanto del potencial como de
+los riesgos sin precedentes de esta tecnología.
+
+Ahora, con la misma claridad, hay que decir qué es y qué no es ese 10%. Es una
+estimación personal de un empleado. Y no es evidencia de que exista hoy una
+superinteligencia. Es una probabilidad que alguien le asigna a un escenario
+futuro, y una probabilidad asignada no es una medición.
 
 La que no se hizo viral
 
@@ -101,6 +109,14 @@ profesionales para subrayar el riesgo; quien habla en un foro de negocios tiene
 razones para subrayar la oportunidad. Eso no significa que mientan: significa
 que ninguno de los dos es un observador neutral, y conviene leerlos sabiéndolo.
 
+Y hay una sospecha que están planteando varios analistas y que hay que recoger
+con pinzas, porque es una pregunta y no un hecho comprobado: que este debate se
+reavive justo antes de que Anthropic salga a bolsa no sería casualidad, porque
+una empresa que advierte que su producto es peligrosísimo también está
+diciendo que su producto es poderosísimo. No tenemos manera de verificar la
+intención de nadie. Lo anotamos porque la pregunta está sobre la mesa y el
+lector tiene derecho a conocerla.
+
 Del argumento optimista hay que decir que se apoya en una analogía histórica: lo
 que pasó con la automatización en los ochenta y noventa. Una analogía no es una
 prueba. Que antes saliera bien no garantiza que salga bien otra vez.
@@ -130,10 +146,12 @@ Lo último, y va en serio: para decidir algo de tu negocio, ignora el debate de
 la extinción. Seguirlo como ciudadano está bien. Tomar decisiones comerciales
 con eso encima no te va a cambiar el trimestre.
 
-Fuentes: publicación de Evan Hubinger, responsable de Alignment Science en
-Anthropic, en X, 9 de septiembre de 2026 (estimación personal, no evaluación
-oficial de la empresa); renuncia y declaraciones de Jacob Coxon, recogidas por
-medios especializados en IA entre el 9 y el 11 de septiembre de 2026.
+Fuentes: hilo de renuncia de Jacob Coxon en X, 9 de septiembre de 2026, con más
+de 133 millones de vistas; respuesta pública de Evan Hubinger, responsable de
+Alignment Science en Anthropic, y de Samuel Marks, investigador de la misma
+empresa (estimación personal de Hubinger, no evaluación oficial de la
+compañía); declaración de Anthropic enviada a CNN. Todo ello recogido por
+Infobae (10 de septiembre de 2026), Ámbito e ITSitio.
 Declaraciones de Scott Galloway en el foro México Siglo XXI 2026 de la
 Fundación Telmex-Telcel, recogidas por Infobae (8 de septiembre de 2026), El
 Siglo de Durango y Diario de Tabasco. «Los mitos de la IA»: El Heraldo de
@@ -145,9 +163,9 @@ CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 *** BORRADOR. Es una propuesta para que la reescribas con tus palabras.
 
 A mí lo que me llama la atención de todo este ruido es cuál de los dos debates
-se volvió viral. Diez millones de vistas para el que habla de la extinción de la
-humanidad. Casi nada para el que dice que tu competencia va a aprender esto
-antes que tú. Y adivina cuál de los dos te va a pasar primero.
+se volvió viral. Ciento treinta y tres millones de vistas para el que habla de
+la extinción de la humanidad. Casi nada para el que dice que tu competencia va a
+aprender esto antes que tú. Y adivina cuál de los dos te va a pasar primero.
 
 No estoy diciendo que la discusión sobre los riesgos no importe. Importa, y que
 la abra alguien que trabaja adentro de una de esas empresas es serio y hay que

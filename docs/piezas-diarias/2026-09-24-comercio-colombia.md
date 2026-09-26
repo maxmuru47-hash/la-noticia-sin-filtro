@@ -53,10 +53,12 @@ en Cúcuta o en Bogotá no tiene por dónde entrar, y eso no se arregla abriendo
 un puente.
 
 Los gremios proyectan que el comercio binacional cierre 2026 en unos 1.600
-millones de dólares. Y hay una puerta con fecha: el 14 y 15 de octubre se hace
-en Cúcuta la cuarta edición del Gran Encuentro de la Frontera, Visión Frontera
-2026, organizado por la Cámara Colombo Venezolana y la Gobernación de Norte de
-Santander, con rueda de negocios para empresarios de ambos lados.
+millones de dólares. Y hay una puerta con fecha, hora y dirección: el 14 y 15 de
+octubre se hace en el hotel Casino Internacional de Cúcuta la cuarta edición del
+Gran Encuentro de la Frontera, Visión Frontera 2026, organizado por la Cámara
+Colombo Venezolana y la Gobernación de Norte de Santander, con apoyo de Cavecol
+y la Cámara de Comercio de Cúcuta. Habrá rueda de negocios y una muestra
+comercial con alrededor de 50 empresas de los dos países.
 
 Lo que no se sabe
 
@@ -85,9 +87,12 @@ consumo masivo. Jabón, confitería, aceites, materiales de construcción: ahí
 tienes 563 millones de dólares entrando al año contra los que estás midiendo
 tu precio.
 
-Si exportar está en tu plan de los próximos doce meses, el 14 y 15 de octubre
-en Cúcuta es la reunión donde están los compradores. Averigua cómo inscribirte
-con la Cámara Colombo Venezolana antes de que se cierre el cupo.
+Si exportar está en tu plan de los próximos doce meses, el 14 y 15 de octubre en
+el hotel Casino Internacional de Cúcuta es la reunión donde están los
+compradores. Son unas 50 empresas en la muestra, así que el cupo es finito:
+pregunta por la inscripción en la Cámara Colombo Venezolana o en Cavecol. Y no
+lo confundas con Business Border, que es otro evento distinto en la misma
+ciudad y con inscripciones propias.
 
 Fuentes: DANE (Departamento Administrativo Nacional de Estadística de
 Colombia), cifras de comercio exterior enero-junio 2026 comparadas con
