@@ -17,7 +17,7 @@ tabla.**
 
 | Pieza | Archivo | Estado |
 |---|---|---|
-| Cien problemas en 24 dias | `2026-09-27-matematicas-ia.md` | Lista. |
+| Diez mil maquinas, 88 horas | `2026-09-27-matematicas-ia.md` | Lista. Rehecha el 27/09: la version del 26 mezclaba el anuncio de Navier-Stokes (8/09) con el de los cien problemas (22/09), y le faltaban la acusacion de Buckmaster y el estado de verificacion ante el Clay Institute. |
 
 ## Descartadas por Max (26/09/2026)
 
