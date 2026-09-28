@@ -17,7 +17,7 @@ tabla.**
 
 | Pieza | Archivo | Estado |
 |---|---|---|
-| Diez mil maquinas, 88 horas | `2026-09-27-matematicas-ia.md` | Lista. Rehecha el 27/09: la version del 26 mezclaba el anuncio de Navier-Stokes (8/09) con el de los cien problemas (22/09), y le faltaban la acusacion de Buckmaster y el estado de verificacion ante el Clay Institute. |
+| Lo que escribes en una IA | `2026-09-28-openai-datos.md` | Lista. Tercera version del caso OpenAI: el centro pasa de la verificacion al dato que la empresa admitio sobre el uso de productos. |
 
 ## Descartadas por Max (26/09/2026)
 
