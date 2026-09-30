@@ -11,6 +11,7 @@ tabla.**
 |---|---|---|
 | (por confirmar) | La Expo | Publicada por Max en septiembre. |
 | (por confirmar) | Polar · 1.000 Empresas | Publicada por Max en septiembre. |
+| 30/09/2026 | 100xSD · tercer aniversario de Credisan | Anticipo corporativo. Publicada por Max. Faltan por salir el anuncio completo y los testimonios. |
 | 25/09/2026 | Los dos debates de la IA | Publicada con la version anterior. Correccion aplicada en la web el 26/09 por Max: 133 millones de vistas y la cronologia de Coxon. Lleva nota de correccion visible al pie. CERRADA. |
 
 ## En cola, sin publicar
