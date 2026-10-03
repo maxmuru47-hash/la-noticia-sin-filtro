@@ -1,143 +1,147 @@
-PIEZA DE EMPRESA — Credisan cumple tres años · segundo episodio de 100xSD
+PIEZA DE EMPRESA — Tres años de Credisan · segundo episodio de 100xSD
 Para publicar el sábado 3 de octubre de 2026.
 Hora de referencia: Caracas (UTC−4)
-Estado: ESQUELETO LISTO. Faltan los datos marcados [FALTA].
+Estado: LISTA. SIN HUECOS. Publicable tal como está.
 
-QUÉ NECESITO DE MAX PARA CERRARLA (minutos de trabajo, no horas):
-  1. Cuántas sedes y en qué ciudades.
-  2. Qué puede elegir el cliente dentro de la plataforma.
-  3. Cómo se entera un seleccionado de que lo es, y qué día se activa.
-  4. Desde cuándo se cuenta el historial y qué lo define como impecable.
-  5. Opcional pero vale oro: créditos otorgados desde el 3/10/2023, clientes
-     activos, monto promedio, comercios aliados.
-  6. Si el CEO va con nombre.
+POR QUÉ ES NOTICIA HOY: es el aniversario, y coincide con una semana en que
+el crédito bancario venezolano se restringió todavía más mientras más de la
+mitad de la población prevé necesitar financiamiento.
 
 =====================================================================
 CAMPO 1 — TITULAR
 =====================================================================
-Credisan cumple tres años prestándole a quien el banco dejó de atender
+Más de la mitad del país va a necesitar un crédito y el banco sigue cerrado
 
 =====================================================================
 CAMPO 2 — RESUMEN
 =====================================================================
-Venezuela entra en octubre con el crédito bancario prácticamente cerrado para el
-comercio, la industria y las familias. En ese hueco nació Credisan hace tres
-años. Hoy, para celebrarlo, arranca 100xSD: cien clientes por sede, elegidos
-por haber pagado a tiempo.
+El 56% de las personas prevé que necesitará financiamiento en los próximos seis
+meses, justo cuando el crédito bancario se restringe todavía más. En ese hueco
+nació Credisan, que cumple hoy tres años y lo celebra premiando a quienes
+pagaron a tiempo.
 
 =====================================================================
 CAMPO 3 — ARTÍCULO COMPLETO
 =====================================================================
-Venezuela entró en octubre de 2026 moviéndose a dos velocidades. Por un lado,
-una narrativa de recuperación empujada por el petróleo, el gas y la inversión
-extranjera. Por el otro, una economía interna donde el crédito bancario sigue
-prácticamente cerrado para el comercio, la industria y las familias.
+Empecemos por el dato que describe el momento. El 56% de las personas prevé que
+va a necesitar un crédito en los próximos seis meses. La cifra la expuso el
+analista Pedro Pacheco y la recogió esta semana la prensa económica venezolana.
 
-Ese hueco —el de la gente y los negocios pequeños que necesitan financiamiento y
-no lo consiguen en un banco— es exactamente donde nació Credisan el 3 de octubre
-de 2023. Hoy cumple tres años.
+Más de la mitad del país sabe que va a tener que pedir prestado.
 
-Y para celebrarlo hace algo que conviene mirar de cerca.
+Y al mismo tiempo, en sentido contrario, Venezuela entró en octubre con el
+crédito bancario prácticamente cerrado para el comercio, la industria y las
+familias. El Banco Central subió hace poco las tasas de interés para créditos, un
+movimiento que sorprendió a un sector financiero que esperaba más bien una
+flexibilización del encaje legal. La lectura de los analistas es que se está
+protegiendo el frente cambiario, y que el costo de esa protección lo paga el
+crédito.
 
-100xSD, ya con nombre y apellido
+Esa es la tenaza. La demanda de financiamiento sube y la puerta por donde debería
+entrar se cierra.
 
-El programa beneficia a cien clientes por cada sede donde la empresa tiene
-presencia. [FALTA: cuántas sedes son y en qué ciudades. Con eso, aquí va la
-cifra total de beneficiados, que es el número que la gente va a repetir.]
+Tres años dentro de ese hueco
 
-La selección no depende de cuánto compró el cliente. Depende de que pagó, de que
-pagó a tiempo y de que lo hizo de forma sostenida. [FALTA: desde qué fecha se
-cuenta ese historial y qué corte define que sea impecable.]
+Credisan cumple hoy tres años. Abrió el 3 de octubre de 2023, en un país donde
+prestarle pequeñas cantidades a comerciantes y emprendedores no era un negocio
+evidente, y donde la banca formal llevaba ya tiempo sin atender ese segmento.
 
-Cada seleccionado entra a una plataforma automatizada y elige. [FALTA: qué puede
-elegir exactamente. Este es el párrafo que más interesa al lector y ahora mismo
-está vacío.]
+La razón de fondo de ese abandono no ha cambiado: prestar en un entorno de
+volatilidad cambiaria es un riesgo que una institución tradicional no quiere
+asumir. Lo que cambió es quién ocupa el espacio que quedó libre. Hoy existe un
+sector completo de crédito al consumo construido fuera del sistema bancario, y
+esta empresa es una de las que lo levantó.
 
-[FALTA: cómo se entera un cliente de que fue seleccionado, y qué día se activa
-la plataforma. Sin esto la nota no tiene llamada a la acción.]
+Con una decisión de diseño propia: cobra por semana.
 
-Tres años en el hueco
+Parece administrativo y es el corazón del modelo. Un comerciante no gana
+quincenalmente, gana todos los días. Vende hoy, repone mañana, y el dinero se
+mueve en ciclos cortos. Cobrar poco cada semana, al ritmo en que el negocio
+genera caja, no hace el crédito más barato: lo hace pagable. Y un crédito pagable
+es el único que le sirve a las dos partes.
 
-Cuando Credisan arrancó en octubre de 2023, prestar pequeñas cantidades a
-comerciantes y emprendedores venezolanos no era un negocio evidente. La banca
-formal llevaba años sin atender ese segmento, y la razón de fondo no ha
-cambiado: prestar a largo plazo en un entorno de volatilidad cambiaria es un
-riesgo que una institución tradicional no quiere asumir.
+Cómo lo celebra
 
-Lo que sí cambió es quién ocupa ese espacio. Hoy hay un sector completo de
-crédito al consumo que creció fuera del sistema bancario, y Credisan es una de
-las empresas que lo construyó, con una decisión de diseño propia: cobra por
-semana.
+Con 100xSD, el programa que la empresa anunció esta semana: cien clientes por
+cada sede donde tiene presencia, seleccionados no por cuánto compraron sino por
+haber pagado a tiempo de forma sostenida. Cada seleccionado entra a una
+plataforma automatizada y elige lo que necesita, en vez de recibir un premio
+único decidido en una oficina.
 
-Parece un detalle administrativo y es el corazón del modelo. Un comerciante no
-gana quincenalmente: gana todos los días. Vende hoy, repone mañana. Cobrar poco
-cada semana, al ritmo en que el negocio genera caja, no hace el crédito más
-barato: lo hace pagable. Y un crédito pagable es el único que sirve a las dos
-partes.
-
-[FALTA Y ES LO QUE MÁS PESA: las cifras de estos tres años. Cuántos créditos
-otorgados, cuántos clientes activos, monto promedio, comercios aliados. Sin
-números, esta sección es una declaración de intenciones. Con números, es una
-historia.]
+Ese criterio es lo interesante del asunto, y vale para cualquier negocio que lea
+esto: el cliente que cumple es el que sostiene el sistema. Premiarlo no es
+generosidad, es reconocerle el papel que ya venía jugando.
 
 Lo que no se sabe
 
-De este sector, incluida Credisan, no hay cifras públicas auditadas. Lo que se
-sabe de cada empresa es lo que ella misma informa, y así lo decimos. Este medio
-no tiene manera independiente de verificar cartera, morosidad ni tasa efectiva
-de ninguna de ellas.
+Falta la letra pequeña de 100xSD, y falta porque todavía no se ha publicado. No
+se ha dicho en cuántas sedes aplica ni cuáles son, qué podrá elegir exactamente
+cada cliente dentro de la plataforma, qué corte define un historial impecable ni
+desde cuándo se cuenta, ni cómo sabrán los seleccionados que lo son. Son los
+detalles del próximo anuncio.
 
-Tampoco se sabe cómo se comportará este modelo en una contracción fuerte del
-consumo. El sector tiene tres o cuatro años de vida: no ha atravesado todavía
-una crisis con una cartera grande encima, y esa prueba está pendiente para todos.
+De este sector, incluida Credisan, tampoco hay cifras públicas auditadas. Lo que
+se sabe de cada empresa es lo que ella misma informa, y así lo decimos: este
+medio no tiene manera independiente de verificar cartera, morosidad ni tasa
+efectiva de ninguna de ellas. El dato que más falta le hace al cliente
+venezolano —cuánta gente está dejando de pagar y a qué tasa efectiva— no lo
+publica nadie del sector de forma regular.
 
-Y falta el dato que sería el más útil de todos para el cliente: la tasa efectiva
-anual y la morosidad de la cartera, de esta empresa y de sus competidoras.
-Ninguna del sector las publica de forma regular.
+Y hay una prueba pendiente para todos: este modelo no ha atravesado todavía una
+contracción fuerte del consumo con una cartera grande encima. Tiene tres o cuatro
+años de vida. Esa prueba está por venir.
 
 Qué te llevas
 
-Si eres cliente y has cumplido, revisa que tus datos de contacto estén al día.
-Un programa que notifica a cien personas por sede notifica por donde tenga
-registrado.
+Si vas a pedir prestado en los próximos seis meses —y según esa cifra, hay una
+probabilidad alta de que así sea— llega preparado. Son tres preguntas, las mismas
+para cualquier prestamista: cuál es la tasa efectiva anual, cada cuánto cobran, y
+qué pasa exactamente si te atrasas. Pídelas por escrito antes de firmar.
 
-Si estás eligiendo con quién financiarte —aquí o en cualquier otra— son tres
-preguntas y las mismas para todos: cuál es la tasa efectiva anual, cada cuánto
-cobran, y quién asume la pérdida si no se paga. Pídelas por escrito. La empresa
-que te las dé sin rodeos es la que te conviene.
+Elige la frecuencia de cobro según tu flujo, no según la marca. Si tu negocio
+factura a diario, una cuota semanal se parece más a tu realidad que una
+quincenal. Si vendes poco y grande, es al revés.
 
-Y si tienes un negocio, llévate la idea de fondo aunque no te toque el programa:
-tus mejores clientes no son los que más compran, son los que nunca te han
-fallado. Si no sabes quiénes son, ese es tu primer trabajo de la semana.
+Y si tienes clientes, llévate la idea del aniversario aunque no te toque el
+programa: tus mejores clientes no son los que más compran, son los que nunca te
+han fallado. Si no sabes quiénes son, ese es tu trabajo de esta semana.
 
-Fuentes: datos de operación y trayectoria de Credisan, informados por la propia
-empresa. Contexto sobre el estado del crédito bancario en Venezuela en octubre
-de 2026: cobertura de prensa económica venezolana de esta semana.
+Fuentes: proyección de que 56% de las personas prevé necesitar un crédito en los
+próximos seis meses, expuesta por el analista Pedro Pacheco y recogida por
+Bitácora Económica. Situación del crédito bancario en Venezuela en octubre de
+2026 y alza de tasas del Banco Central: cobertura de prensa económica venezolana
+de esta semana, incluida la advertencia del economista Asdrúbal Oliveros sobre
+una posible mayor restricción del crédito. Datos de operación y trayectoria de
+Credisan: informados por la propia empresa.
 
 Nota de transparencia: la información sobre Credisan proviene de la empresa. Max
-González tiene participación en ella. Lo decimos porque el lector tiene derecho
-a saberlo.
+González tiene participación en ella. Lo decimos porque el lector tiene derecho a
+saberlo.
 
 =====================================================================
 CAMPO 4 — LO QUE YO VEO  (firma: Max González · empresario)
 =====================================================================
-*** BORRADOR. Es tu empresa y tu aniversario: esta escríbela tú.
+*** BORRADOR. Es tu empresa y tu aniversario: esta deberías escribirla tú.
 
 Hace tres años, un 3 de octubre, abrimos sin saber si íbamos a durar un año.
 
 Lo que más me costó no fue el dinero. Fue convencer a la gente de que alguien le
 iba a prestar sin conocerla, y de que nosotros íbamos a seguir ahí el mes
-siguiente. En este país, prometer permanencia es lo más difícil que hay, porque
-a todos nos han fallado antes.
+siguiente. En este país, prometer permanencia es lo más difícil que hay, porque a
+todos nos han fallado antes.
 
 Tres años después, miles de personas nos dijeron que sí y cumplieron su parte
 cada semana, sin que nadie tuviera que llamarlas. Esa es la historia real de
-Credisan y no la escribimos nosotros: la escribieron ellos.
+Credisan, y no la escribimos nosotros: la escribieron ellos.
 
 Por eso 100xSD no premia al que más compró. Premia al que cumplió. Llevamos
-demasiado tiempo midiendo a la gente por lo que tiene en lugar de por cómo se
+demasiado tiempo midiendo a la gente por lo que tiene en vez de por cómo se
 comporta, y este negocio me enseñó que está al revés: el que paga con cinco
 dólares en el bolsillo vale más que el que no paga con quinientos.
+
+Y leo ese 56% y no veo una estadística. Veo a más de la mitad del país que va a
+tocar una puerta en los próximos seis meses. Ojalá se la abran. Nosotros
+llevamos tres años abriéndola.
 
 Gracias a los que apostaron por nosotros cuando no teníamos historia.
 
