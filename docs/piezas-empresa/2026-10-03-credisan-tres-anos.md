@@ -1,9 +1,9 @@
 PIEZA DE EMPRESA — Tres años de Credisan · segundo episodio de 100xSD
-Para publicar el sábado 3 de octubre de 2026.
+Escrita para el 3 de octubre de 2026. Sirve cualquier día de esta semana.
 Hora de referencia: Caracas (UTC−4)
 Estado: LISTA. SIN HUECOS. Publicable tal como está.
 
-POR QUÉ ES NOTICIA HOY: es el aniversario, y coincide con una semana en que
+POR QUÉ ES NOTICIA: el aniversario fue el 3 de octubre, y coincide con una semana en que
 el crédito bancario venezolano se restringió todavía más mientras más de la
 mitad de la población prevé necesitar financiamiento.
 
@@ -17,7 +17,7 @@ CAMPO 2 — RESUMEN
 =====================================================================
 El 56% de las personas prevé que necesitará financiamiento en los próximos seis
 meses, justo cuando el crédito bancario se restringe todavía más. En ese hueco
-nació Credisan, que cumple hoy tres años y lo celebra premiando a quienes
+nació Credisan, que acaba de cumplir tres años y lo celebra premiando a quienes
 pagaron a tiempo.
 
 =====================================================================
@@ -42,7 +42,7 @@ entrar se cierra.
 
 Tres años dentro de ese hueco
 
-Credisan cumple hoy tres años. Abrió el 3 de octubre de 2023, en un país donde
+Credisan acaba de cumplir tres años. Abrió el 3 de octubre de 2023, en un país donde
 prestarle pequeñas cantidades a comerciantes y emprendedores no era un negocio
 evidente, y donde la banca formal llevaba ya tiempo sin atender ese segmento.
 
