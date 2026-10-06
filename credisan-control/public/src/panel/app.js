@@ -953,6 +953,9 @@ async function cargarPersonal() {
         <button class="ficha__accion" data-pin="${e.id}">${e.pin_updated_at ? 'Nuevo PIN' : 'Dar PIN'}</button>
         <button class="ficha__accion" data-foto="${e.id}">${e.photo_path ? 'Cambiar foto' : 'Poner foto'}</button>
         <button class="ficha__accion" data-horario="${e.id}">Horario</button>
+        ${e.is_active
+          ? `<button class="ficha__accion" data-baja="${e.id}">Dar de baja</button>`
+          : `<button class="ficha__accion" data-alta="${e.id}">Reactivar</button>`}
       </div>` : ''}
     </div>`).join('');
 
@@ -964,6 +967,10 @@ async function cargarPersonal() {
     b.addEventListener('click', () => pedirFoto(data.find((x) => x.id === b.dataset.foto), b)));
   caja.querySelectorAll('[data-horario]').forEach((b) =>
     b.addEventListener('click', () => abrirHorarioPropio(data.find((x) => x.id === b.dataset.horario))));
+  caja.querySelectorAll('[data-baja]').forEach((b) =>
+    b.addEventListener('click', () => darDeBaja(data.find((x) => x.id === b.dataset.baja), b)));
+  caja.querySelectorAll('[data-alta]').forEach((b) =>
+    b.addEventListener('click', () => reactivar(data.find((x) => x.id === b.dataset.alta), b)));
 
   // Las fotos que ya existen, cada una con su URL firmada. Se piden
   // después de pintar la lista para que la lista salga ya.
@@ -974,6 +981,79 @@ async function cargarPersonal() {
   if (puedeEditar() && data.some((e) => !e.pin_updated_at)) {
     comprobarFuncion().then(avisoFuncion);
   }
+}
+
+/* ── DAR DE BAJA A UN TRABAJADOR ────────────────────────────────────
+   Hay DOS cosas distintas aquí, y confundirlas sería grave.
+
+   Quien ya trabajó y marcó tiene un historial, y ese historial es un
+   registro laboral: a qué hora entró y salió cada día. Eso NO se borra
+   nunca. Se le da de baja: deja de esperarse —no genera más ausencias—
+   y su PIN deja de funcionar, pero todo lo que hizo sigue ahí.
+
+   Quien NUNCA marcó es otra cosa: una ficha repetida, una cédula mal
+   tecleada, alguien que no llegó a empezar. Ahí no hay historial que
+   proteger y lo correcto es quitarla de en medio, dejando libres su
+   cédula y su código interno para volver a usarlos.
+
+   El sistema lo decide mirando si hay marcaciones, no preguntándoselo a
+   quien pulsa el botón. Y lo dice con todas las letras antes de hacer
+   nada. */
+
+async function darDeBaja(emp, boton) {
+  if (!emp) return;
+  const quien = `${emp.first_name} ${emp.last_name}`;
+
+  const { count, error: eCuenta } = await sb.from('attendance_events')
+    .select('id', { count: 'exact', head: true }).eq('employee_id', emp.id);
+  if (eCuenta) { avisoPanel(traducir(eCuenta), 'error'); return; }
+
+  const marcaciones = count || 0;
+  const nuncaMarco = marcaciones === 0;
+
+  const pregunta = nuncaMarco
+    ? `¿Eliminar la ficha de ${quien}?\n\n`
+      + 'No tiene ni una marcación registrada, así que se entiende que la ficha '
+      + 'se creó por error.\n\nSe quita de la lista y su cédula y su código interno '
+      + 'quedan libres para volver a usarse.'
+    : `¿Dar de baja a ${quien}?\n\n`
+      + `Tiene ${marcaciones} marcaciones registradas y NO SE BORRA NINGUNA: su `
+      + 'historial y sus cierres de semana se conservan enteros.\n\n'
+      + 'Lo que cambia desde hoy: deja de esperarse —no genera más ausencias— y '
+      + 'su PIN deja de funcionar en el terminal.\n\n'
+      + 'Se puede reactivar cuando quiera.';
+
+  if (!confirm(pregunta)) return;
+
+  const texto = boton.textContent;
+  ocupado(boton, true, texto);
+  const { error } = await sb.from('employees')
+    .update(nuncaMarco ? { is_active: false, deleted_at: new Date().toISOString() }
+                       : { is_active: false })
+    .eq('id', emp.id);
+  ocupado(boton, false, texto);
+
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+  avisoPanel(nuncaMarco
+    ? `Ficha de ${quien} eliminada. Su cédula y su código quedan libres.`
+    : `${quien} queda de baja. Sus ${marcaciones} marcaciones siguen guardadas.`);
+  await cargarPersonal();
+}
+
+async function reactivar(emp, boton) {
+  if (!emp) return;
+  const quien = `${emp.first_name} ${emp.last_name}`;
+  if (!confirm(`¿Reactivar a ${quien}?\n\n`
+    + 'Vuelve a esperarse desde hoy. Si ya tenía PIN, vuelve a servir.')) return;
+
+  const texto = boton.textContent;
+  ocupado(boton, true, texto);
+  const { error } = await sb.from('employees').update({ is_active: true }).eq('id', emp.id);
+  ocupado(boton, false, texto);
+
+  if (error) { avisoPanel(traducir(error), 'error'); return; }
+  avisoPanel(`${quien} vuelve a estar activo.`);
+  await cargarPersonal();
 }
 
 /* ── HORARIO PROPIO DE UN TRABAJADOR ────────────────────────────────

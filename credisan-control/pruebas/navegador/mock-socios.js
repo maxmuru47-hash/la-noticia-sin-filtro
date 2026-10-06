@@ -27,7 +27,10 @@
     { id:'e2', branch_id:'b-mcb', internal_code:'MCB-002', first_name:'Luis', last_name:'Rojas',
       national_id:'V-87654321', position:'Asesor', hired_on:'2026-02-01', is_active:true, pin_updated_at:'2026-03-01' },
     { id:'e3', branch_id:'b-css', internal_code:'CSS-001', first_name:'Mará', last_name:'Silva',
-      national_id:'V-11223344', position:'Supervisora', hired_on:'2026-01-02', is_active:true, pin_updated_at:'2026-03-02' }
+      national_id:'V-11223344', position:'Supervisora', hired_on:'2026-01-02', is_active:true, pin_updated_at:'2026-03-02' },
+    // Uno de baja: para comprobar que se le ofrece volver
+    { id:'e4', branch_id:'b-mcb', internal_code:'MCB-009', first_name:'Pedro', last_name:'Retirado',
+      national_id:'V-55667788', position:'Asesor', hired_on:'2026-02-01', is_active:false, pin_updated_at:'2026-03-05' }
   ];
   const EMPLEADOS = ROL === 'socio' ? TODOS_EMP.filter((e) => SEDES_SOCIO.includes(e.branch_id))
                   : MI_SEDE          ? TODOS_EMP.filter((e) => e.branch_id === MI_SEDE)
@@ -109,11 +112,17 @@
 
   const consulta = (filas) => {
     const api = {
-      select: () => api, order: () => api, limit: () => api,
+      select: (campos, opciones) => (opciones && opciones.count
+        ? { eq: () => api.contar() } : api),
+      order: () => api, limit: () => api,
       eq: (c, v) => consulta(filas.filter((f) => f[c] === v)),
       single: () => Promise.resolve({ data: filas[0], error: null }),
       insert: (x) => { window.__llamadas.push(['insert', x]); return consulta([{ id: 'nuevo', ...x }]); },
       update: (x) => { window.__llamadas.push(['update', x]); return { eq: () => Promise.resolve({ error: null }) }; },
+      // Contar marcaciones: `select(campo, {count:'exact', head:true})`
+      // no devuelve filas, devuelve cuántas hay. La baja de un
+      // trabajador depende por completo de ese número.
+      contar: () => Promise.resolve({ count: window.__MARCACIONES ?? 0, error: null }),
       then: (r) => r({ data: filas, error: null })
     };
     return api;
@@ -427,6 +436,7 @@
           }
         },
         from(tabla) {
+          if (tabla === 'attendance_events') return consulta([]);
           if (tabla === 'employees') return consulta(EMPLEADOS.slice());
           if (tabla === 'incident_kinds') {
             // Una base anterior a la fase 13 no tiene esas dos columnas, y

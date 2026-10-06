@@ -65,8 +65,12 @@ async function abrir(rol) {
   {
     const { b, p, errs } = await abrir('admin');
 
+    // Se compara con la lista REAL, no con un número escrito a mano:
+    // así añadir un trabajador al simulado no rompe una prueba que no
+    // tiene nada que ver con él.
     const botones = await p.$$eval('#lista-personal [data-horario]', (n) => n.length);
-    es('hay un botón «Horario» por trabajador', botones, 2);
+    const fichas  = await p.$$eval('#lista-personal .ficha', (n) => n.length);
+    es('hay un botón «Horario» por trabajador', botones, fichas);
 
     const pastillas = await p.$$eval('#lista-personal .pastilla--horario', (n) => n.length);
     es('y sólo uno sale marcado con horario propio', pastillas, 1);
