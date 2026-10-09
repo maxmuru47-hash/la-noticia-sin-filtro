@@ -18,6 +18,12 @@
   --ambar:         #B26A00;
   --rojo:          #C0392B;
 
+  /* El trazo fino con el que se separan las cosas. En el panel sustituye
+     a la sombra en casi todo: una interfaz corporativa se ordena con
+     líneas, no con relieve. La sombra queda para lo que de verdad flota. */
+  --borde:         rgba(26, 20, 32, .10);
+  --amarillo-pale: #FFFBCC;
+
   --radio:         16px;
   --sombra:        0 2px 16px rgba(74, 31, 107, .10);
 

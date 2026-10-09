@@ -330,6 +330,78 @@ rollback;
 \echo '  ✔  7. Consulta tablero y cierres de SUS sedes, y sólo de ésas'
 
 -- =====================================================================
+--  7b. El tablero de puntualidad: sus sedes, y ninguna más
+-- =====================================================================
+-- El panel pasó a enseñar a los socios la puntualidad por sede —la
+-- pregunta que hacen todos los lunes— con un filtro para mirar una sola.
+-- Ampliar lo que alguien ve es donde se cometen las fugas, así que aquí
+-- se comprueba las dos formas de pedirlo: sin sede, y con una concreta.
+begin;
+  select set_config('request.jwt.claims',
+    json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000001','app_role','socio')::text, true);
+  set local role authenticated;
+  do $$ declare r jsonb; v text; ok boolean := false; begin
+    -- Sin sede: salen las suyas, las dos, y ninguna más.
+    r := public.tablero_periodo(current_date - 7, current_date);
+    select string_agg(x->>'sede', ',' order by x->>'sede') into v
+      from jsonb_array_elements(r->'sedes') x;
+    assert v = 'Maracaibo,Maracay',
+      'FALLA: el tablero del socio trae «' || coalesce(v,'(nada)') || '» y no sus dos sedes';
+
+    -- Con una sede suya: esa sola.
+    r := public.tablero_periodo(current_date - 7, current_date, current_setting('t.mcb')::uuid);
+    assert jsonb_array_length(r->'sedes') = 1, 'FALLA: el filtro de sede no filtró';
+    assert r->'sedes'->0->>'sede' = 'Maracaibo', 'FALLA: filtró por la sede equivocada';
+
+    -- Con una que no es suya: no se la dan, pida como pida.
+    begin perform public.tablero_periodo(current_date - 7, current_date,
+                    current_setting('t.css')::uuid);
+    exception when others then ok := sqlerrm like '%NO_AUTORIZADO%'; end;
+    assert ok, 'FUGA GRAVE: Eliana vio el tablero de puntualidad de Caja Seca';
+
+    ok := false;
+    begin perform public.ranking_puntualidad(current_date - 7, current_date,
+                    current_setting('t.css')::uuid, 5);
+    exception when others then ok := sqlerrm like '%NO_AUTORIZADO%'; end;
+    assert ok, 'FUGA GRAVE: Eliana vio el ranking de Caja Seca';
+
+    -- Y lo que sí ve no lleva dinero dentro. Los identificadores se
+    -- tachan antes de buscar: un «150» dentro de un UUID aleatorio
+    -- haría fallar esto sin que hubiera fuga ninguna.
+    r := public.tablero_periodo(current_date - 7, current_date);
+    assert not (regexp_replace(r::text,
+                  '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 'ID', 'g')
+                ~* 'salario|salary|weekly_base|\y50\y'),
+      'FUGA GRAVE: el tablero de puntualidad lleva dentro información salarial';
+    r := public.ranking_puntualidad(current_date - 7, current_date, null, 5);
+    assert not (regexp_replace(r::text,
+                  '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 'ID', 'g')
+                ~* 'salario|salary|weekly_base|cédula|national_id'),
+      'FUGA GRAVE: el ranking lleva dentro salarios o cédulas';
+  end $$;
+rollback;
+
+-- Y la administradora, que es la otra que mira este tablero, ve el suyo
+-- y no el de al lado.
+begin;
+  select set_config('request.jwt.claims',
+    json_build_object('sub','22222222-2222-2222-2222-222222222222',
+                      'app_role','admin','branch_id', current_setting('t.mcb'))::text, true);
+  set local role authenticated;
+  do $$ declare r jsonb; ok boolean := false; begin
+    r := public.tablero_periodo(current_date - 7, current_date);
+    assert jsonb_array_length(r->'sedes') = 1, 'FALLA: la administradora no ve su sede sola';
+    assert r->'sedes'->0->>'sede' = 'Maracaibo', 'FALLA: no es su sede';
+
+    begin perform public.tablero_periodo(current_date - 7, current_date,
+                    current_setting('t.mcy')::uuid);
+    exception when others then ok := sqlerrm like '%NO_AUTORIZADO%'; end;
+    assert ok, 'FUGA GRAVE: la administradora de Maracaibo vio el tablero de Maracay';
+  end $$;
+rollback;
+\echo '  ✔  7b. El tablero de puntualidad: cada quien el de sus sedes'
+
+-- =====================================================================
 --  8. Quitar una sede se nota en el acto
 -- =====================================================================
 -- Si un socio sale de una sede, el acceso tiene que cerrarse ese mismo

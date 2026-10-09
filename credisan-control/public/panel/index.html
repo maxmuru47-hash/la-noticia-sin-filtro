@@ -90,12 +90,16 @@
       <div id="hoy-lista"><p class="cargando">Cargando…</p></div>
     </section>
 
-    <!-- Comparativo del período -->
+    <!-- Tablero de puntualidad del período -->
     <section id="bloque-periodo" hidden>
+      <div class="campo" id="periodo-sede-caja" hidden>
+        <label for="periodo-sede">Sede</label>
+        <select id="periodo-sede"></select>
+      </div>
       <div class="kpis" id="periodo-kpis"></div>
-      <h2 style="font-size:1.05rem;margin:1.5rem 0 .75rem">Comparativo por sede</h2>
+      <h2 class="titulo-seccion">📊 Puntualidad por sede</h2>
       <div id="periodo-sedes"></div>
-      <h2 style="font-size:1.05rem;margin:1.5rem 0 .75rem">Mejor puntualidad</h2>
+      <h2 class="titulo-seccion">🏆 Mejor puntualidad</h2>
       <div id="periodo-ranking"></div>
       <p class="aviso" data-t="info" id="aviso-recalculo" hidden style="margin-top:1rem"></p>
       <button class="boton boton--secundario" id="btn-recalcular" hidden style="margin-top:.5rem">
@@ -107,7 +111,7 @@
   <!-- ══ HORAS · las cuatro marcaciones de cualquier día ════════════ -->
   <main class="vista" id="v-horas" hidden>
     <div class="encabezado-vista">
-      <h1>Horas</h1>
+      <h1>🕒 Horas</h1>
       <button class="boton" id="horas-horario" hidden>Horario de la sede</button>
     </div>
 
@@ -135,7 +139,7 @@
   <!-- ══ PERSONAL ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-personal" hidden>
     <div class="encabezado-vista">
-      <h1>Personal</h1>
+      <h1>👥 Personal</h1>
       <button class="boton" id="btn-nuevo-empleado" hidden>+ Nuevo</button>
     </div>
 
@@ -214,7 +218,7 @@
   <!-- ══ NOVEDADES ═════════════════════════════════════════════════════ -->
   <main class="vista" id="v-novedades" hidden>
     <div class="encabezado-vista">
-      <h1>Novedades</h1>
+      <h1>⚠️ Novedades</h1>
       <button class="boton" id="btn-nueva-novedad">+ Nueva</button>
     </div>
 
@@ -264,7 +268,7 @@
   <!-- ══ HORARIOS ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-horarios" hidden>
     <div class="encabezado-vista">
-      <h1>Horarios</h1>
+      <h1>🗓️ Horarios</h1>
       <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
     </div>
     <div class="campo">
@@ -281,7 +285,7 @@
   <!-- ══ SEDES ═════════════════════════════════════════════════════════ -->
   <main class="vista" id="v-sedes" hidden>
     <div class="encabezado-vista">
-      <h1>Sedes</h1>
+      <h1>🏢 Sedes</h1>
       <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
       <button class="boton" id="btn-nueva-sede" hidden>+ Nueva</button>
     </div>
@@ -305,11 +309,11 @@
       </div>
     </form>
 
-    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Terminales de marcación</h2>
+    <h2 class="titulo-seccion">📟 Terminales de marcación</h2>
     <div id="lista-terminales"><p class="cargando">Cargando…</p></div>
 
     <section id="bloque-accesos" hidden>
-      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Accesos al panel · personal</h2>
+      <h2 class="titulo-seccion">🔑 Accesos al panel · personal</h2>
       <div class="aviso" data-t="info">
         Para <strong>administradoras, jefes operativos y dirección</strong>. Cada uno
         pertenece a <strong>una sola sede</strong>.
@@ -349,7 +353,7 @@
 
     <!-- ══ SOCIOS ═══════════════════════════════════════════════════ -->
     <section id="bloque-socios" hidden>
-      <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Socios · varias sedes</h2>
+      <h2 class="titulo-seccion">🤝 Socios · varias sedes</h2>
       <div class="aviso" data-t="info">
         Aquí <strong>no se elige rol</strong>: se marcan sedes con casillas. Un socio
         puede consultar una, dos o las tres.
@@ -385,7 +389,7 @@
 
   <!-- ══ CIERRES SEMANALES ═════════════════════════════════════════════ -->
   <main class="vista" id="v-cierres" hidden>
-    <h1>Cierre semanal</h1>
+    <h1>📅 Cierre semanal</h1>
 
     <div class="aviso" data-t="info">
       El sistema <strong>mide e informa</strong>. No calcula descuentos ni
@@ -420,7 +424,7 @@
 
   <!-- ══ MÁS ═══════════════════════════════════════════════════════════ -->
   <main class="vista" id="v-mas" hidden>
-    <h1>Más</h1>
+    <h1>⚙️ Más</h1>
     <div id="menu-mas">
       <button class="ficha ficha--boton" data-ir="v-horarios">
         <div class="ficha__inicial">🕒</div>
@@ -463,7 +467,7 @@
   <!-- ══ CONEXIÓN DE LOS TERMINALES ════════════════════════════════════ -->
   <main class="vista" id="v-conexion" hidden>
     <div class="encabezado-vista">
-      <h1>Terminales y conexión</h1>
+      <h1>📡 Terminales y conexión</h1>
       <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
     </div>
 
@@ -475,7 +479,7 @@
 
     <div id="lista-terminales-conexion"><p class="cargando">Cargando…</p></div>
 
-    <h2 style="margin:1.75rem 0 .75rem;font-size:1.05rem">Llegaron sin conexión</h2>
+    <h2 class="titulo-seccion">📥 Llegaron sin conexión</h2>
     <p class="ayuda" style="margin:-.5rem 0 1rem">
       La hora de estas marcaciones la puso el aparato, no el servidor. Valen
       igual; conviene poder mirarlas aparte.
@@ -486,7 +490,7 @@
   <!-- ══ AUDITORÍA ═════════════════════════════════════════════════════ -->
   <main class="vista" id="v-auditoria" hidden>
     <div class="encabezado-vista">
-      <h1>Auditoría</h1>
+      <h1>🔍 Auditoría</h1>
       <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
     </div>
 
@@ -513,7 +517,7 @@
   <!-- ══ REPORTES ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-reportes" hidden>
     <div class="encabezado-vista">
-      <h1>Reportes</h1>
+      <h1>📄 Reportes</h1>
       <button class="boton boton--secundario" data-volver="v-mas">← Más</button>
     </div>
 

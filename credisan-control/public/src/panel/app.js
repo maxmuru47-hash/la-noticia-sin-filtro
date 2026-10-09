@@ -88,6 +88,14 @@ const esSocio = () => yo && yo.rol === 'socio';
 // El socio mira el cierre; quien lo revisa y lo cierra es administración.
 const puedeVerCierres = () => puedeEditar() || esSocio();
 
+// El tablero de puntualidad: dirección, administración y socios. Al jefe
+// operativo no se le pone, que su panel es el del día y su sede es una.
+//
+// Esta regla se consulta en DOS sitios —el botón y el tablero— y por eso
+// vive aquí. Escrita dos veces, al abrirla a los socios cambié una y no
+// la otra: el botón salía y no hacía nada.
+const puedeVerTablero = () => puedeEditar() || esSocio();
+
 // La fotografía de una marcación es de lo más sensible que guarda el
 // sistema: la cara de una persona. La matriz de roles aprobada la deja
 // en dirección y administración. El jefe operativo ve QUIÉN marcó, a qué
@@ -240,7 +248,11 @@ async function entrar(reintento = false) {
   ver('btn-nueva-sede',     esCeo());
   ver('btn-nuevo-empleado', puedeEditar());
   ver('caja-salario',       puedeEditar());
-  ver('periodos',           puedeEditar());
+  // El tablero de puntualidad lo ven también los socios. Es el dato por
+  // el que preguntan —cómo va cada sede— y no lleva dentro ni un nombre
+  // de nómina: porcentajes, retrasos y ausencias. Al jefe operativo no
+  // se le pone aquí: su panel es el del día, y su sede es una sola.
+  ver('periodos',           puedeVerTablero());
   // El socio carga el permiso que dio gerencia —con el documento—, así
   // que el botón vuelve para él. Lo que no puede es reportar novedades
   // operativas: eso se resuelve limitándole los tipos, no el botón.
@@ -482,12 +494,15 @@ function respaldoDelTablero(e) {
 }
 
 async function cargarHoy() {
-  const verPeriodo = periodo !== 'hoy' && puedeEditar();
+  const verPeriodo = periodo !== 'hoy' && puedeVerTablero();
   $('bloque-hoy').hidden = verPeriodo;
   $('bloque-periodo').hidden = !verPeriodo;
-  // El comparativo abarca todas las sedes visibles, así que el selector de
-  // sede no pinta nada ahí: dejarlo puesto sugeriría que filtra, y no filtra.
-  $('hoy-sede-caja').hidden = verPeriodo || sedes.length < 2;
+  // Dos selectores distintos a propósito: el del día elige UNA sede
+  // —un tablero de hoy de varias sedes a la vez no significa nada— y el
+  // del período admite además «todas», que es justo la comparación que
+  // se quiere ver. Cada uno aparece sólo donde manda.
+  ver('hoy-sede-caja',    !verPeriodo && sedes.length > 1);
+  ver('periodo-sede-caja', verPeriodo && sedes.length > 1);
   if (verPeriodo) return cargarPeriodo();
 
   const sede = $('hoy-sede').value || yo.branch_id || sedes[0]?.id;
@@ -721,39 +736,87 @@ async function verQuincena(empleado, boton) {
     </div>`).join('');
 }
 
-/* ── Comparativo del período ────────────────────────────────────────── */
+/* ── TABLERO DE PUNTUALIDAD ────────────────────────────────
+   La pregunta que se hace siempre —¿cómo va cada sede?— con las dos
+   formas de mirarla: todas juntas para compararlas, o una sola cuando ya
+   se sabe cuál interesa.
+
+   Las sedes se ordenan POR PUNTUALIDAD, no por código. Un tablero existe
+   para que la respuesta salte a la vista; ordenado por código hay que
+   leerlo entero y comparar de memoria.
+
+   Y la barra mide la puntualidad, no el volumen de marcaciones. La sede
+   más grande no es la mejor, y eso era justo lo que insinuaba la barra
+   anterior.
+
+   No lleva dentro un solo dato de nómina —porcentajes, retrasos y
+   ausencias—, que es lo que permite enseñárselo también a los socios. */
+
+// El umbral con el que se juzga una puntualidad, en un solo sitio: así
+// la cifra, la barra y el KPI no pueden acabar diciendo cosas distintas.
+// Siempre con un decimal. Una columna con «94.2%» encima de «81%» se lee
+// mal: el ojo compara la longitud de la cifra antes que su valor.
+function pct(v) {
+  return (v === null || v === undefined || v === '') ? '—' : Number(v).toFixed(1) + '%';
+}
+
+function tonoPuntualidad(p) {
+  if (p === null || p === undefined) return 'info';
+  return p >= 90 ? 'bien' : p >= 75 ? 'aviso' : 'mal';
+}
+
+function sedeDePeriodo() {
+  const el = $('periodo-sede');
+  if (el && el.value) return el.value;
+  // Sin elección: todas las que ese acceso pueda ver. Para la
+  // administradora de una sede, «todas» es la suya, y la base se
+  // encarga; no hace falta que el panel se lo recuerde.
+  return null;
+}
+
+$('periodo-sede')?.addEventListener('change', cargarPeriodo);
 
 async function cargarPeriodo() {
   const { desde, hasta } = rango(periodo);
   $('periodo-sedes').innerHTML = '<p class="cargando">Cargando…</p>';
+  const sede = sedeDePeriodo();
 
   const { data, error } = await sb.rpc('tablero_periodo', {
-    p_desde: desde, p_hasta: hasta,
-    p_branch: esCeo() ? null : yo.branch_id
+    p_desde: desde, p_hasta: hasta, p_branch: sede
   });
   if (error) { $('periodo-sedes').innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
 
+  // La puntualidad primero: es la cifra por la que se abre esta pantalla.
   const t = data.total;
   $('periodo-kpis').innerHTML =
-      kpi(t.marcaciones, 'Marcaciones', 'info')
-    + kpi(t.puntualidad === null ? '—' : t.puntualidad + '%', 'Puntualidad',
-          t.puntualidad === null ? 'info' : t.puntualidad >= 90 ? 'bien' : t.puntualidad >= 75 ? 'aviso' : 'mal')
+      kpi(pct(t.puntualidad), 'Puntualidad', tonoPuntualidad(t.puntualidad))
+    + kpi(t.marcaciones, 'Marcaciones', 'info')
     + kpi(t.retrasos, 'Retrasos', t.retrasos > 0 ? 'aviso' : 'bien')
     + kpi(t.ausencias, 'Ausencias', t.ausencias > 0 ? 'mal' : 'bien');
 
-  const tope = Math.max(...data.sedes.map((s) => s.marcaciones || 0), 1);
-  $('periodo-sedes').innerHTML = data.sedes.map((s) => `
-    <div class="ficha" style="display:block">
-      <div style="display:flex;align-items:baseline;gap:.5rem">
-        <strong style="flex:1">${esc(s.sede)}</strong>
-        <span class="horas"><strong>${s.puntualidad === null ? '—' : s.puntualidad + '%'}</strong> puntualidad</span>
+  const ordenadas = [...data.sedes].sort((a, b) =>
+    (b.puntualidad === null ? -1 : b.puntualidad) - (a.puntualidad === null ? -1 : a.puntualidad));
+
+  $('periodo-sedes').innerHTML = ordenadas.length ? ordenadas.map((s) => {
+    const hay = s.puntualidad !== null && s.puntualidad !== undefined;
+    return `
+    <div class="ficha ficha--sede">
+      <div class="sede__cabeza">
+        <span class="sede__codigo">${esc(s.code || '')}</span>
+        <strong>${esc(s.sede)}</strong>
+        <span class="sede__pct" data-t="${tonoPuntualidad(s.puntualidad)}">${pct(s.puntualidad)}</span>
       </div>
-      <span style="font-size:.82rem;color:var(--texto-suave)">
-        ${s.marcaciones} marcaciones · ${s.retrasos} retrasos · ${s.ausencias} ausencias
-        · ${s.trabajadores} ${s.trabajadores === 1 ? 'trabajador' : 'trabajadores'}
-      </span>
-      <div class="barra"><i style="width:${Math.round(100 * (s.marcaciones || 0) / tope)}%"></i></div>
-    </div>`).join('');
+      <div class="barra" data-t="${tonoPuntualidad(s.puntualidad)}">
+        <i style="width:${hay ? s.puntualidad : 0}%"></i>
+      </div>
+      <div class="sede__cifras">
+        <span><b>${s.marcaciones}</b> marcaciones</span>
+        <span><b>${s.retrasos}</b> retrasos</span>
+        <span><b>${s.ausencias}</b> ausencias</span>
+        <span><b>${s.trabajadores}</b> ${s.trabajadores === 1 ? 'trabajador' : 'trabajadores'}</span>
+      </div>
+    </div>`;
+  }).join('') : '<p class="vacio">No hay sedes que comparar.</p>';
 
   // Las ausencias salen del resumen diario. Si nunca se ha calculado, ese
   // cero no significa "no faltó nadie": significa "no se ha mirado".
@@ -767,8 +830,7 @@ async function cargarPeriodo() {
   }
 
   const { data: top } = await sb.rpc('ranking_puntualidad', {
-    p_desde: desde, p_hasta: hasta,
-    p_branch: esCeo() ? null : yo.branch_id, p_limite: 5
+    p_desde: desde, p_hasta: hasta, p_branch: sede, p_limite: 5
   });
   $('periodo-ranking').innerHTML = (top && top.length) ? top.map((e, i) => `
     <div class="ficha">
@@ -778,7 +840,7 @@ async function cargarPeriodo() {
         <strong>${esc(e.nombre)}</strong>
         <span>${esc(e.cargo)} · ${esc(e.sede)}</span>
       </div>
-      <div class="horas"><strong>${e.puntualidad}%</strong><br>${e.marcaciones} marcaciones</div>
+      <div class="horas"><strong>${pct(e.puntualidad)}</strong><br>${e.marcaciones} marcaciones</div>
     </div>`).join('')
     : '<p class="vacio">Todavía no hay marcaciones suficientes para un ranking.</p>';
 }
@@ -787,7 +849,8 @@ $('btn-recalcular').addEventListener('click', async (ev) => {
   const { desde, hasta } = rango(periodo);
   const btn = ev.currentTarget;
   ocupado(btn, true, 'Calcular ausencias del período');
-  const sede = yo.branch_id || $('hoy-sede').value || sedes[0]?.id;
+  // Recalcular va siempre contra UNA sede: es lo que pide la base.
+  const sede = sedeDePeriodo() || yo.branch_id || $('hoy-sede').value || sedes[0]?.id;
   const { error } = await sb.rpc('recalcular_rango', { p_branch: sede, p_desde: desde, p_hasta: hasta });
   ocupado(btn, false, 'Calcular ausencias del período');
   if (error) { avisoPanel(traducir(error), 'error'); return; }
@@ -1140,7 +1203,7 @@ async function cargarSedes() {
   // Estos dos sí admiten «todas»: un reporte o una auditoría de varias
   // sedes tiene sentido; cerrar la semana de varias a la vez, no.
   const conTodas = (sedes.length > 1 ? '<option value="">Todas las sedes</option>' : '') + opciones;
-  ['filtro-sede', 'rep-sede', 'audit-sede']
+  ['filtro-sede', 'rep-sede', 'audit-sede', 'periodo-sede']
     .forEach((id) => { const el = $(id); if (el) el.innerHTML = conTodas; });
 
   pintarSedesDeSocio();
@@ -1264,19 +1327,21 @@ async function cargarPersonal() {
   const nombreSede = (id) => sedes.find((s) => s.id === id)?.name || '';
 
   caja.innerHTML = data.map((e) => `
-    <div class="ficha">
-      <div class="ficha__inicial" data-retrato="${e.id}">${esc((e.first_name[0] || '') + (e.last_name[0] || ''))}</div>
-      <div class="ficha__cuerpo">
-        <strong>${esc(e.first_name)} ${esc(e.last_name)}</strong>
-        <span>${esc(e.position)} · ${esc(nombreSede(e.branch_id))} · ${esc(e.internal_code)}</span>
-        <span style="margin-top:.25rem;display:block">
-          <span class="pastilla pastilla--${e.is_active ? 'activo' : 'inactivo'}">
-            ${e.is_active ? 'Activo' : 'Inactivo'}</span>
-          ${e.pin_updated_at ? '' : '<span class="pastilla pastilla--pin">PIN pendiente</span>'}
-          ${conHorarioPropio.has(e.id) ? '<span class="pastilla pastilla--horario">Horario propio</span>' : ''}
-        </span>
+    <div class="ficha ficha--persona">
+      <div class="ficha__cabeza">
+        <div class="ficha__inicial" data-retrato="${e.id}">${esc((e.first_name[0] || '') + (e.last_name[0] || ''))}</div>
+        <div class="ficha__cuerpo">
+          <strong>${esc(e.first_name)} ${esc(e.last_name)}</strong>
+          <span>${esc(e.position)} · ${esc(nombreSede(e.branch_id))} · ${esc(e.internal_code)}</span>
+          <span style="margin-top:.25rem;display:block">
+            <span class="pastilla pastilla--${e.is_active ? 'activo' : 'inactivo'}">
+              ${e.is_active ? 'Activo' : 'Inactivo'}</span>
+            ${e.pin_updated_at ? '' : '<span class="pastilla pastilla--pin">PIN pendiente</span>'}
+            ${conHorarioPropio.has(e.id) ? '<span class="pastilla pastilla--horario">Horario propio</span>' : ''}
+          </span>
+        </div>
       </div>
-      ${puedeEditar() ? `<div style="display:grid;gap:.35rem">
+      ${puedeEditar() ? `<div class="acciones">
         <button class="ficha__accion" data-editar="${e.id}">Editar</button>
         <button class="ficha__accion" data-pin="${e.id}">${e.pin_updated_at ? 'Nuevo PIN' : 'Dar PIN'}</button>
         <button class="ficha__accion" data-foto="${e.id}">${e.photo_path ? 'Cambiar foto' : 'Poner foto'}</button>

@@ -304,9 +304,21 @@
 /* La ficha de un día deja de ser una fila: encima el nombre y el estado,
    debajo las cuatro horas a lo ancho. En un teléfono de 360 px cada
    casilla mide 80: entra sin encogerse ni partirse. */
-.ficha--dia { display: block; }
-.ficha--dia .ficha__cabeza { display: flex; align-items: flex-start; gap: .85rem; }
-.ficha--dia .ficha__cabeza .ficha__cuerpo { flex: 1; min-width: 0; }
+/* Una ficha que no es una fila sino un bloque: arriba quién es, debajo
+   lo suyo —las cuatro horas, o los botones— a todo lo ancho. */
+.ficha--dia, .ficha--persona { display: block; }
+.ficha__cabeza { display: flex; align-items: flex-start; gap: .85rem; }
+.ficha__cabeza .ficha__cuerpo { flex: 1; min-width: 0; }
+.ficha--persona .ficha__cabeza { align-items: center; }
+
+/* Los botones de cada persona, en fila y no en columna: cinco botones
+   apilados hacían una ficha tan alta que una lista de veinte no cabía. */
+.acciones {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  margin-top: .75rem; padding-top: .7rem;
+  border-top: 1px solid var(--borde);
+}
+.acciones .ficha__accion { padding: .35rem .65rem; font-size: .76rem; }
 
 .cuatro {
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -365,3 +377,107 @@
 /* Con «Horas» la navegación pasa a seis botones: en pantallas estrechas
    «Novedades» necesita un punto menos para no partirse en dos líneas. */
 @media (max-width: 420px) { .nav button { font-size: .66rem; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IDENTIDAD · corporativa, sobria, de tres colores
+   ═══════════════════════════════════════════════════════════════════════
+   Morado, blanco y amarillo. El morado manda, el blanco respira y el
+   amarillo señala: nunca lleva información, sólo dice dónde está usted.
+   Por eso aparece en la raya bajo la cabecera, en el botón encendido de
+   la barra inferior, al lado de cada título y en el número uno del
+   ranking — y en ningún sitio más.
+
+   El amarillo de la marca (#FFF200) sobre blanco no se lee: tiene un
+   contraste de 1,1 : 1. Aquí nunca se usa como color de letra; se usa
+   como bloque, con texto negro encima, que sí se lee.
+
+   Las tarjetas pasan de sombra a línea fina. Una pantalla con veinte
+   sombras parece un borrador; con veinte líneas, un documento.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* La raya de marca bajo la cabecera: lo primero que se ve, y lo que hace
+   que la pantalla se reconozca de lejos como de CrediSan. */
+.cabecera { border-bottom: 3px solid var(--amarillo); }
+
+/* Tarjetas: línea fina en vez de relieve */
+.ficha,
+.novedad,
+.dia,
+.tarjeta,
+.dias-paso {
+  box-shadow: none;
+  border: 1px solid var(--borde);
+}
+/* El KPI aparte: su raya de arriba lleva el color del dato —verde,
+   ámbar, rojo— y el atajo `border` se lo borraría. */
+.kpi {
+  box-shadow: none;
+  border: 1px solid var(--borde);
+  border-top: 3px solid var(--linea);
+}
+.ficha  { border-radius: 14px; }
+.novedad { border-radius: 14px; border-left-width: 4px; }
+
+/* Títulos de vista y de sección: el amarillo marca el principio */
+.vista h1 {
+  font-size: 1.2rem; font-weight: 700; letter-spacing: -.015em;
+  border-left: 5px solid var(--amarillo);
+  padding-left: .6rem;
+}
+.titulo-seccion {
+  display: flex; align-items: center; gap: .45rem;
+  margin: 1.75rem 0 .75rem;
+  font-size: .95rem; font-weight: 700; letter-spacing: -.01em;
+}
+
+/* Barra inferior: el botón encendido se marca con la raya de la marca */
+.nav button[aria-current="true"]::before {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%;
+  height: 3px; border-radius: 0 0 3px 3px; background: var(--amarillo);
+}
+
+/* El selector de período, en el mismo lenguaje */
+.periodos button { border: 1px solid transparent; }
+.periodos button[aria-current="true"] {
+  box-shadow: none; border-color: var(--borde);
+  border-bottom: 2px solid var(--amarillo);
+}
+
+/* Cifras: todas tabulares, para que una columna de números quede en
+   columna y no bailando */
+.kpi strong, .sede__pct, .sede__cifras b, .cierre-cifras strong {
+  font-variant-numeric: tabular-nums;
+}
+.kpi span {
+  text-transform: uppercase; letter-spacing: .04em;
+  font-size: .64rem; font-weight: 700;
+}
+
+/* ── Tablero de puntualidad ─────────────────────────────────────────── */
+.ficha--sede { display: block; }
+.sede__cabeza { display: flex; align-items: center; gap: .55rem; }
+.sede__cabeza strong { flex: 1; font-size: .98rem; min-width: 0; }
+.sede__codigo {
+  flex: 0 0 auto; padding: .15rem .45rem; border-radius: 6px;
+  background: var(--amarillo-pale); color: var(--texto);
+  font-size: .66rem; font-weight: 800; letter-spacing: .05em;
+}
+.sede__pct { font-size: 1.15rem; font-weight: 700; }
+.sede__pct[data-t="bien"]  { color: var(--verde); }
+.sede__pct[data-t="aviso"] { color: var(--ambar); }
+.sede__pct[data-t="mal"]   { color: var(--rojo); }
+.sede__pct[data-t="info"]  { color: var(--texto-suave); }
+
+.sede__cifras {
+  display: flex; flex-wrap: wrap; gap: .2rem .9rem;
+  margin-top: .55rem; font-size: .78rem; color: var(--texto-suave);
+}
+.sede__cifras b { color: var(--texto); font-weight: 700; }
+
+/* La barra mide la puntualidad, y se tiñe con el mismo criterio que la
+   cifra: si el número dice «mal», la barra no puede decir otra cosa. */
+.barra { height: 8px; margin-top: .55rem; background: rgba(26,20,32,.07); }
+.barra[data-t="bien"]  i { background: var(--verde); }
+.barra[data-t="aviso"] i { background: var(--ambar); }
+.barra[data-t="mal"]   i { background: var(--rojo); }
+.barra[data-t="info"]  i { background: #CFC7D8; }

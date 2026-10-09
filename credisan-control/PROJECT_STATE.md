@@ -1035,6 +1035,75 @@ alguna vez se decide que también es falta irse tarde, se cambia en
   ofrezca ni una fotografía ni el botón de cambiar horarios.
 - Las 15 baterías SQL y las 13 de navegador, enteras, en verde.
 
+## El tablero de puntualidad, y una identidad de tres colores
+
+Dos peticiones de Max el mismo día: ver la puntualidad por sede, y que la
+aplicación se vea corporativa.
+
+### El tablero
+
+La pregunta que se hace todos los lunes —¿cómo va cada sede?— se podía
+mirar, pero sólo desde dirección y administración, y sin poder elegir sede:
+salían todas o nada.
+
+- **Las dos formas de mirarlo**: todas las sedes juntas para compararlas, o
+  una sola cuando ya se sabe cuál interesa. El selector admite «todas», y
+  la petición viaja con la sede elegida —también la del ranking.
+- **Lo ven los socios**, además de dirección y administración. Es la cifra
+  por la que preguntan y no lleva dentro un solo dato de nómina:
+  porcentajes, retrasos y ausencias. Al jefe operativo no se le pone: su
+  panel es el del día, y su sede es una sola.
+- **Ordenado por puntualidad, no por código.** Un tablero existe para que la
+  respuesta salte a la vista; ordenado por código hay que leerlo entero y
+  comparar de memoria.
+- **La barra mide la puntualidad, no el volumen de marcaciones.** La sede más
+  grande no es la mejor, y eso era justo lo que insinuaba la barra anterior.
+
+Sin tocar la base: `tablero_periodo` y `ranking_puntualidad` ya aceptaban una
+sede y ya estaban abiertas a cualquier acceso, filtradas por `can_see_branch`.
+Lo único que faltaba era pedirlo y enseñarlo.
+
+**Un fallo propio que encontró la prueba**: la regla de quién ve el tablero
+estaba escrita en DOS sitios —el botón y el contenido—. Al abrirla a los
+socios cambié una y no la otra: el botón salía y no hacía nada. Ahora es una
+sola función, `puedeVerTablero()`, consultada en los dos sitios.
+
+### La identidad
+
+Morado, blanco y amarillo. El morado manda, el blanco respira y **el amarillo
+señala**: nunca lleva información, sólo dice dónde está usted. Aparece en la
+raya bajo la cabecera, en el botón encendido de la barra inferior, al lado de
+cada título, en el código de cada sede y en el número uno del ranking —y en
+ningún sitio más.
+
+Importa decir por qué no se usa para texto: **el amarillo de la marca
+(#FFF200) sobre blanco tiene un contraste de 1,1 : 1 y no se lee**. Se usa
+siempre como bloque, con texto negro encima.
+
+Lo demás:
+
+- **Las tarjetas pasan de sombra a línea fina.** Una pantalla con veinte
+  sombras parece un borrador; con veinte líneas, un documento.
+- **Un emoji por pantalla**, en el título, para encontrarla de un vistazo.
+- **Todas las cifras en tipografía tabular** y la puntualidad siempre con un
+  decimal: una columna con «94.2%» encima de «81%» se lee mal, porque el ojo
+  compara la longitud de la cifra antes que su valor.
+- **La ficha de cada trabajador deja de medir ocho centímetros.** Los cinco
+  botones iban en columna; una lista de veinte personas no cabía en ninguna
+  pantalla. Ahora van en fila, debajo de los datos.
+
+### Validado
+
+- `supabase/tests/10_socios.sql`, sección 7b — el tablero de puntualidad de un
+  socio trae sus dos sedes y ninguna más; pedir una que no es suya se rechaza
+  por las dos puertas (tablero y ranking); lo que sí ve no lleva salarios ni
+  cédulas; y la administradora ve el suyo y no el de al lado. Comprobado que
+  muerde: quitando la comprobación de sede, salta en la primera línea.
+- `pruebas/navegador/panel-tablero-test.js` — 32 comprobaciones sobre cuatro
+  accesos. La del filtro no mira lo que se pinta sino **la petición que
+  viaja**: una pantalla puede enseñar una sede sola y haber pedido las tres.
+- Las 15 baterías SQL y las 14 de navegador, enteras, en verde.
+
 ## Estado: las seis fases entregadas
 
 Falta únicamente lo que depende de la cuenta de Supabase del cliente, y que no

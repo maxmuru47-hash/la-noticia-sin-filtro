@@ -80,14 +80,18 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
     ok((await p.$$eval('#periodo-sedes .ficha', (n) => n.length)) === 2, 'compara las dos sedes');
     const kpisPer = await p.$$eval('#periodo-kpis .kpi',
       (n) => n.map((k) => k.querySelector('strong').textContent + ' ' + k.querySelector('span').textContent));
-    ok(kpisPer.join('|') === '27 Marcaciones|88.9% Puntualidad|3 Retrasos|0 Ausencias',
-       'suma las dos sedes y calcula la puntualidad', kpisPer.join(' | '));
+    ok(kpisPer.join('|') === '88.9% Puntualidad|27 Marcaciones|3 Retrasos|0 Ausencias',
+       'la puntualidad abre el tablero, y suma las dos sedes', kpisPer.join(' | '));
     ok(await p.locator('#aviso-recalculo').isVisible(),
        'advierte que el cero de ausencias no está calculado');
     ok(await p.locator('#btn-recalcular').isVisible(), 'ofrece calcularlo');
     ok((await p.$$eval('#periodo-ranking .ficha', (n) => n.length)) === 3, 'ranking con los tres');
     ok(await p.locator('#hoy-sede-caja').isHidden(),
-       'en el período se retira el selector de sede (ahí no filtra nada)');
+       'en el tablero se retira el selector del día');
+    ok(await p.locator('#periodo-sede-caja').isVisible(),
+       'y aparece el del tablero, que admite «todas las sedes»');
+    ok((await p.$$eval('#periodo-sede option', (n) => n[0].textContent)) === 'Todas las sedes',
+       'con «todas» la primera, que es como se abre');
     const per = await textoDe(p, '#bloque-periodo');
     ok(!/salario|USD|\$\d/i.test(per), 'el período no enseña dinero');
     await p.screenshot({ path: 'pf4-2-periodo-ceo.png', fullPage: true });
