@@ -99,8 +99,18 @@ begin;
     assert (c->>'ausencias')::int = 5, 'FALLA: ausencias = ' || (c->>'ausencias');
     assert (c->>'asistencia')::numeric = 0, 'FALLA: asistencia = ' || (c->>'asistencia');
 
-    -- Ni rastro de dinero en lo que viaja al navegador
-    assert not (t::text ~* 'salario|salary|weekly_base|150|200'),
+    -- Ni rastro de dinero en lo que viaja al navegador.
+    --
+    -- Los identificadores se tachan ANTES de buscar, y las cifras se
+    -- buscan como palabra entera. Sin eso, esta comprobación encontraba
+    -- el «200» dentro de un identificador aleatorio
+    -- (55b67650-a631-475d-9200-bcd31d3f4617) y fallaba sin que hubiera
+    -- fuga alguna: pasaba o fallaba según la suerte del sorteo, que es
+    -- lo peor que puede hacer una prueba. La advertencia estaba escrita
+    -- en pruebas/navegador/LEEME.md desde la Fase 4; aquí seguía viva.
+    assert not (regexp_replace(t::text,
+                  '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 'ID', 'g')
+                ~* 'salario|salary|weekly_base|\y150\y|\y200\y'),
            'FALLA GRAVE: el cierre expone información salarial';
   end $$;
 rollback;
