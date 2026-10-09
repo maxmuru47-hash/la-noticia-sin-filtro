@@ -188,8 +188,18 @@ jobs:
         run: |
           fallos=0
           for ruta in / /panel/ /kiosk/ /sw.js; do
-            codigo=$(curl -s -o /dev/null -w '%{http_code}' "https://control.sinfiltroconmax.com$ruta")
-            echo "$ruta → HTTP $codigo"
+            lee=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "https://control.sinfiltroconmax.com$ruta")
+            codigo=${lee%% *}
+            destino=${lee#* }
+            # Un 3xx sin saber ADÓNDE no dice nada. La diferencia entre un
+            # redirect inofensivo y el dominio apuntando a otro sitio está
+            # entera en esa dirección, y sin ella hay que entrar al servidor
+            # a adivinarlo.
+            if [ -n "$destino" ]; then
+              echo "$ruta → HTTP $codigo → $destino"
+            else
+              echo "$ruta → HTTP $codigo"
+            fi
             [ "$codigo" = "200" ] || fallos=$((fallos+1))
           done
           if [ "$fallos" -gt 0 ]; then
