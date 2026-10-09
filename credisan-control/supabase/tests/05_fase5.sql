@@ -117,19 +117,75 @@ rollback;
 \echo '  ✔  1. La semana se calcula y el sábado apagado no cuenta como falta'
 
 -- =====================================================================
---  2. El jefe operativo no entra aquí
+--  2. El jefe operativo LEE su cierre, y no escribe nada
 -- =====================================================================
+-- Hasta la Fase 15 no veía el cierre en absoluto. Max pidió que lo viera:
+-- es lo mismo que ya ve cada día —quién vino y cuánto trabajó— sumado
+-- por semana, y el que dirige el turno es quien puede hacer algo con eso.
+--
+-- Lo que esta batería exige ahora es la frontera nueva, que es más fina
+-- que la de antes: puede LEER el de su sede, y NADA más. Ni el de la
+-- sede de al lado, ni calcular, ni revisar, ni exportar el reporte, ni
+-- asomarse a la auditoría.
 begin;
+  -- Primero, como dirección, que haya una semana calculada que mirar: la
+  -- sección anterior la calculó dentro de su propia transacción y la
+  -- deshizo al terminar.
+  select set_config('request.jwt.claims',
+    json_build_object('sub','11111111-1111-1111-1111-111111111111','app_role','ceo')::text, true);
+  set local role authenticated;
+  do $$ begin
+    perform public.calcular_cierre_semana(current_setting('t.mcb')::uuid,
+                                          current_setting('t.lunes')::date);
+  end $$;
+
+  -- Y ahora sí, el jefe operativo.
+  reset role;
   select set_config('request.jwt.claims',
     json_build_object('sub','33333333-3333-3333-3333-333333333333',
                       'app_role','supervisor','branch_id', :'mcb')::text, true);
   set local role authenticated;
-  do $$ declare ok boolean; begin
+  do $$ declare ok boolean; r jsonb; n int; begin
+    -- LEE el de su sede
+    r := public.cierres(current_setting('t.mcb')::uuid, current_setting('t.lunes')::date);
+    assert (r->>'ok')::boolean, 'FALLA: el jefe operativo no pudo leer el cierre de su sede';
+    assert r ? 'cierres', 'FALLA: el cierre le llegó sin filas';
+
+    -- Y sigue sin haber dinero dentro. Los identificadores se tachan
+    -- antes de buscar: un «150» dentro de un UUID haría fallar esto sin
+    -- que hubiera fuga ninguna.
+    assert not (regexp_replace(r::text,
+                  '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 'ID', 'g')
+                ~* 'salario|salary|weekly_base|\y150\y|\y200\y'),
+      'FUGA GRAVE: el cierre que ve el jefe operativo lleva información salarial';
+
+    -- Pero NO el de la sede de al lado
     ok := false;
-    begin perform public.cierres(current_setting('t.mcb')::uuid,
+    begin perform public.cierres(current_setting('t.css')::uuid,
                                  current_setting('t.lunes')::date);
     exception when others then ok := (sqlerrm like '%NO_AUTORIZADO%'); end;
-    assert ok, 'FALLA GRAVE: el jefe operativo vio los cierres';
+    assert ok, 'FUGA GRAVE: el jefe operativo de Maracaibo vio el cierre de Caja Seca';
+
+    -- Ni escribe. Se intenta con la NOTA y no con el estado a propósito:
+    -- cambiar el estado choca antes con la restricción `closure_cierre`
+    -- —que exige quién y cuándo—, así que esta comprobación pasaría
+    -- aunque la regla de escritura estuviera abierta de par en par. La
+    -- nota no tiene ese parachoques: si entra, entra.
+    --
+    -- Y no lanza excepción: la política FILTRA. Cero filas tocadas.
+    select count(*) into n from weekly_closures
+     where branch_id = current_setting('t.mcb')::uuid
+       and week_start = current_setting('t.lunes')::date;
+    assert n > 0, 'FALLA: la prueba no tiene cierres que intentar tocar';
+
+    update weekly_closures set note = 'tocado por el jefe operativo'
+     where branch_id = current_setting('t.mcb')::uuid
+       and week_start = current_setting('t.lunes')::date;
+    assert not exists (select 1 from weekly_closures
+                        where branch_id = current_setting('t.mcb')::uuid
+                          and week_start = current_setting('t.lunes')::date
+                          and note = 'tocado por el jefe operativo'),
+      'FALLA GRAVE: el jefe operativo escribió en un cierre';
 
     ok := false;
     begin perform public.calcular_cierre_semana(current_setting('t.mcb')::uuid,
@@ -152,7 +208,7 @@ begin;
            'FALLA GRAVE: el jefe operativo leyó la auditoría: ' || (a->>'filas') || ' filas';
   end $$;
 rollback;
-\echo '  ✔  2. El jefe operativo no ve cierres, ni reportes, ni auditoría'
+\echo '  ✔  2. El jefe operativo lee el cierre de SU sede, y no escribe nada'
 
 -- =====================================================================
 --  3. Revisar, reabrir, y que recalcular no borre la decisión

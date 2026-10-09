@@ -25,6 +25,7 @@ node panel-f5-test.js
 node panel-f6-test.js
 node panel-horas-test.js
 node panel-tablero-test.js
+node panel-cierre-jefe-test.js
 node kiosk-f6-test.js
 ```
 
@@ -54,6 +55,7 @@ para integración continua tal cual.
 | `panel-documentos-test.js` | **El documento de una novedad.** 43 comprobaciones: que el archivo se suba ANTES de registrar la novedad —al revés la base la rechazaría—, que vaya a la carpeta de la sede del trabajador, que un PDF no se convierta en foto, que el panel no ofrezca *Aprobar* en lo que la base va a rechazar pero sí en lo que ya tiene su papel, y que abrir un reposo médico pase siempre por la función que deja rastro |
 | `mock-horas.js` · `panel-horas-test.js` | **Las cuatro horas de la jornada.** 54 comprobaciones: que se vean las CUATRO marcaciones y no dos —entrada, salida a almuerzo, regreso y salida— en «Hoy» y en cualquier día pasado; que la hora sea la de la SEDE y no la del navegador (la prueba corre en Madrid a propósito: un almuerzo de las 12:41 de Maracaibo se leería «18:41» y nadie lo notaría hasta discutir un descuento); que el jefe operativo y el socio las vean de su sede y de ninguna otra, sin que eso les abra la fotografía de nadie; y que irse tarde a almorzar NO se pinte como falta mientras volver tarde sí —el veredicto lo pone el motor, no la pantalla |
 | `mock-tablero.js` · `panel-tablero-test.js` | **El tablero de puntualidad por sede.** 32 comprobaciones: que se vean todas las sedes juntas para compararlas y una sola cuando se elige, que el filtro FILTRE de verdad —se mira la petición que viaja, no lo que pinta la pantalla—, que las sedes salgan ordenadas por puntualidad y no por código, que el color de la barra diga lo mismo que la cifra, y que socio, administradora y jefe operativo vean sus sedes y ninguna más, sin un dato de nómina dentro y sin el botón de recalcular, que es escribir |
+| `mock-cierre-jefe.js` · `panel-cierre-jefe-test.js` | **El cierre semanal del jefe operativo, con la base sin actualizar y con ella actualizada.** 24 comprobaciones. La Fase 13 se publicó contra una migración sin aplicar y dejó un desplegable vacío en producción; aquí el panel le pregunta al servidor al entrar en vez de adivinar. Exige que mientras la base diga que no, el jefe operativo no vea ni la pestaña ni un «no autorizado» —y que cuando diga que sí, lea su semana sin un solo botón de escribir |
 
 ## Una advertencia sobre cómo escribirlas
 

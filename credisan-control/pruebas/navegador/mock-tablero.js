@@ -119,6 +119,11 @@
               sede: s.name, marcaciones: 20 - i, puntualidad: 100 - i
             })));
           }
+          // La base rechaza al jefe operativo mientras la actualización de
+          // la Fase 15 no esté aplicada, que es como está hoy. El panel se
+          // lo pregunta al entrar, así que el simulado tiene que
+          // contestar lo mismo que contestaría el servidor de verdad.
+          if (nombre === 'cierres' && ROL === 'supervisor') return E('NO_AUTORIZADO');
           if (nombre === 'novedades') return R([]);
           if (nombre === 'novedades_pendientes') return R(0);
           if (nombre === 'horarios_propios') return R([]);

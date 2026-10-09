@@ -243,6 +243,9 @@ async function entrar(reintento = false) {
   // Pasó de verdad. Un elemento ausente puede costar un botón invisible;
   // nunca la aplicación.
   ver('nav-cierres',        puedeVerCierres());
+  // Al jefe operativo la pestaña de cierres se la enciende el SERVIDOR,
+  // no esta línea. Ver abajo: `ofrecerCierresAlJefe`.
+  if (yo.rol === 'supervisor') ofrecerCierresAlJefe();
   ver('nav-mas',            puedeEditar());
   // «Horas» la ve todo el mundo: es operación, no nómina. Lo que no ve
   // todo el mundo es el atajo para CAMBIAR el horario de la sede.
@@ -1950,6 +1953,33 @@ $('form-usuario').addEventListener('submit', async (e) => {
   e.target.reset();
   $('caja-usr-sede').hidden = false;
 });
+
+/* ── ¿LE DEJA EL SERVIDOR VER EL CIERRE AL JEFE OPERATIVO? ─────────
+   Max pidió que el jefe operativo vea el cierre de su semana. Eso no lo
+   decide el panel: lo decide la base, y hace falta aplicarle una
+   actualización (`ACTUALIZAR-FASE15-CIERRE-JEFE.sql`) que a día de hoy
+   sigue pendiente, porque la contraseña de la base no sirve desde el 18
+   de septiembre.
+
+   Enseñarle la pestaña igualmente sería repetir el error de la Fase 13:
+   se publicó una pantalla contra una migración sin aplicar y el
+   desplegable de novedades salió vacío, en producción, delante del
+   personal.
+
+   Así que no se adivina: se PREGUNTA. Una sola vez al entrar, y sólo
+   para este rol. Si el servidor contesta, la pestaña aparece; si dice
+   que no, no aparece y nadie se entera. El día que se aplique la
+   actualización se encenderá sola, sin tocar una línea de panel.
+
+   La pregunta no cuesta nada: es la misma consulta que haría al abrir
+   la pestaña, y la respuesta se tira. */
+async function ofrecerCierresAlJefe() {
+  const sede = yo.branch_id;
+  if (!sede) return;
+  const d = new Date(); d.setDate(d.getDate() - 7);
+  const { error } = await sb.rpc('cierres', { p_branch: sede, p_lunes: lunesDe(d) });
+  if (!error) ver('nav-cierres', true);
+}
 
 /* ── CIERRE SEMANAL ─────────────────────────────────────────────────
    El sistema mide e informa. No calcula descuentos: ninguna de estas

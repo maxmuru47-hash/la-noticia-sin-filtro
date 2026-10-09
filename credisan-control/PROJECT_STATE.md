@@ -1108,6 +1108,64 @@ Lo demás:
   viaja**: una pantalla puede enseñar una sede sola y haber pedido las tres.
 - Las 15 baterías SQL y las 14 de navegador, enteras, en verde.
 
+## Fase 15 · el jefe operativo ve el cierre de su semana
+
+Max lo pidió mirando la pantalla de cierres. Hasta ahora el jefe operativo
+no la veía en absoluto.
+
+**Es defendible**: lo que hay en el cierre es lo mismo que ya ve cada día en
+«Hoy» y en «Horas» —quién vino, a qué hora, cuánto trabajó— sumado por
+semana. No es una categoría nueva de información, es la misma agrupada. Y
+no lleva una sola cifra de dinero: el cierre mide e informa.
+
+**La frontera nueva es más fina que la vieja**: puede LEER el de su sede, y
+nada más. Ni el de la sede de al lado, ni calcular la semana, ni revisar,
+ni aprobar, ni reabrir, ni exportar el reporte, ni asomarse a la auditoría.
+Lo que impide que escriba no es un `if` en una función: es la política de
+UPDATE de `weekly_closures`, que esta fase no toca.
+
+### Esto SÍ necesita tocar la base — y por eso el panel pregunta
+
+A diferencia de las cuatro horas y del tablero de puntualidad, aquí no había
+atajo: `cierres()` exigía ceo o admin, y la política de lectura de
+`weekly_closures` también. Hace falta aplicar
+`supabase/instalador/ACTUALIZAR-FASE15-CIERRE-JEFE.sql`, y la contraseña de
+la base sigue sin servir desde el 18 de septiembre.
+
+La tentación era publicar la pestaña igualmente. **Eso ya se hizo una vez**:
+la Fase 13 salió contra una migración sin aplicar y el desplegable de
+novedades apareció vacío en producción, delante del personal.
+
+Así que el panel no adivina: **pregunta**. Al entrar, y sólo para este rol,
+hace la misma consulta que haría al abrir la pestaña y tira la respuesta.
+Si el servidor contesta, la pestaña aparece; si dice que no, no aparece y
+nadie se entera. **El día que se aplique el SQL se encenderá sola**, sin
+tocar una línea de panel ni volver a desplegar.
+
+### Validado
+
+- `supabase/tests/05_fase5.sql`, sección 2 — reescrita a la frontera nueva:
+  lee el de su sede, **no** el de Caja Seca, **no** escribe, no calcula, no
+  exporta y no audita. Y el cierre que ve no lleva salarios.
+- `pruebas/navegador/panel-cierre-jefe-test.js` — 24 comprobaciones sobre
+  **las dos situaciones**: con la base sin actualizar no ve ni la pestaña y
+  no se topa con ningún «no autorizado»; con la base actualizada la ve, lee
+  su semana y no tiene ni un botón de escribir.
+- Las 15 baterías SQL y las 15 de navegador, en verde.
+
+### Dos pruebas que no valían, y lo que enseñaron
+
+- La primera versión del «no escribe» intentaba cambiar el **estado** del
+  cierre. Eso choca antes con la restricción `closure_cierre` —que exige
+  quién y cuándo—, así que la comprobación habría pasado **aunque la regla
+  de escritura estuviera abierta de par en par**. Se cambió a escribir la
+  nota, que no tiene ese parachoques. Comprobado abriendo la regla a mano:
+  ahora salta.
+- La búsqueda de dinero en la pantalla daba falso positivo con la palabra
+  «nómina»… que aparece en la propia promesa de cabecera: «no calcula
+  descuentos ni toca la nómina». Lo contrario de una fuga. Ahora se busca
+  el dinero de verdad, y además se exige que esa promesa también se la lea él.
+
 ## Estado: las seis fases entregadas
 
 Falta únicamente lo que depende de la cuenta de Supabase del cliente, y que no
