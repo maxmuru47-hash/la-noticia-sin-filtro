@@ -299,3 +299,69 @@
   font-size: .72rem; color: var(--morado); font-weight: 600;
   white-space: nowrap;
 }
+
+/* ── Las cuatro horas de la jornada ──────────────────────────────────── */
+/* La ficha de un día deja de ser una fila: encima el nombre y el estado,
+   debajo las cuatro horas a lo ancho. En un teléfono de 360 px cada
+   casilla mide 80: entra sin encogerse ni partirse. */
+.ficha--dia { display: block; }
+.ficha--dia .ficha__cabeza { display: flex; align-items: flex-start; gap: .85rem; }
+.ficha--dia .ficha__cabeza .ficha__cuerpo { flex: 1; min-width: 0; }
+
+.cuatro {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: .3rem; margin-top: .6rem;
+}
+.cuatro > div {
+  background: var(--fondo); border-radius: 9px;
+  padding: .35rem .15rem; text-align: center; min-width: 0;
+  border-top: 2px solid transparent;
+}
+/* El ámbar lo pone el veredicto del motor, no una regla de aquí */
+.cuatro > div[data-tono="tarde"] { border-top-color: var(--ambar); }
+.cuatro > div[data-tono="falta"] { background: #FAF8FC; }
+.cuatro__et {
+  display: block; font-size: .6rem; font-weight: 700; letter-spacing: .03em;
+  text-transform: uppercase; color: var(--texto-suave);
+}
+.cuatro__hr {
+  display: block; font-size: .92rem; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--texto);
+}
+.cuatro > div[data-tono="falta"] .cuatro__hr { font-weight: 500; color: var(--texto-suave); }
+.cuatro__df {
+  display: block; font-size: .64rem; color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Caminar día por día, hacia atrás */
+.dias-paso {
+  display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem;
+  background: var(--blanco); border-radius: 12px;
+  box-shadow: var(--sombra); padding: .35rem .5rem;
+}
+.dias-paso strong { flex: 1; text-align: center; font-size: .88rem; }
+.dias-paso strong::first-letter { text-transform: uppercase; }
+.dias-paso button {
+  flex: 0 0 44px; min-height: 42px; border: 0; border-radius: 9px;
+  background: rgba(102,45,145,.07); color: var(--morado);
+  font-family: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer;
+}
+.dias-paso button:disabled { opacity: .3; cursor: default; }
+
+/* Las dos últimas semanas de una persona */
+.historial {
+  margin-top: .7rem; padding-top: .55rem;
+  border-top: 1px solid var(--linea);
+}
+.historial[hidden] { display: none; }
+.historial__dia { margin-bottom: .55rem; }
+.historial__fecha {
+  display: block; font-size: .74rem; font-weight: 700; color: var(--morado);
+}
+.historial__fecha::first-letter { text-transform: uppercase; }
+.historial .cuatro { margin-top: .25rem; }
+
+/* Con «Horas» la navegación pasa a seis botones: en pantallas estrechas
+   «Novedades» necesita un punto menos para no partirse en dos líneas. */
+@media (max-width: 420px) { .nav button { font-size: .66rem; } }

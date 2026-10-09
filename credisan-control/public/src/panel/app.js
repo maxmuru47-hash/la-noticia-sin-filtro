@@ -39,6 +39,23 @@ let filtroNovedades = 'pendiente';
 let tiposNovedad = [];
 let conHorarioPropio = new Set();   // quién no hace el horario de su sede
 
+// TODO LO QUE SEA ESTADO DEL MÓDULO VA AQUÍ ARRIBA, y no más abajo.
+// Este archivo tiene un `await` al arrancar (la sesión guardada): mientras
+// ese `await` espera, las líneas que vienen DESPUÉS todavía no se han
+// ejecutado. Un `const` o un `let` declarado abajo y usado por algo que
+// corre en el arranque no vale `undefined`: lanza, y el panel se queda en
+// «Cargando» para siempre. Las funciones no tienen ese problema.
+
+// Los cuatro momentos de una jornada, en el orden en que ocurren.
+const MARCAS = [
+  { ev: 'entrada',          etiqueta: 'Entrada'  },
+  { ev: 'salida_almuerzo',  etiqueta: 'Almuerzo' },
+  { ev: 'regreso_almuerzo', etiqueta: 'Regreso'  },
+  { ev: 'salida',           etiqueta: 'Salida'   }
+];
+let husos = null;         // sede → zona horaria, leído una sola vez
+let horasDia = null;      // el día que se está mirando en Horas, AAAA-MM-DD
+
 /* ── Utilidades ─────────────────────────────────────────────────────── */
 
 function aviso(el, texto, tipo = 'error') {
@@ -213,6 +230,9 @@ async function entrar(reintento = false) {
   // nunca la aplicación.
   ver('nav-cierres',        puedeVerCierres());
   ver('nav-mas',            puedeEditar());
+  // «Horas» la ve todo el mundo: es operación, no nómina. Lo que no ve
+  // todo el mundo es el atajo para CAMBIAR el horario de la sede.
+  ver('horas-horario',      puedeEditar());
   ver('bloque-accesos',     esCeo());
   ver('bloque-socios',      esCeo());
   // Calcular la semana la lanza quien la revisa, no quien la consulta.
@@ -283,6 +303,7 @@ const DENTRO_DE_MAS = {
 
 const CARGADORES = {
   'v-hoy': cargarHoy,
+  'v-horas': cargarHoras,
   'v-personal': cargarPersonal,
   'v-novedades': cargarNovedades,
   'v-cierres': cargarCierres,
@@ -335,6 +356,131 @@ function kpi(valor, etiqueta, tono) {
   return `<div class="kpi" data-t="${tono}"><strong>${valor}</strong><span>${etiqueta}</span></div>`;
 }
 
+/* ── LAS CUATRO HORAS DE LA JORNADA ────────────────────────────────────
+   Un día de trabajo tiene cuatro momentos, no dos: se entra, se sale a
+   almorzar, se vuelve del almuerzo, y se sale. El panel enseñaba el
+   primero y el último, y con eso nadie puede saber cuánto duró un
+   almuerzo ni a qué hora se volvió al puesto —que es justamente lo que
+   necesita ver un jefe operativo o un gerente de operaciones.
+
+   Las cuatro horas se leen de las marcaciones mismas, no de un resumen.
+   Cada marcación trae ya los minutos de diferencia que midió el motor
+   contra el horario de ESA persona ese día —su horario propio si lo
+   tiene, el de su sede si no—, así que aquí no se calcula ni se adivina
+   nada: se pinta lo que la base ya midió.
+
+   Se leen directamente de `attendance_events`, que cualquier acceso
+   puede consultar: la política de la base la filtra por sede, de modo
+   que un jefe operativo de Maracaibo no recibe Caja Seca porque el
+   panel se lo oculte, sino porque la base no se la manda. */
+// La zona horaria de cada sede. La hora que se enseña es la del sitio
+// donde se marcó, nunca la del teléfono de quien mira: un socio
+// consultando desde otro país tiene que leer la misma hora que el jefe
+// de la sede, o los dos estarán hablando de cosas distintas.
+async function husosDeSedes() {
+  if (husos) return husos;
+  const mapa = new Map();
+  try {
+    const { data } = await sb.from('branches').select('id, timezone');
+    (data || []).forEach((b) => { if (b.timezone) mapa.set(b.id, b.timezone); });
+  } catch { /* sin dato se usa la del navegador, que en Venezuela coincide */ }
+  husos = mapa;
+  return husos;
+}
+function husoDe(sede) { return (husos && husos.get(sede)) || undefined; }
+
+function horaEnSede(iso, zona) {
+  if (!iso) return null;
+  const como = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+  try {
+    return new Date(iso).toLocaleTimeString('es-VE', { ...como, timeZone: zona });
+  } catch {
+    return new Date(iso).toLocaleTimeString('es-VE', como);   // zona desconocida
+  }
+}
+
+// El día de hoy EN LA SEDE. A las once de la noche en Caracas puede ser
+// ya otro día en otro sitio, y el día de trabajo es el de la sede.
+function fechaEnSede(zona) {
+  try {
+    return new Date().toLocaleDateString('en-CA', { timeZone: zona });   // AAAA-MM-DD
+  } catch {
+    return new Date().toLocaleDateString('en-CA');
+  }
+}
+
+function fechaDeTexto(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+       + `-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Las marcaciones de una sede en un día, agrupadas por trabajador. Si la
+// consulta falla devuelve null en vez de reventar: quien pinta se arregla
+// con lo que tenga, que es mejor que una vista en blanco.
+async function marcacionesDelDia(sede, fecha) {
+  const { data, error } = await sb.from('attendance_events')
+    .select('id, employee_id, event, recorded_at, delta_minutes, status, evidence_status, origin')
+    .eq('branch_id', sede)
+    .eq('work_date', fecha)
+    .order('recorded_at');
+  if (error || !Array.isArray(data)) return null;
+
+  const por = new Map();
+  data.forEach((m) => {
+    const suyas = por.get(m.employee_id) || {};
+    suyas[m.event] = m;
+    por.set(m.employee_id, suyas);
+  });
+  return por;
+}
+
+/* Las cuatro casillas de una jornada.
+
+   El color lo pone el veredicto del motor, no una regla inventada aquí.
+   Importa: salir tarde del almuerzo es un retraso, salir tarde al final
+   de la jornada no lo es, y quien sabe esa diferencia es la base, que
+   midió cada marcación contra la hora que le tocaba.
+
+   `respaldo` son las dos horas que ya venía dando el tablero del día. Si
+   la lectura directa no trajo nada, esas dos se siguen viendo: una
+   pantalla que enseña MENOS que antes es un paso atrás, aunque el motivo
+   sea técnico. */
+function cuatroHoras(marcas, zona, respaldo = {}) {
+  return '<div class="cuatro">' + MARCAS.map(({ ev, etiqueta }) => {
+    const m = marcas ? marcas[ev] : null;
+    let hora = m ? horaEnSede(m.recorded_at, zona) : null;
+    let min  = m ? m.delta_minutes : null;
+    let tono = m && m.status === 'retraso' ? 'tarde' : 'bien';
+
+    const otra = respaldo[ev];
+    if (!hora && otra) { hora = otra.hora; min = otra.min; tono = otra.tarde ? 'tarde' : 'bien'; }
+
+    // Mientras no haya marcado, la casilla de entrada enseña la hora que
+    // le toca: así se lee «llega a las ocho» y no un guion sin sentido.
+    const prevista = (!hora && ev === 'entrada') ? respaldo.prevista : null;
+
+    return `<div data-marca="${ev}" data-tono="${hora ? tono : 'falta'}">
+        <span class="cuatro__et">${etiqueta}</span>
+        <span class="cuatro__hr">${hora ? esc(hora) : (prevista ? esc(prevista) : '—')}</span>
+        ${hora && min ? `<span class="cuatro__df">${min > 0 ? '+' : ''}${min} min</span>` : ''}
+      </div>`;
+  }).join('') + '</div>';
+}
+
+// Lo que el tablero del día ya sabía de esa persona, en el formato que
+// entiende `cuatroHoras`.
+//
+// Declaración de función y no `const`, a propósito: esto lo llama el
+// arranque, y un `const` declarado por debajo del `await` inicial
+// todavía no existe en ese momento —no vale `undefined`: lanza.
+function respaldoDelTablero(e) {
+  return {
+    entrada:  e.entrada ? { hora: e.entrada, min: e.minutos, tarde: e.estado === 'retrasado' } : null,
+    salida:   e.salida  ? { hora: e.salida } : null,
+    prevista: e.esperada
+  };
+}
+
 async function cargarHoy() {
   const verPeriodo = periodo !== 'hoy' && puedeEditar();
   $('bloque-hoy').hidden = verPeriodo;
@@ -374,29 +520,205 @@ async function cargarHoy() {
     return;
   }
 
-  $('hoy-lista').innerHTML = data.empleados.map((e) => `
-    <div class="ficha"${(puedeVerEvidencia() && e.evento_id && e.evidencia === 'almacenada')
+  // Las cuatro horas de cada jornada, no dos. Se leen de las marcaciones
+  // y se pintan en hora de la sede.
+  await husosDeSedes();
+  const zona = husoDe(sede);
+  const marcas = await marcacionesDelDia(sede, data.fecha);
+
+  $('hoy-lista').innerHTML = data.empleados.map((e) => {
+    const foto  = puedeVerEvidencia() && e.evento_id && e.evidencia === 'almacenada';
+    const suyas = marcas ? marcas.get(e.id) : null;
+    // En un día de descanso no hay horas que enseñar... salvo que haya
+    // marcado, y entonces es justo lo que hay que ver.
+    const callar = e.estado === 'descanso' && !suyas && !e.entrada;
+    return `
+    <div class="ficha ficha--dia"${foto
       ? ` data-ver-foto="${e.evento_id}" data-nombre="${esc(e.nombre)}" style="cursor:pointer"` : ''}>
-      <span class="estado-punto" data-e="${e.estado}"></span>
-      <div class="ficha__cuerpo">
-        <strong>${esc(e.nombre)}</strong>
-        <span>${esc(e.cargo)} · ${ESTADOS_HOY[e.estado] || e.estado}</span>
-        ${e.evidencia === 'sin_evidencia'
-          ? '<span class="pastilla pastilla--pin" style="margin-top:.25rem">Sin foto</span>' : ''}
-        ${e.origen === 'offline'
-          ? '<span class="pastilla pastilla--pin" style="margin-top:.25rem">Sin conexión</span>' : ''}
+      <div class="ficha__cabeza">
+        <span class="estado-punto" data-e="${e.estado}"></span>
+        <div class="ficha__cuerpo">
+          <strong>${esc(e.nombre)}</strong>
+          <span>${esc(e.cargo)} · ${ESTADOS_HOY[e.estado] || e.estado}</span>
+          ${e.evidencia === 'sin_evidencia'
+            ? '<span class="pastilla pastilla--pin" style="margin-top:.25rem">Sin foto</span>' : ''}
+          ${e.origen === 'offline'
+            ? '<span class="pastilla pastilla--pin" style="margin-top:.25rem">Sin conexión</span>' : ''}
+        </div>
+        ${foto ? '<span class="ver-foto">📷 ver</span>' : ''}
       </div>
-      <div class="horas">
-        ${e.entrada ? `<strong>${e.entrada}</strong>` : (e.esperada ? e.esperada : '—')}
-        ${e.entrada && e.minutos ? `<br>${e.minutos > 0 ? '+' : ''}${e.minutos} min` : ''}
-        ${e.salida ? `<br>↩ ${e.salida}` : ''}
-        ${(puedeVerEvidencia() && e.evento_id && e.evidencia === 'almacenada')
-          ? '<br><span class="ver-foto">📷 ver</span>' : ''}
-      </div>
-    </div>`).join('');
+      ${callar ? '' : cuatroHoras(suyas, zona, respaldoDelTablero(e))}
+    </div>`;
+  }).join('');
 
   $('hoy-lista').querySelectorAll('[data-ver-foto]').forEach((f) =>
     f.addEventListener('click', () => verEvidencia(f.dataset.verFoto, f.dataset.nombre)));
+}
+
+/* ── HORAS · el historial de las cuatro marcaciones ───────────────────
+   «Hoy» cuenta el día en curso y se borra con él. Esto cuenta cualquier
+   día: se elige la sede, se camina hacia atrás con las flechas, y de
+   cada trabajador se ven sus cuatro horas. Cada ficha abre además las
+   dos últimas semanas de esa persona.
+
+   Lo ve cualquier acceso —dirección, administración, jefe operativo y
+   socio—, a propósito: a qué hora entró su gente, cuánto duró el
+   almuerzo y a qué hora volvió al puesto es información de operación,
+   no de nómina. Es lo que un supervisor o un gerente de operaciones
+   necesita para dirigir un turno, y negárselo sólo conseguía que lo
+   preguntara por teléfono.
+
+   La fotografía sigue donde estaba: en dirección y administración. Aquí
+   se ven horas, no caras.
+
+   El selector de sede no decide nada: la base sólo entrega las sedes que
+   ese acceso puede ver. Si un jefe operativo de Maracaibo pidiera Caja
+   Seca, no recibiría cero filas por cortesía del panel —no las recibe. */
+
+function sedeDeHoras() {
+  return $('horas-sede')?.value || yo?.branch_id || sedes[0]?.id || '';
+}
+
+function diaLargo(iso) {
+  return new Date(iso + 'T12:00:00')
+    .toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+function diaCorto(iso) {
+  return new Date(iso + 'T12:00:00')
+    .toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function pasarDia(cuantos) {
+  const d = new Date((horasDia || fechaEnSede(husoDe(sedeDeHoras()))) + 'T12:00:00');
+  d.setDate(d.getDate() + cuantos);
+  horasDia = fechaDeTexto(d);
+  cargarHoras();
+}
+
+$('horas-sede')?.addEventListener('change', () => cargarHoras());
+$('horas-anterior')?.addEventListener('click', () => pasarDia(-1));
+$('horas-siguiente')?.addEventListener('click', () => pasarDia(1));
+$('horas-hoy')?.addEventListener('click', () => { horasDia = null; cargarHoras(); });
+
+// Atajo honesto: quien puede cambiar el horario de la sede lo cambia en
+// su sitio, con la sede ya elegida. Quien no puede, no ve el botón —y la
+// base tampoco se lo permitiría.
+$('horas-horario')?.addEventListener('click', () => {
+  const sel = $('horario-sede');
+  if (sel) sel.value = sedeDeHoras();
+  mostrar('v-horarios');
+});
+
+async function cargarHoras() {
+  const caja = $('horas-lista');
+  if (!caja) return;
+
+  const sede = sedeDeHoras();
+  if (!sede) { caja.innerHTML = '<p class="vacio">No hay sedes visibles.</p>'; return; }
+
+  await husosDeSedes();
+  const zona = husoDe(sede);
+  const hoy  = fechaEnSede(zona);
+  // Nunca el futuro: no hay marcaciones de mañana, y ofrecerlas sólo
+  // haría dudar de si el sistema las perdió.
+  if (!horasDia || horasDia > hoy) horasDia = hoy;
+
+  const etiqueta = $('horas-fecha');
+  if (etiqueta) etiqueta.textContent = diaLargo(horasDia) + (horasDia === hoy ? ' · hoy' : '');
+  const siguiente = $('horas-siguiente');
+  if (siguiente) siguiente.disabled = horasDia >= hoy;
+  ver('horas-hoy', horasDia !== hoy);
+
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+
+  const [gente, marcas] = await Promise.all([
+    sb.from('employees')
+      .select('id, first_name, last_name, position, is_active')
+      .eq('branch_id', sede)
+      .order('last_name'),
+    marcacionesDelDia(sede, horasDia)
+  ]);
+
+  if (gente.error) { caja.innerHTML = `<p class="vacio">${esc(traducir(gente.error))}</p>`; return; }
+
+  // Quien ya no trabaja aquí aparece sólo si ESE día marcó: su historial
+  // no se borra nunca, pero tampoco llena la lista de gente que ya no está.
+  const lista = (gente.data || []).filter((e) => e.is_active || (marcas && marcas.has(e.id)));
+  if (!lista.length) {
+    caja.innerHTML = '<p class="vacio">Esta sede no tiene nada que mostrar ese día.</p>';
+    return;
+  }
+
+  caja.innerHTML = lista.map((e) => {
+    const suyas = marcas ? marcas.get(e.id) : null;
+    return `
+    <div class="ficha ficha--dia">
+      <div class="ficha__cabeza">
+        <div class="ficha__cuerpo">
+          <strong>${esc(e.first_name)} ${esc(e.last_name)}</strong>
+          <span>${esc(e.position)}${e.is_active ? '' : ' · ya no trabaja aquí'}</span>
+          ${marcas && !suyas
+            ? '<span class="pastilla pastilla--inactivo" style="margin-top:.25rem">Sin marcaciones</span>' : ''}
+        </div>
+        <button class="ficha__accion" data-quincena="${e.id}">14 días</button>
+      </div>
+      ${cuatroHoras(suyas, zona)}
+      <div class="historial" data-historial="${e.id}" hidden></div>
+    </div>`;
+  }).join('');
+
+  caja.querySelectorAll('[data-quincena]').forEach((b) =>
+    b.addEventListener('click', () => verQuincena(b.dataset.quincena, b)));
+}
+
+// Las dos últimas semanas de una persona, contadas desde el día que se
+// está mirando. Los días que no marcó no se inventan: no salen.
+async function verQuincena(empleado, boton) {
+  const caja = document.querySelector(`[data-historial="${empleado}"]`);
+  if (!caja) return;
+
+  if (!caja.hidden) { caja.hidden = true; boton.textContent = '14 días'; return; }
+
+  caja.hidden = false;
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+  boton.textContent = 'Cerrar';
+
+  // Los catorce días ANTERIORES al que se está mirando. El de hoy ya está
+  // pintado justo encima: repetirlo ahí dentro se lee como un fallo.
+  const fin = new Date(horasDia + 'T12:00:00');
+  fin.setDate(fin.getDate() - 1);
+  const hasta = fechaDeTexto(fin);
+  const ini = new Date(horasDia + 'T12:00:00');
+  ini.setDate(ini.getDate() - 14);
+  const desde = fechaDeTexto(ini);
+
+  const { data, error } = await sb.from('attendance_events')
+    .select('work_date, event, recorded_at, delta_minutes, status')
+    .eq('employee_id', empleado)
+    .gte('work_date', desde)
+    .lte('work_date', hasta)
+    .order('work_date');
+
+  if (error) { caja.innerHTML = `<p class="vacio">${esc(traducir(error))}</p>`; return; }
+
+  const dias = new Map();
+  (data || []).forEach((m) => {
+    const suyas = dias.get(m.work_date) || {};
+    suyas[m.event] = m;
+    dias.set(m.work_date, suyas);
+  });
+
+  if (!dias.size) {
+    caja.innerHTML = '<p class="vacio">No marcó ningún día de las dos semanas anteriores.</p>';
+    return;
+  }
+
+  const zona = husoDe(sedeDeHoras());
+  caja.innerHTML = [...dias.keys()].sort().reverse().map((f) => `
+    <div class="historial__dia">
+      <span class="historial__fecha">${esc(diaCorto(f))}</span>
+      ${cuatroHoras(dias.get(f), zona)}
+    </div>`).join('');
 }
 
 /* ── Comparativo del período ────────────────────────────────────────── */
@@ -808,22 +1130,28 @@ async function cargarSedes() {
     </div>`).join('') : '<p class="vacio">No hay sedes visibles.</p>';
 
   const opciones = sedes.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
-  ['emp-sede', 'horario-sede', 'usr-sede', 'hoy-sede', 'cierre-sede']
-    .forEach((id) => { $(id).innerHTML = opciones; });
+  // Con `$(id)` a secas, un identificador que no exista en este HTML
+  // revienta la línea y se lleva por delante TODO lo que viene después.
+  // Ya pasó una vez. Un selector sin llenar cuesta un filtro; nunca el
+  // arranque entero del panel.
+  const llenar = (ids) => ids.forEach((id) => { const el = $(id); if (el) el.innerHTML = opciones; });
+  llenar(['emp-sede', 'horario-sede', 'usr-sede', 'hoy-sede', 'cierre-sede', 'horas-sede']);
 
   // Estos dos sí admiten «todas»: un reporte o una auditoría de varias
   // sedes tiene sentido; cerrar la semana de varias a la vez, no.
   const conTodas = (sedes.length > 1 ? '<option value="">Todas las sedes</option>' : '') + opciones;
-  ['filtro-sede', 'rep-sede', 'audit-sede'].forEach((id) => { $(id).innerHTML = conTodas; });
+  ['filtro-sede', 'rep-sede', 'audit-sede']
+    .forEach((id) => { const el = $(id); if (el) el.innerHTML = conTodas; });
 
   pintarSedesDeSocio();
 
-  $('filtro-sede-caja').hidden = sedes.length < 2;
-  $('hoy-sede-caja').hidden = sedes.length < 2;
+  ver('filtro-sede-caja', sedes.length > 1);
+  ver('hoy-sede-caja',    sedes.length > 1);
+  ver('horas-sede-caja',  sedes.length > 1);
 
   if (yo.branch_id) {
-    ['emp-sede', 'horario-sede', 'hoy-sede', 'cierre-sede']
-      .forEach((id) => { $(id).value = yo.branch_id; });
+    ['emp-sede', 'horario-sede', 'hoy-sede', 'cierre-sede', 'horas-sede']
+      .forEach((id) => { const el = $(id); if (el) el.value = yo.branch_id; });
     $('emp-sede').disabled = !esCeo();          // nadie da de alta fuera de su sede
   }
 }

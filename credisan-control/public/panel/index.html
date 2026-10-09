@@ -104,6 +104,34 @@
     </section>
   </main>
 
+  <!-- ══ HORAS · las cuatro marcaciones de cualquier día ════════════ -->
+  <main class="vista" id="v-horas" hidden>
+    <div class="encabezado-vista">
+      <h1>Horas</h1>
+      <button class="boton" id="horas-horario" hidden>Horario de la sede</button>
+    </div>
+
+    <p class="ayuda" style="margin:-.5rem 0 1rem">
+      Las cuatro horas de cada jornada: entrada, salida a almuerzo, regreso
+      del almuerzo y salida. Camine por los días con las flechas.
+    </p>
+
+    <div class="campo" id="horas-sede-caja" hidden>
+      <label for="horas-sede">Sede</label>
+      <select id="horas-sede"></select>
+    </div>
+
+    <div class="dias-paso">
+      <button id="horas-anterior" type="button" aria-label="Día anterior">‹</button>
+      <strong id="horas-fecha">…</strong>
+      <button id="horas-siguiente" type="button" aria-label="Día siguiente">›</button>
+    </div>
+    <button class="boton boton--secundario" id="horas-hoy" hidden
+            style="margin:-.35rem 0 1rem">Volver a hoy</button>
+
+    <div id="horas-lista"><p class="cargando">Cargando…</p></div>
+  </main>
+
   <!-- ══ PERSONAL ══════════════════════════════════════════════════════ -->
   <main class="vista" id="v-personal" hidden>
     <div class="encabezado-vista">
@@ -538,6 +566,7 @@
        Horarios, Sedes, Auditoría y Reportes viven dentro de «Más». -->
   <nav class="nav">
     <button data-vista="v-hoy" aria-current="true"><span>📋</span>Hoy</button>
+    <button data-vista="v-horas"><span>🕒</span>Horas</button>
     <button data-vista="v-personal"><span>👥</span>Personal</button>
     <button data-vista="v-novedades"><span>⚠️</span>Novedades<i class="insignia"
             id="insignia-novedades" hidden></i></button>

@@ -43,8 +43,8 @@ async function abrir(b, rol) {
     const { p, errs } = await abrir(b, 'admin');
     p.on('dialog', (d) => d.accept('Semana de inventario'));
 
-    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.length)) === 5,
-       'la barra inferior tiene cinco botones, no siete');
+    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.map((x) => x.dataset.vista).join(','))) === 'v-hoy,v-horas,v-personal,v-novedades,v-cierres,v-mas',
+       'la barra inferior de administración, nombrada entera');
     ok(await p.locator('#nav-cierres').isVisible(), 'aparece Cierres');
     ok(await p.locator('#nav-mas').isVisible(), 'aparece Más');
 
@@ -165,8 +165,8 @@ async function abrir(b, rol) {
     const { p, errs } = await abrir(b, 'supervisor');
     ok(await p.locator('#nav-cierres').isHidden(), 'no ve Cierres');
     ok(await p.locator('#nav-mas').isHidden(), 'no ve Más');
-    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.length)) === 3,
-       'sigue con tres botones');
+    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.map((x) => x.dataset.vista).join(','))) === 'v-hoy,v-horas,v-personal,v-novedades',
+       'sigue sin cierres ni más: hoy, horas, personal y novedades');
 
     const todo = await p.evaluate(() => document.body.innerText);
     ok(!/Cierre semanal|Auditoría|Reportes/.test(todo), 'ni el nombre de esas pantallas aparece');

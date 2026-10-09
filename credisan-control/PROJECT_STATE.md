@@ -952,6 +952,89 @@ borran solas a los 180 días, y los usuarios del panel, que se reinvitan por
 correo. Ambas cosas están dichas en el resumen que deja el flujo, para que
 nadie descubra la ausencia el día equivocado.
 
+## Las cuatro horas de la jornada
+
+El panel enseñaba dos horas de cada día: a la que llegó y a la que se fue.
+Con eso no se puede dirigir un turno. Falta el mediodía —a qué hora se fue a
+almorzar y a qué hora volvió al puesto—, que es donde se va el tiempo de
+verdad y lo que un jefe operativo o un gerente de operaciones necesita mirar.
+
+Las cuatro marcaciones **ya se guardaban desde el primer día**: el terminal
+deduce cuál toca y el motor mide cada una contra el horario de esa persona.
+El hueco estaba sólo en la pantalla.
+
+### Lo entregado
+
+- **En «Hoy»**, cada ficha pasa a tener cuatro casillas —Entrada, Almuerzo,
+  Regreso, Salida— con la hora marcada y, debajo, los minutos de diferencia
+  que midió el motor.
+- **Una vista nueva, «Horas»**, para cualquier día y no sólo hoy: se elige la
+  sede, se camina hacia atrás con las flechas, y cada ficha abre además las
+  dos últimas semanas de esa persona.
+- **La ve todo el mundo**: dirección, administración, jefe operativo y socio.
+  A qué hora entró su gente y cuánto duró el almuerzo es información de
+  operación, no de nómina. La fotografía sigue donde estaba: en dirección y
+  administración. Ahí se ven horas, no caras.
+- **Los horarios por sede ya eran editables** por la administradora de cada
+  sede, con sus cuatro horas (`Más → Horarios`), y desde la vista nueva hay un
+  atajo directo con la sede ya elegida —visible sólo para quien puede usarlo.
+
+### Tres decisiones
+
+**Sin tocar la base de datos.** Las cuatro horas se leen directamente de
+`attendance_events`, cuya política ya entrega a cualquier acceso las
+marcaciones de su sede y de ninguna otra. Cambiar `tablero_hoy` habría sido
+más elegante y habría quedado sin aplicar: la contraseña de la base lleva
+sin servir desde el 18 de septiembre. Ya pasó una vez —la Fase 13 se publicó
+con su migración sin aplicar y dejó el desplegable de novedades vacío— y la
+lección fue clara: lo que el panel pueda hacer solo, lo hace solo.
+
+**La hora es la de la sede, no la del navegador.** Se lee de
+`branches.timezone`. La batería corre el navegador en Madrid a propósito: si
+el panel pintara la hora local, un almuerzo de las 12:41 de Maracaibo se
+leería «18:41» y nadie lo notaría hasta que alguien discutiera un descuento.
+
+**El color lo pone el motor, no la pantalla.** Y al construir esto salió a la
+luz una regla del motor que conviene no confundir al leer el panel: **irse
+tarde a almorzar no cuenta como falta** —se trabajó más antes de ir— pero
+**volver tarde sí**. El primer simulador de la prueba daba «retraso» a un
+almuerzo empezado tarde; el motor no lo da, y se corrigió la prueba, no el
+motor. Un almuerzo demasiado largo ya aparece donde debe: en el regreso. Si
+alguna vez se decide que también es falta irse tarde, se cambia en
+`app.classify` y el panel obedece sin tocar una línea.
+
+### Dos fallos que encontraron las pruebas
+
+- **Un `const` por debajo del `await` de arranque.** Este archivo espera la
+  sesión guardada antes de seguir evaluándose, así que una constante
+  declarada más abajo y usada por el arranque no vale `undefined`: **lanza**,
+  y el panel se queda en «Cargando» para siempre. Lo cogió
+  `panel-sesion-test.js` en el acto. Todo el estado del módulo vive ahora
+  arriba, con el motivo escrito al lado.
+- **Una comprobación de fugas que fallaba por sorteo.** La batería de la
+  Fase 5 buscaba «150» y «200» como texto dentro del JSON del cierre para
+  asegurarse de que no se escapaba ningún salario, y los encontró dentro de
+  un identificador aleatorio (`…55b67650-…9200-bcd3…`). Fallaba sin que
+  hubiera fuga alguna. La advertencia estaba escrita en
+  `pruebas/navegador/LEEME.md` desde la Fase 4; ahí seguía viva. Ahora se
+  tachan los identificadores antes de buscar y las cifras se buscan como
+  palabra entera —comprobado que una fuga de verdad sigue cayendo.
+
+### Validado
+
+- `supabase/tests/15_cuatro_horas.sql` — las cuatro marcaciones quedan
+  guardadas y medidas; el jefe operativo las ve todas de su sede y **ninguna**
+  de la de al lado; el socio ve las sedes que se le asignaron; ver horas no
+  abre la puerta a la fotografía ni al salario; el historial por rango
+  respeta el rango y la sede. Comprobado además que la batería muerde:
+  con la política de sede desactivada a mano, la primera que salta es la fuga.
+- `pruebas/navegador/panel-horas-test.js` — 54 comprobaciones sobre cuatro
+  accesos: las cuatro horas en «Hoy» y en «Horas», la hora de la sede frente
+  a la del navegador, caminar los días sin poder entrar al futuro, el
+  historial de dos semanas, y que al jefe operativo y al socio no se les
+  ofrezca ni una fotografía ni el botón de cambiar horarios.
+- Las 15 baterías SQL y las 13 de navegador, enteras, en verde.
+
 ## Estado: las seis fases entregadas
 
 Falta únicamente lo que depende de la cuenta de Supabase del cliente, y que no

@@ -126,7 +126,8 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
     ok(await p.locator('#periodos').isHidden(), 'no ve estadísticas de período');
     ok(await p.locator('#hoy-sede-caja').isHidden(), 'no puede elegir otra sede');
     ok(await p.locator('#btn-nuevo-empleado').isHidden(), 'no da de alta personal');
-    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.length)) === 3, 'navegación de tres botones');
+    ok((await p.$$eval('.nav button:not([hidden])', (n) => n.map((x) => x.dataset.vista).join(','))) === 'v-hoy,v-horas,v-personal,v-novedades',
+       'la barra inferior es la suya: hoy, horas, personal y novedades');
     ok((await p.$$eval('#hoy-lista .ficha', (n) => n.length)) === 2, 've a su gente del día');
 
     const todo = await p.evaluate(() => document.body.innerText);
