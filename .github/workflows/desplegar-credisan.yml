@@ -186,30 +186,46 @@ jobs:
       - name: Comprobar que la web responde
         if: steps.credenciales.outputs.listas == 'si'
         run: |
+          sello=$(git rev-parse --short HEAD)
           fallos=0
+
+          # Se SIGUEN los redirect, y se dice dónde se acabó llegando.
+          #
+          # El 9 de octubre esta comprobación se puso en rojo con los
+          # archivos ya publicados y la web funcionando: el dominio había
+          # pasado a redirigir a asistencia.clientescredisan.com. Un aviso
+          # que sale rojo cuando todo está bien deja de leerse, y el día
+          # que algo se rompa de verdad nadie lo mirará.
+          #
+          # Por eso no basta con un 200: se exige que la página que
+          # contesta lleve EL SELLO DE ESTE DESPLIEGUE. Un 200 dice que
+          # alguien respondió; el sello dice que respondió con lo que
+          # acabamos de publicar, que es la pregunta de verdad.
           for ruta in / /panel/ /kiosk/ /sw.js; do
-            lee=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "https://control.sinfiltroconmax.com$ruta")
+            lee=$(curl -sL -o /dev/null -w '%{http_code} %{url_effective}' "https://control.sinfiltroconmax.com$ruta")
             codigo=${lee%% *}
-            destino=${lee#* }
-            # Un 3xx sin saber ADÓNDE no dice nada. La diferencia entre un
-            # redirect inofensivo y el dominio apuntando a otro sitio está
-            # entera en esa dirección, y sin ella hay que entrar al servidor
-            # a adivinarlo.
-            if [ -n "$destino" ]; then
-              echo "$ruta → HTTP $codigo → $destino"
-            else
-              echo "$ruta → HTTP $codigo"
-            fi
+            final=${lee#* }
+            echo "$ruta → HTTP $codigo → $final"
             [ "$codigo" = "200" ] || fallos=$((fallos+1))
           done
+
+          publicado=$(curl -sL "https://control.sinfiltroconmax.com/panel/" | grep -c "?v=$sello" || true)
+          if [ "$publicado" -gt 0 ]; then
+            echo "el panel que se sirve lleva el sello $sello"
+          else
+            echo "::error::La web contesta, pero el panel que sirve NO lleva el sello $sello de este despliegue."
+            fallos=$((fallos+1))
+          fi
+
           if [ "$fallos" -gt 0 ]; then
-            echo "::error::$fallos ruta(s) no responden 200. Revise el respaldo en el VPS."
+            echo "::error::$fallos comprobación(es) en rojo. Revise el respaldo en el VPS."
             exit 1
           fi
           {
             echo "### CrediSan Control publicado"
             echo ""
-            echo "https://control.sinfiltroconmax.com — portada, panel, terminal y service worker responden."
+            echo "Portada, panel, terminal y service worker responden, y el panel servido"
+            echo "lleva el sello \`$sello\` de este despliegue."
             echo ""
             echo "\`config/env.js\` del servidor no se tocó."
           } >> $GITHUB_STEP_SUMMARY
