@@ -1049,10 +1049,14 @@ salían todas o nada.
 - **Las dos formas de mirarlo**: todas las sedes juntas para compararlas, o
   una sola cuando ya se sabe cuál interesa. El selector admite «todas», y
   la petición viaja con la sede elegida —también la del ranking.
-- **Lo ven los socios**, además de dirección y administración. Es la cifra
-  por la que preguntan y no lleva dentro un solo dato de nómina:
-  porcentajes, retrasos y ausencias. Al jefe operativo no se le pone: su
-  panel es el del día, y su sede es una sola.
+- **Lo ven todos los accesos**: dirección, administración, socios y —por
+  petición expresa de Max, que primero lo había dejado fuera— también el
+  jefe operativo. Es cómo va su gente, y el que dirige el turno es
+  justamente quien puede hacer algo con ese dato. No lleva dentro un solo
+  dato de nómina: porcentajes, retrasos y ausencias, y cada quien sólo de
+  las sedes que le tocan, porque eso lo decide la base y no el panel.
+  Lo que sigue sin ser de todos es **recalcular** el período, que es
+  escribir: ese botón se gobierna aparte.
 - **Ordenado por puntualidad, no por código.** Un tablero existe para que la
   respuesta salte a la vista; ordenado por código hay que leerlo entero y
   comparar de memoria.

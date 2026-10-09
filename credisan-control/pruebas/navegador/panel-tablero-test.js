@@ -163,12 +163,27 @@ const ultimaPeticion = (p, nombre) => p.evaluate((n) =>
     await b.close();
   }
 
-  // ── 5 · El jefe operativo sigue fuera ─────────────────────────────
-  console.log('\n5 · El jefe operativo sigue con el panel del día');
+  // ── 5 · El jefe operativo ─────────────────────────────────────────
+  // El que dirige el turno es quien puede hacer algo con el dato, así
+  // que también lo ve. Lo que no puede es escribir: recalcular el
+  // período sigue siendo de administración.
+  console.log('\n5 · El jefe operativo ve el de su sede, y no escribe');
   {
     const { b, p, errs } = await abrir('supervisor');
-    si('no ve el selector de período', await p.locator('#periodos').isHidden());
-    si('ni el tablero', await p.locator('#bloque-periodo').isHidden());
+    si('tiene el selector de período', await p.locator('#periodos').isVisible());
+    await aSemana(p);
+    si('y el tablero aparece', await p.locator('#bloque-periodo').isVisible());
+
+    const texto = await p.textContent('#periodo-sedes');
+    si('ve su sede', texto.includes('Maracaibo'));
+    si('y ninguna otra', !texto.includes('Caja Seca') && !texto.includes('Maracay'));
+    si('con su puntualidad', texto.includes('94.2%'));
+    si('no se le ofrece recalcular el período',
+       !(await p.locator('#btn-recalcular').isVisible()));
+
+    const todo = await p.evaluate(() => document.body.innerText);
+    si('y sigue sin una palabra de dinero',
+       !/salario|sueldo|nómina|USD|\$\d/i.test(todo));
     si('sin errores de JavaScript', errs.length === 0, errs.join(' | '));
     await b.close();
   }

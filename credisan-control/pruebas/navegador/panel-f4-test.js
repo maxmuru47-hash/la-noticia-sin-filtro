@@ -127,7 +127,7 @@ const textoDe = (p, sel) => p.textContent(sel).then((t) => t.replace(/\s+/g, ' '
        await textoDe(p, '#mi-rol'));
     ok(await p.locator('#nav-mas').isHidden(), 'no ve el menú Más (horarios, sedes, auditoría)');
     ok(await p.locator('#nav-cierres').isHidden(), 'no ve Cierres');
-    ok(await p.locator('#periodos').isHidden(), 'no ve estadísticas de período');
+    ok(await p.locator('#periodos').isVisible(), 'sí ve el tablero de puntualidad');
     ok(await p.locator('#hoy-sede-caja').isHidden(), 'no puede elegir otra sede');
     ok(await p.locator('#btn-nuevo-empleado').isHidden(), 'no da de alta personal');
     ok((await p.$$eval('.nav button:not([hidden])', (n) => n.map((x) => x.dataset.vista).join(','))) === 'v-hoy,v-horas,v-personal,v-novedades',

@@ -88,13 +88,19 @@ const esSocio = () => yo && yo.rol === 'socio';
 // El socio mira el cierre; quien lo revisa y lo cierra es administración.
 const puedeVerCierres = () => puedeEditar() || esSocio();
 
-// El tablero de puntualidad: dirección, administración y socios. Al jefe
-// operativo no se le pone, que su panel es el del día y su sede es una.
+// El tablero de puntualidad lo ve TODO EL MUNDO, jefe operativo incluido.
+// Es cómo va su gente, y el que dirige el turno es justamente quien puede
+// hacer algo con ese dato. No lleva nada reservado dentro: porcentajes,
+// retrasos y ausencias, y cada quien sólo de las sedes que le tocan,
+// porque eso lo decide la base y no esta línea.
 //
-// Esta regla se consulta en DOS sitios —el botón y el tablero— y por eso
-// vive aquí. Escrita dos veces, al abrirla a los socios cambié una y no
-// la otra: el botón salía y no hacía nada.
-const puedeVerTablero = () => puedeEditar() || esSocio();
+// Lo que sigue sin ser suyo es RECALCULAR el período, que es escribir:
+// ese botón se gobierna aparte, con `puedeEditar()`.
+//
+// Esta regla se consulta en DOS sitios —el botón y el contenido— y por
+// eso vive aquí. Escrita dos veces, al abrirla a los socios cambié una y
+// no la otra: el botón salía y no hacía nada.
+const puedeVerTablero = () => !!yo;
 
 // La fotografía de una marcación es de lo más sensible que guarda el
 // sistema: la cara de una persona. La matriz de roles aprobada la deja
