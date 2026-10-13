@@ -1,5 +1,14 @@
 # Rutina diaria de La Noticia Sin Filtro
 
+> **Modo de trabajo desde el 12 de octubre de 2026: a pedido.**
+> La rutina automática de las 6 de la mañana está desactivada (no borrada).
+> Claude ya no escribe todos los días por su cuenta. Max pide una pieza cuando
+> la quiere —con tema o sin tema— y Claude la investiga, la verifica y la
+> entrega el mismo día, en los seis campos del panel.
+>
+> Todo lo que sigue en este documento mantiene su validez: es el encargo, la
+> línea editorial y el formato. Lo único que cambió es cuándo se dispara.
+
 Este documento se lee **entero** antes de escribir la pieza del día. No es
 contexto de fondo: es el encargo.
 
